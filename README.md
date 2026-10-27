@@ -61,9 +61,18 @@ Existing products already offer real-estate analytics and location/risk layers. 
 - AI: optional provider adapter for evidence-grounded explanations; deterministic calculations remain outside the model
 - Deployment: Vercel or another supported host after local build and environment configuration are verified
 
-## Current status
+## Current implementation status
 
-This repository bootstrap establishes the product direction, research assumptions, architecture, data policy, roadmap, and acceptance criteria. It does **not** claim that the application, external integrations, data coverage, or production deployment are already implemented. See the roadmap for phased delivery and verification gates.
+The repository now includes an interactive location-analysis flow backed by three real public services:
+- OpenStreetMap Nominatim for user-submitted location geocoding.
+- Open-Meteo for current weather-model output at the resolved coordinate.
+- OpenStreetMap via Overpass for a bounded sample of mapped amenities around the coordinate.
+
+The UI shows source URLs, retrieval time, source availability, and limitations. If weather or amenity retrieval fails, the UI shows an unavailable state instead of substituting synthetic values. This is a working initial integration, **not proof of production readiness**: build/CI, live end-to-end tests, multi-instance rate limiting, provider reliability, security review, accessibility QA, and deployment still need to be verified.
+
+The public Nominatim service is rate-limited and must not be used for autocomplete or high-volume traffic. The current implementation uses explicit form submission, basic in-process caching, and a request spacing guard. In-process controls are not sufficient for horizontally scaled production; use a compliant provider or shared cache/rate limiter before public launch.
+
+Weather values are model output, not on-site measurements. Mapped amenities are not guaranteed to be complete, open, accessible, or high-quality. This version does not make flood, crime, pollution, title, structural, or property-value claims.
 
 ## Development principles
 
