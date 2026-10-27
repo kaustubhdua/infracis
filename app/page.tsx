@@ -1,3 +1,4 @@
+import AnalyzeClient from "./analyze-client";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -168,6 +169,15 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section id="live-analysis" className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-12">
+        <div className="mb-8 max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#598069]">Try a real location</p>
+          <h2 className="mt-4 text-3xl font-medium tracking-[-0.04em] sm:text-4xl">Start with evidence that exists.</h2>
+          <p className="mt-4 leading-7 text-[#6d786f]">Submit a location to retrieve geocoding, current weather-model data, and mapped amenities from live public services. If a source fails, we show the gap rather than inventing a result.</p>
+        </div>
+        <AnalyzeClient />
       </section>
 
       <section id="sample" className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:px-12">
