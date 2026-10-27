@@ -20,7 +20,19 @@ type Source = {
 };
 
 const cache = new Map<string, { expires: number; value: unknown }>();
+const requestWindows = new Map<string, { startedAt: number; count: number }>();
 let lastNominatimRequest = 0;
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const current = requestWindows.get(key);
+  if (!current || now - current.startedAt >= 60_000) {
+    requestWindows.set(key, { startedAt: now, count: 1 });
+    return false;
+  }
+  current.count += 1;
+  return current.count > 8;
+}
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -114,6 +126,12 @@ async function getAmenities(lat: number, lon: number) {
 }
 
 export async function POST(request: NextRequest) {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const clientKey = forwarded || request.headers.get("x-real-ip") || "unknown-client";
+  if (isRateLimited(clientKey)) {
+    return jsonError("Too many searches from this connection. Please wait a minute and try again.", 429);
+  }
+
   let query = "";
   try {
     const body = await request.json();
