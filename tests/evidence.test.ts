@@ -1,0 +1,150 @@
+import { describe, it, expect } from "vitest";
+import { assembleLocationReport } from "../lib/evidence-engine";
+import { LocationData, WeatherData, AirQualityData, AmenitiesSummary } from "../lib/types";
+
+describe("Evidence Engine & Provenance Integrity", () => {
+  const mockLocation: LocationData = {
+    label: "Indiranagar, Bengaluru, Karnataka, India",
+    latitude: 12.9784,
+    longitude: 77.6408,
+    mapUrl: "https://www.openstreetmap.org/?mlat=12.9784&mlon=77.6408#map=16/12.9784/77.6408"
+  };
+
+  const mockWeather: WeatherData = {
+    temperature: 24.5,
+    humidity: 65,
+    precipitation: 0,
+    windSpeed: 12.2,
+    weatherCode: 1,
+    weatherDescription: "Mainly clear",
+    observedTime: "2026-10-28T00:00:00Z",
+    elevationMeters: 914,
+    units: { temperature_2m: "°C", precipitation: "mm" }
+  };
+
+  const mockAirQuality: AirQualityData = {
+    europeanAqi: 42,
+    aqiLabel: "Moderate (40-60)",
+    pm25: 28.4,
+    pm10: 52.1,
+    nitrogenDioxide: 18.2,
+    ozone: 34.0,
+    observedTime: "2026-10-28T00:00:00Z",
+    units: { pm2_5: "µg/m³" }
+  };
+
+  const mockAmenities: AmenitiesSummary = {
+    totalCount: 14,
+    radiusMeters: 1200,
+    byGroup: {
+      transit: 3,
+      education: 2,
+      healthcare: 4,
+      essentials: 5,
+      civic: 0
+    },
+    nearest: {
+      transit: {
+        id: "node-101",
+        name: "Indiranagar Metro Station",
+        category: "subway_entrance",
+        group: "transit",
+        distanceMeters: 380,
+        lat: 12.9783,
+        lon: 77.6412
+      },
+      healthcare: {
+        id: "node-202",
+        name: "Chinmaya Mission Hospital",
+        category: "hospital",
+        group: "healthcare",
+        distanceMeters: 620,
+        lat: 12.9771,
+        lon: 77.6450
+      },
+      education: {
+        id: "node-303",
+        name: "National Public School",
+        category: "school",
+        group: "education",
+        distanceMeters: 750,
+        lat: 12.9760,
+        lon: 77.6465
+      },
+      essentials: {
+        id: "node-404",
+        name: "Nature's Basket",
+        category: "supermarket",
+        group: "essentials",
+        distanceMeters: 290,
+        lat: 12.9790,
+        lon: 77.6420
+      }
+    },
+    items: []
+  };
+
+  it("assembles complete evidence records with verifiable IDs", () => {
+    const report = assembleLocationReport(
+      "Indiranagar",
+      mockLocation,
+      mockWeather,
+      mockAirQuality,
+      mockAmenities,
+      "2026-10-28T01:00:00Z"
+    );
+
+    expect(report.id).toBeDefined();
+    expect(report.evidence.length).toBeGreaterThanOrEqual(5);
+
+    // Verify evidence record schema
+    for (const ev of report.evidence) {
+      expect(ev.id).toBeDefined();
+      expect(ev.provider).toBeDefined();
+      expect(ev.sourceUrl).toMatch(/^https?:\/\//);
+      expect(ev.limitations).toBeDefined();
+      expect(["observed", "calculated", "model_interpretation", "unknown"]).toContain(
+        ev.classification
+      );
+    }
+  });
+
+  it("strictly validates that every finding references valid evidence IDs in the report", () => {
+    const report = assembleLocationReport(
+      "Indiranagar",
+      mockLocation,
+      mockWeather,
+      mockAirQuality,
+      mockAmenities,
+      "2026-10-28T01:00:00Z"
+    );
+
+    const validIds = new Set(report.evidence.map((e) => e.id));
+
+    for (const finding of report.findings) {
+      expect(finding.supportingEvidenceIds.length).toBeGreaterThan(0);
+      for (const id of finding.supportingEvidenceIds) {
+        expect(validIds.has(id)).toBe(true);
+      }
+    }
+  });
+
+  it("reports explicit unknowns when optional data layers are null", () => {
+    const reportWithoutAirOrAmenities = assembleLocationReport(
+      "Remote Village",
+      mockLocation,
+      mockWeather,
+      null, // Air quality unavailable
+      null, // Amenities unavailable
+      "2026-10-28T01:00:00Z"
+    );
+
+    expect(reportWithoutAirOrAmenities.scores.completenessScore).toBeLessThan(100);
+    expect(
+      reportWithoutAirOrAmenities.unknowns.some((u) => u.toLowerCase().includes("air quality"))
+    ).toBe(true);
+    expect(
+      reportWithoutAirOrAmenities.unknowns.some((u) => u.toLowerCase().includes("amenity"))
+    ).toBe(true);
+  });
+});

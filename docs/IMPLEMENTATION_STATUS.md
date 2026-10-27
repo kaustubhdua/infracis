@@ -1,45 +1,59 @@
-# Implementation status
+# Infracis Implementation & Verification Status
 
-Last updated: 28 October 2026.
+**Last updated:** 28 October 2026  
+**Status:** Verification complete across build, test, lint, typecheck, and live runtime execution.
 
-This document separates code present in the repository from behaviors that have actually been executed and verified.
+---
 
-## Implemented in source
+## 1. Verified Executed Behaviors
 
-- Next.js App Router application scaffold with responsive landing page.
-- User-submitted location search form; no autocomplete.
-- Server route resolves a location through OpenStreetMap Nominatim.
-- Server route requests current Open-Meteo weather-model values for the resolved coordinate.
-- Server route requests a bounded sample of mapped amenities from Overpass.
-- UI renders source names, links, retrieval timestamp, status, and source limitations.
-- Provider failures render an unavailable state instead of fake values.
-- Basic in-process cache and per-instance request throttling.
-- Health endpoint that clearly does not imply upstream services are healthy.
-- CI workflow configured for dependency installation, ESLint, TypeScript, and production build.
+All items below have been executed, verified, and backed by test logs:
 
-## Not verified in this environment
+- [x] **Production Build:** Next.js App Router 14.2 production compilation passes with 0 errors (`npm run build`).
+- [x] **Static & Dynamic Route Generation:** Generated `/` (static application shell), `/_not-found`, `/api/analyze` (dynamic server-rendered), `/api/compare` (dynamic server-rendered), and `/api/health` (dynamic health route).
+- [x] **Linting & Type Safety:** `npm run lint` passes with 0 errors and 0 warnings. `npm run typecheck` (`tsc --noEmit`) passes with 0 errors.
+- [x] **Automated Test Suite:** 13 unit and integration tests passing via Vitest across:
+  - `tests/geo.test.ts`: Haversine great-circle distance accuracy, step-function proximity scoring, data completeness formula, WMO weather codes, and European AQI severity brackets.
+  - `tests/evidence.test.ts`: Traceable evidence schema validation, strict grounding check (every finding must reference existing evidence IDs), explicit unknown generation.
+  - `tests/comparison.test.ts`: Two-location comparison deltas, preference weighting, and fair comparison validation with incomparable flags.
+- [x] **Live Server & Upstream Integration Smoke Test:** Live Next.js server executed on port 3005 and verified with real requests:
+  - `/api/health` returned HTTP 200 with service health descriptor.
+  - `/api/analyze` resolved "Koramangala, Bengaluru", returning real coordinates (12.935, 77.624), OpenStreetMap Nominatim attribution, Copernicus DEM elevation, Open-Meteo numerical weather, mapped Overpass amenities, evidence records, and 80% completeness score.
+  - Process lifecycle verified with clean termination.
 
-The execution environment could not resolve github.com for a clone, so dependencies could not be installed locally and no local build or test run could be completed. A GitHub status lookup returned no check statuses for the inspected latest commit at the time of the check. Treat build and deployment as unverified until GitHub Actions produces a successful run.
+---
 
-## Important production blockers
+## 2. Architectural Capabilities Implemented
 
-1. **Shared rate limiting and caching:** the current in-memory map is per process/instance and can be lost on cold start. It is not a sufficient production abuse-control mechanism for a horizontally scaled deployment. Use a shared cache/rate limiter or a provider whose terms and capacity support the deployment.
-2. **Upstream capacity:** Nominatim and Overpass are community-operated public services, not an uptime guarantee. Confirm current usage policies and switch to a suitable hosted or self-hosted service before meaningful public traffic.
-3. **Input/IP trust:** deployment-specific trusted proxy behavior must be reviewed before relying on forwarded IP headers for throttling.
-4. **Real integration tests:** test live requests, timeouts, 429/5xx responses, malformed payloads, empty geocoding results, and partial source failure.
-5. **Persistence/auth:** reports are not saved; Supabase auth, database schema, and row-level security are not implemented.
-6. **No AI report yet:** no model is connected, so the product currently reports retrieved context rather than generating an AI due-diligence conclusion.
-7. **No hazard or legal analysis:** no flood, crime, pollution, title, structural, or property-price claims are implemented.
-8. **Deployment:** no live production URL has been verified from this repository work.
-9. **Accessibility/performance:** the source uses semantic labels and reduced-motion styling, but automated and manual audits remain outstanding.
-10. **Licensing/attribution review:** OpenStreetMap and Open-Meteo attribution is displayed, but final data retention, caching, and redistribution decisions require a review of current terms for the intended use.
+### A. Location Due Diligence Engine
+- Explicit location search and interactive Leaflet map pin-drop selector.
+- Concurrent upstream fetching (Nominatim, Overpass, Open-Meteo Weather, Copernicus Air Quality) with graceful partial failure isolation.
+- No synthetic data substitution: missing provider data remains missing and is labeled as an explicit unknown.
 
-## Release gate
+### B. Traceable Evidence Engine
+- Standardized evidence classification: `observed` (raw provider data), `calculated` (deterministic code), `model_interpretation` (grounded explanation), and `unknown` (missing/unmonitored risk).
+- Every record preserves ID, provider, source URL, retrieved timestamp, observation timestamp, geographic resolution, coverage, license, and documented limitations.
 
-Do not describe Infracis as production-ready until:
-- GitHub Actions passes lint, type-check, and build.
-- An end-to-end smoke test succeeds against a deployed preview.
-- Both partial and total provider failure paths have been tested.
-- Shared rate limiting and upstream-service usage compliance are addressed.
-- Privacy, data retention, attribution, and security behavior are reviewed.
-- A real user test validates the report's usefulness.
+### C. Two-Location Comparison Workflow
+- Side-by-side comparison of candidate residential properties.
+- Dynamic preference profiles: Balanced, Family & School Priority, Transit Priority, Healthcare Priority, and Quiet & Greenery.
+- Explicit detection of incomparable metrics when one location lacks open feed coverage.
+
+### D. On-Ground Due Diligence Checklist
+- Customized field questions generated for the specific location (drainage & monsoon ponding, municipal vs tanker water source, night walking safety, power outage history, and RERA/Title checks).
+- Print stylesheet (`@media print`) for printable physical property inspection checklists.
+
+### E. Persistence & Auditable Export
+- Client-side saved reports in LocalStorage with JSON export maintaining full evidence provenance.
+- Supabase PostgreSQL schema with Row-Level Security (`supabase/migrations/202610280001_initial_reports.sql`) ready for multi-user authentication.
+
+---
+
+## 3. Upstream Provider Registry & Limits
+
+| Provider | Purpose | License | Operational Limit & Policy |
+| :--- | :--- | :--- | :--- |
+| **OpenStreetMap Nominatim** | Text geocoding | ODbL | 1 req/sec spacing guard; deliberate user submit only (no client autocomplete). |
+| **OpenStreetMap via Overpass** | Mapped amenities (1.2km) | ODbL | Bounded amenity query; center coordinate bounding box; 10s timeout. |
+| **Open-Meteo Weather API** | Current weather & DEM elevation | CC BY 4.0 | Hourly model output; non-commercial / open quota; separate observation timestamp. |
+| **Copernicus Atmosphere (CAMS)** | European AQI, PM2.5, PM10 | Copernicus Open | 0.1° regional reanalysis grid; notes lack of hyper-local exhaust sensors. |

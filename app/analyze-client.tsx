@@ -1,158 +1,479 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { ArrowRight, ExternalLink, LoaderCircle, MapPin, RefreshCw, ShieldCheck } from "lucide-react";
-
-type Analysis = {
-  generatedAt: string;
-  location: { label: string; latitude: number; longitude: number; mapUrl: string };
-  weather: null | {
-    time?: string;
-    temperature_2m?: number;
-    relative_humidity_2m?: number;
-    precipitation?: number;
-    weather_code?: number;
-    wind_speed_10m?: number;
-  };
-  weatherUnits: Record<string, string>;
-  weatherTimezone: string | null;
-  amenities: null | { count: number; categories: Record<string, number>; items: Array<{id:string;name:string;category:string}> };
-  sources: Array<{name:string;url:string;retrievedAt:string;status:"available"|"unavailable";note:string}>;
-  limitations: string[];
-};
-
-function formatDate(value?: string) {
-  if (!value) return "Not provided";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-}
+import { useState } from "react";
+import { LocationReport, EvidenceClassification } from "@/lib/types";
+import LocationMap from "@/components/location-map";
+import EvidenceCard from "@/components/evidence-card";
+import ChecklistSection from "@/components/checklist-section";
+import CompareView from "@/components/compare-view";
+import MethodologyView from "@/components/methodology-view";
+import SavedReportsModal, { saveReportToStorage, exportReportJson } from "@/components/saved-reports-modal";
+import Nav from "@/components/nav";
+import {
+  MapPin,
+  ArrowRight,
+  LoaderCircle,
+  ExternalLink,
+  ShieldCheck,
+  Bookmark,
+  Download,
+  AlertTriangle,
+  Layers,
+  Wind,
+  Bus,
+  HeartPulse
+} from "lucide-react";
 
 export default function AnalyzeClient() {
+  const [activeTab, setActiveTab] = useState<"analyze" | "compare" | "methodology">("analyze");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [data, setData] = useState<Analysis | null>(null);
+  const [report, setReport] = useState<LocationReport | null>(null);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [savedModalOpen, setSavedModalOpen] = useState(false);
+  const [evidenceFilter, setEvidenceFilter] = useState<EvidenceClassification | "all">("all");
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const runAnalysis = async (searchQuery: string, lat?: number, lon?: number) => {
     setLoading(true);
     setError("");
+    setSavedSuccess(false);
+
     try {
-      const response = await fetch("/api/analyze", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({
+          query: searchQuery,
+          lat,
+          lon
+        })
       });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Could not analyze this location.");
-      setData(payload as Analysis);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not analyze this location.");
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Could not analyze this location.");
+      }
+
+      setReport(data as LocationReport);
+      if (searchQuery) setQuery(searchQuery);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to analyze location.");
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    runAnalysis(query.trim());
+  };
+
+  const handleMapCoordinatePick = (lat: number, lon: number) => {
+    runAnalysis(`Coordinates ${lat.toFixed(5)}, ${lon.toFixed(5)}`, lat, lon);
+  };
+
+  const handleSave = () => {
+    if (!report) return;
+    saveReportToStorage(report);
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
+  };
 
   return (
-    <div className="space-y-5">
-      <form onSubmit={submit} className="rounded-3xl border border-[#e0e5dc] bg-white p-4 shadow-sm sm:p-5">
-        <label htmlFor="location-query" className="mb-2 block text-sm font-semibold">Enter a real address or locality</label>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-[#dce3da] bg-[#fbfcf9] px-4">
-            <MapPin size={18} className="shrink-0 text-[#47745e]" />
-            <input
-              id="location-query"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              maxLength={180}
-              minLength={3}
-              required
-              placeholder="e.g. Sector 62, Noida, Uttar Pradesh"
-              className="min-w-0 flex-1 bg-transparent py-3.5 text-sm outline-none placeholder:text-[#9aa49b]"
-            />
-          </div>
-          <button disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#205b49] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#174737] disabled:cursor-not-allowed disabled:opacity-60">
-            {loading ? <><LoaderCircle size={16} className="animate-spin" /> Checking sources</> : <>Investigate location <ArrowRight size={16} /></>}
-          </button>
-        </div>
-        <p className="mt-3 text-xs leading-5 text-[#7a867d]">This uses explicit search submission, not autocomplete. Results depend on public-source coverage and availability.</p>
-      </form>
+    <div className="min-h-screen bg-[#f5f8f3] text-[#1c2e24]">
+      <Nav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenSaved={() => setSavedModalOpen(true)}
+      />
 
-      {error && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        {activeTab === "compare" && <CompareView />}
 
-      {data && (
-        <section aria-live="polite" className="space-y-4">
-          <div className="rounded-3xl border border-[#dfe6dc] bg-white p-5 sm:p-7">
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#598069]">Live source-backed result</p>
-                <h3 className="mt-2 max-w-3xl text-xl font-semibold tracking-tight">{data.location.label}</h3>
-                <p className="mt-2 text-xs text-[#7a867d]">Coordinates: {data.location.latitude.toFixed(5)}, {data.location.longitude.toFixed(5)} · Retrieved {formatDate(data.generatedAt)}</p>
-              </div>
-              <a href={data.location.mapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 self-start rounded-full border border-[#dce3da] px-3 py-2 text-xs font-medium hover:border-[#205b49]">Open map <ExternalLink size={13} /></a>
-            </div>
+        {activeTab === "methodology" && <MethodologyView />}
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl bg-[#f4f7f1] p-5">
-                <p className="text-xs text-[#718073]">Current weather model</p>
-                {data.weather ? (
-                  <>
-                    <p className="mt-2 text-3xl font-semibold">{data.weather.temperature_2m ?? "—"}{data.weatherUnits.temperature_2m || "°"}</p>
-                    <p className="mt-2 text-sm text-[#5d6c60]">Humidity {data.weather.relative_humidity_2m ?? "—"}{data.weatherUnits.relative_humidity_2m || "%"} · Precipitation {data.weather.precipitation ?? "—"} {data.weatherUnits.precipitation || "mm"}</p>
-                    <p className="mt-2 text-xs text-[#849087]">{data.weather.time || "Observation time not provided"} · {data.weatherTimezone || "Timezone not provided"}</p>
-                  </>
-                ) : <p className="mt-3 text-sm text-[#7a867d]">The weather provider was unavailable. No value has been substituted.</p>}
-              </div>
-              <div className="rounded-2xl bg-[#f4f7f1] p-5">
-                <p className="text-xs text-[#718073]">Mapped nearby amenities</p>
-                {data.amenities ? (
-                  <>
-                    <p className="mt-2 text-3xl font-semibold">{data.amenities.count}</p>
-                    <p className="mt-2 text-sm text-[#5d6c60]">Mapped features within about 1 km</p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {Object.entries(data.amenities.categories).slice(0,6).map(([name,count]) => <span key={name} className="rounded-full bg-white px-2.5 py-1 text-[11px] text-[#5d6c60]">{name.replaceAll("_"," ")} · {count}</span>)}
-                    </div>
-                  </>
-                ) : <p className="mt-3 text-sm text-[#7a867d]">The mapping service was unavailable. No amenity count has been fabricated.</p>}
-              </div>
-            </div>
+        {activeTab === "analyze" && (
+          <div className="space-y-6">
+            {/* Search Input Banner */}
+            <section className="rounded-3xl border border-[#dce3da] bg-white p-5 shadow-sm sm:p-7">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#104c38]">
+                Location Due Diligence Engine
+              </span>
+              <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#143023] sm:text-3xl">
+                Investigate a residential location before you commit.
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#556658]">
+                Enter any address or locality. Infracis fetches traceable evidence from OpenStreetMap, Overpass, and Open-Meteo, calculates proximity metrics, isolates explicit unknowns, and generates an on-ground checklist.
+              </p>
 
-            {data.amenities?.items.length ? (
-              <div className="mt-5">
-                <h4 className="text-sm font-semibold">A sample of mapped amenities</h4>
-                <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {data.amenities.items.slice(0,10).map(item => <li key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#edf0e9] px-3 py-2.5 text-sm"><span className="min-w-0 truncate">{item.name}</span><span className="shrink-0 text-xs text-[#7a867d]">{item.category.replaceAll("_"," ")}</span></li>)}
-                </ul>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="rounded-3xl border border-[#e0e5dc] bg-white p-5 sm:p-7">
-            <div className="flex items-center gap-2"><ShieldCheck size={18} className="text-[#47745e]" /><h3 className="text-lg font-semibold">Sources and limitations</h3></div>
-            <p className="mt-2 text-sm leading-6 text-[#718073]">These are retrieved observations and mapped records, not a property risk certification. Each source has different coverage and update behavior.</p>
-            <div className="mt-4 divide-y divide-[#edf0e9]">
-              {data.sources.map(source => (
-                <div key={source.name} className="py-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <a href={source.url} target="_blank" rel="noreferrer" className="text-sm font-semibold underline decoration-[#c5d4c6] underline-offset-4">{source.name} <ExternalLink size={12} className="ml-1 inline" /></a>
-                    <span className={source.status === "available" ? "rounded-full bg-[#e8f3e8] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#386b55]" : "rounded-full bg-[#f7efdd] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#8b7540]"}>{source.status}</span>
+              <form onSubmit={handleFormSubmit} className="mt-5">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border border-[#dce3da] bg-[#fbfcf9] px-4 py-1 focus-within:border-[#104c38] focus-within:ring-2 focus-within:ring-[#104c38]/10 transition">
+                    <MapPin size={18} className="shrink-0 text-[#104c38]" />
+                    <input
+                      id="location-input"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      minLength={3}
+                      maxLength={180}
+                      required
+                      placeholder="e.g. Sector 62, Noida, Uttar Pradesh"
+                      className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-[#91a094]"
+                    />
                   </div>
-                  <p className="mt-1 text-xs leading-5 text-[#718073]">{source.note}</p>
-                  <p className="mt-1 text-[10px] text-[#9aa49b]">Retrieved: {formatDate(source.retrievedAt)}</p>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#104c38] px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0c3829] disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <LoaderCircle size={16} className="animate-spin" /> Verifying sources...
+                      </>
+                    ) : (
+                      <>
+                        Investigate Location <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
                 </div>
-              ))}
-            </div>
-            <div className="mt-4 rounded-2xl bg-[#f7f7f2] p-4">
-              <h4 className="text-sm font-semibold">Important unknowns</h4>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5 text-[#718073]">
-                {data.limitations.map(item => <li key={item}>{item}</li>)}
-              </ul>
-            </div>
-            <button onClick={() => { setData(null); setError(""); }} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#386b55] hover:underline"><RefreshCw size={14} /> Start another search</button>
-            <p className="mt-4 text-[10px] leading-5 text-[#9aa49b]">Map data © OpenStreetMap contributors · Weather data by Open-Meteo (CC BY 4.0)</p>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#6e7f72]">
+                  <span className="font-medium">Try pilot locations:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery("Koramangala, Bengaluru");
+                      runAnalysis("Koramangala, Bengaluru");
+                    }}
+                    className="rounded-md bg-[#eef3eb] px-2 py-0.5 text-[11px] font-medium text-[#104c38] hover:bg-[#e2ede0]"
+                  >
+                    Koramangala, Bengaluru
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery("Sector 62, Noida");
+                      runAnalysis("Sector 62, Noida");
+                    }}
+                    className="rounded-md bg-[#eef3eb] px-2 py-0.5 text-[11px] font-medium text-[#104c38] hover:bg-[#e2ede0]"
+                  >
+                    Sector 62, Noida
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery("Bandra West, Mumbai");
+                      runAnalysis("Bandra West, Mumbai");
+                    }}
+                    className="rounded-md bg-[#eef3eb] px-2 py-0.5 text-[11px] font-medium text-[#104c38] hover:bg-[#e2ede0]"
+                  >
+                    Bandra West, Mumbai
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            {error && (
+              <div
+                role="alert"
+                className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800"
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Analysis Report View */}
+            {report && (
+              <div className="space-y-6">
+                {/* Header Action Bar */}
+                <div className="flex flex-col justify-between gap-4 rounded-3xl border border-[#dce3da] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                        Live Audited Report
+                      </span>
+                      <span className="text-xs text-[#718275]">
+                        Retrieved {new Date(report.generatedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <h3 className="mt-1.5 text-xl font-bold tracking-tight text-[#143023]">
+                      {report.location.label}
+                    </h3>
+                    <p className="mt-1 text-xs text-[#6b7b70]">
+                      Coordinates: {report.location.latitude.toFixed(5)},{" "}
+                      {report.location.longitude.toFixed(5)} · Data Completeness:{" "}
+                      <strong className="text-[#104c38]">
+                        {report.scores.completenessScore}%
+                      </strong>
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#dce3da] bg-[#fbfcf9] px-3.5 py-2 text-xs font-semibold text-[#104c38] transition hover:bg-[#eef3eb]"
+                    >
+                      <Bookmark size={14} />
+                      {savedSuccess ? "Saved to Bookmarks!" : "Save Report"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => exportReportJson(report)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#dce3da] bg-[#fbfcf9] px-3.5 py-2 text-xs font-semibold text-[#104c38] transition hover:bg-[#eef3eb]"
+                    >
+                      <Download size={14} /> Export JSON
+                    </button>
+                    <a
+                      href={report.location.mapUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#104c38] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#0c3829]"
+                    >
+                      Open OSM <ExternalLink size={13} />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Interactive Map */}
+                <section>
+                  <LocationMap
+                    location={report.location}
+                    amenities={report.amenities?.items || []}
+                    onPickCoordinates={handleMapCoordinatePick}
+                  />
+                </section>
+
+                {/* Score & Dimension Cards */}
+                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-2xl border border-[#dce3da] bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between text-[#5f7064]">
+                      <span className="text-xs font-semibold">Transit Walking Distance</span>
+                      <Bus size={16} className="text-[#2563eb]" />
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-[#143023]">
+                        {report.amenities?.nearest.transit
+                          ? `~${report.amenities.nearest.transit.distanceMeters}m`
+                          : "Unmapped"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-[#6e7e72]">
+                      {report.amenities?.nearest.transit
+                        ? report.amenities.nearest.transit.name
+                        : "No transit stops within 1.2 km"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-[#dce3da] bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between text-[#5f7064]">
+                      <span className="text-xs font-semibold">Nearest Healthcare</span>
+                      <HeartPulse size={16} className="text-[#dc2626]" />
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-[#143023]">
+                        {report.amenities?.nearest.healthcare
+                          ? `~${report.amenities.nearest.healthcare.distanceMeters}m`
+                          : "Unmapped"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-[#6e7e72]">
+                      {report.amenities?.nearest.healthcare
+                        ? report.amenities.nearest.healthcare.name
+                        : "No clinic/hospital mapped in 1.2km"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-[#dce3da] bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between text-[#5f7064]">
+                      <span className="text-xs font-semibold">European Air Quality (AQI)</span>
+                      <Wind size={16} className="text-[#104c38]" />
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-[#143023]">
+                        {report.airQuality?.europeanAqi ?? "—"}
+                      </span>
+                      {report.airQuality && (
+                        <span className="text-xs font-semibold text-[#104c38]">
+                          {report.airQuality.aqiLabel}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-[#6e7e72]">
+                      PM2.5: {report.airQuality?.pm25 ?? "N/A"} µg/m³
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-[#dce3da] bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between text-[#5f7064]">
+                      <span className="text-xs font-semibold">Ground Elevation (DEM)</span>
+                      <Layers size={16} className="text-[#7c3aed]" />
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-[#143023]">
+                        {report.weather?.elevationMeters !== null
+                          ? `${report.weather?.elevationMeters}m`
+                          : "—"}
+                      </span>
+                      <span className="text-xs text-[#6e7e72]">above sea level</span>
+                    </div>
+                    <p className="mt-1 text-xs text-[#6e7e72]">
+                      Temp: {report.weather?.temperature ?? "—"}°C · {report.weather?.weatherDescription}
+                    </p>
+                  </div>
+                </section>
+
+                {/* Grounded Findings Section */}
+                <section className="rounded-3xl border border-[#dce3da] bg-white p-5 shadow-sm sm:p-7">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="text-[#104c38]" size={20} />
+                    <h3 className="text-lg font-semibold tracking-tight text-[#143023]">
+                      Evidence-Grounded Due Diligence Findings
+                    </h3>
+                  </div>
+                  <p className="mt-1 text-xs text-[#647468]">
+                    Every finding is tied directly to verified source evidence IDs. No hallucinated risk statements.
+                  </p>
+
+                  <div className="mt-5 space-y-3">
+                    {report.findings.map((fnd) => (
+                      <div
+                        key={fnd.id}
+                        className="rounded-2xl border border-[#e5ebe3] bg-[#fbfcf9] p-4 transition hover:border-[#104c38]/30"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="text-sm font-semibold text-[#143023]">{fnd.headline}</h4>
+                          <div className="flex items-center gap-1.5">
+                            {fnd.riskLevel === "caution" ? (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                                Attention Needed
+                              </span>
+                            ) : fnd.riskLevel === "favorable" ? (
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                                Favorable Fact
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                                Neutral
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="mt-2 text-xs leading-relaxed text-[#506155]">
+                          {fnd.explanation}
+                        </p>
+                        <div className="mt-2.5 flex flex-wrap items-center gap-1 text-[10px] text-[#718275]">
+                          <span className="font-semibold text-[#104c38]">Supporting Evidence:</span>
+                          {fnd.supportingEvidenceIds.map((id) => (
+                            <span
+                              key={id}
+                              className="rounded bg-white px-1.5 py-0.5 font-mono border border-[#e2e8e0]"
+                            >
+                              {id}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Explicit Unknowns Section */}
+                <section className="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm sm:p-7">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="text-amber-800" size={20} />
+                    <h3 className="text-lg font-semibold tracking-tight text-amber-950">
+                      Explicit Unknowns & Data Gaps
+                    </h3>
+                  </div>
+                  <p className="mt-1 text-xs text-amber-900">
+                    Infracis does not manufacture answers where open evidence is missing. These critical property aspects must be confirmed through on-ground verification:
+                  </p>
+                  <ul className="mt-4 list-disc space-y-1.5 pl-5 text-xs leading-relaxed text-amber-950">
+                    {report.unknowns.map((gap, i) => (
+                      <li key={i}>{gap}</li>
+                    ))}
+                  </ul>
+                </section>
+
+                {/* Due Diligence On-Ground Checklist */}
+                <section>
+                  <ChecklistSection
+                    checklist={report.checklist}
+                    locationLabel={report.location.label}
+                  />
+                </section>
+
+                {/* Evidence Registry & Cards */}
+                <section className="rounded-3xl border border-[#dce3da] bg-white p-5 shadow-sm sm:p-7">
+                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                    <div>
+                      <h3 className="text-lg font-semibold tracking-tight text-[#143023]">
+                        Audit Trail: Complete Evidence Records
+                      </h3>
+                      <p className="mt-0.5 text-xs text-[#66776b]">
+                        Full provenance of every observation and calculation.
+                      </p>
+                    </div>
+
+                    {/* Filter buttons */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {(["all", "observed", "calculated", "model_interpretation"] as const).map(
+                        (f) => (
+                          <button
+                            key={f}
+                            type="button"
+                            onClick={() => setEvidenceFilter(f)}
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider transition ${
+                              evidenceFilter === f
+                                ? "bg-[#104c38] text-white"
+                                : "bg-[#f1f5ee] text-[#55665a] hover:bg-[#e2ebe0]"
+                            }`}
+                          >
+                            {f.replace("_", " ")}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {report.evidence
+                      .filter((e) =>
+                        evidenceFilter === "all" ? true : e.classification === evidenceFilter
+                      )
+                      .map((ev) => (
+                        <EvidenceCard key={ev.id} evidence={ev} />
+                      ))}
+                  </div>
+                </section>
+
+                {/* Source Disclaimers & Limits */}
+                <section className="rounded-3xl border border-[#dce3da] bg-[#fbfcf9] p-5 text-xs text-[#6b7b70] sm:p-6">
+                  <h4 className="font-semibold text-[#143023]">Important Limitations & Notice</h4>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 leading-relaxed">
+                    {report.limitations.map((lim, i) => (
+                      <li key={i}>{lim}</li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+            )}
           </div>
-        </section>
-      )}
+        )}
+      </main>
+
+      <SavedReportsModal
+        isOpen={savedModalOpen}
+        onClose={() => setSavedModalOpen(false)}
+        onSelectReport={(selectedReport) => {
+          setReport(selectedReport);
+          setActiveTab("analyze");
+        }}
+      />
     </div>
   );
 }
