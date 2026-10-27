@@ -144,7 +144,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="absolute -bottom-5 -right-2 hidden items-center gap-2 rounded-2xl border border-[#e4e8df] bg-white px-4 py-3 text-xs font-medium shadow-lg sm:flex">
-            <Sparkles size={15} className="text-[#47745e]" /> AI explains. Evidence supports.
+            <Sparkles size={15} className="text-[#47745e]" /> Real sources. Clear limitations.
           </div>
         </div>
       </section>
