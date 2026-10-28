@@ -1,5 +1,6 @@
 import { calculateHaversineDistance, categorizeAmenity } from "../geo";
 import { AmenityItem, AmenitiesSummary } from "../types";
+import { getSharedJson, setSharedJson } from "../shared-provider-cache";
 
 const cache = new Map<string, { expires: number; value: AmenitiesSummary }>();
 
@@ -9,6 +10,8 @@ export async function fetchNearbyAmenities(
   radiusMeters = 1200
 ): Promise<AmenitiesSummary> {
   const cacheKey = `amenities:${lat.toFixed(4)}:${lon.toFixed(4)}:${radiusMeters}`;
+  const shared = await getSharedJson<AmenitiesSummary>(cacheKey);
+  if (shared) return shared;
   const cached = cache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
     return cached.value;
