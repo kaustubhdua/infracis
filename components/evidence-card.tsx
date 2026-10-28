@@ -86,7 +86,7 @@ export default function EvidenceCard({ evidence }: EvidenceCardProps) {
       <div className="mt-2 flex items-center justify-between text-[10px] text-[#8fa094]">
         <span>Retrieved: {new Date(evidence.retrievedAt).toLocaleTimeString()}</span>
         {evidence.observedAt && (
-          <span>Observed: {new Date(evidence.observedAt).toLocaleDateString()}</span>
+          <span>{evidence.classification === "provider_model" ? "Provider timestamp:" : "Observed:"} {new Date(evidence.observedAt).toLocaleDateString()}</span>
         )}
       </div>
     </div>
