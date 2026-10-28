@@ -72,6 +72,7 @@ These are one-time measurements, not an SLA. See [the production runbook](PRODUC
 
 ## Release and deployment (not performed)
 
+- [ ] Project owner chooses and adds an explicit repository license. No top-level `LICENSE` file is present; public visibility alone does not grant others permission to reuse or redistribute the code. Do not choose a license on the owner's behalf.
 - [ ] Confirm exact candidate SHA is green on CI after all changes.
 - [ ] Review dependency advisories and deprecated development-tool warnings before release.
 - [ ] Configure and verify environment variables and provider endpoints in the chosen host.
