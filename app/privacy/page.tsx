@@ -62,7 +62,10 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-bold text-[#153a2b]">Temporary server-side cache and request limits</h2>
             <p className="mt-2 text-sm leading-7 text-[#53675a]">
-              When the shared Redis service is configured, Infracis temporarily caches provider results to reduce repeat requests and comply with provider limits. The cache key for geocoding includes the normalized location text and its result may be retained for up to 24 hours; weather results are cached for up to 5 minutes, air-quality results for up to 10 minutes, and mapped amenities for up to 1 hour. These are operational caches, not saved reports or user accounts.
+              When the shared Redis service is configured, Infracis temporarily caches provider results to reduce repeat requests and comply with provider limits. The cache key for geocoding includes the normalized location text and its result may be retained for up to 24 hours; weather results are cached for up to 5 minutes, air-quality results for up to 10 minutes, and mapped amenities for up to 1 hour. In local development, geocoding and amenity results can also be cached in per-process memory for up to 24 hours and 1 hour respectively. These are operational caches, not saved reports or user accounts.
+            </p>
+            <p className="mt-2 text-sm leading-7 text-[#53675a]">
+              The analysis route also keeps a per-instance in-memory copy of a generated report for up to 15 minutes to reduce repeat provider calls. This cache is volatile and is not a saved-report feature, but the query and report data remain in server memory during that window.
             </p>
             <p className="mt-2 text-sm leading-7 text-[#53675a]">
               The shared rate limiter also temporarily stores a client-IP-derived request counter and a global geocoding-slot timestamp. Avoid putting names or other personal information into location searches. Production requests fail closed if the shared rate limiter is not configured or cannot be reached. The eventual hosting operator must verify access controls, retention, and deletion behavior for the configured cache service before public launch.
