@@ -24,7 +24,11 @@ export async function fetchWeatherAndElevation(
     throw new Error(`Open-Meteo weather service responded with HTTP ${response.status}`);
   }
 
-  const data = (await response.json()) as {
+  const payload: unknown = await response.json();
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("Open-Meteo weather service returned an invalid response shape.");
+  }
+  const data = payload as {
     elevation?: number;
     current?: {
       time?: string;
@@ -38,17 +42,21 @@ export async function fetchWeatherAndElevation(
   };
 
   const current = data.current;
-  const weatherCode = current?.weather_code ?? null;
+  if (!current || typeof current !== "object" || typeof current.time !== "string" || !Number.isFinite(Date.parse(current.time))) {
+    throw new Error("Open-Meteo weather service returned missing or invalid current observations.");
+  }
+  const finiteOrNull = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null;
+  const weatherCode = finiteOrNull(current.weather_code);
 
   return {
-    temperature: current?.temperature_2m ?? null,
-    humidity: current?.relative_humidity_2m ?? null,
-    precipitation: current?.precipitation ?? null,
-    windSpeed: current?.wind_speed_10m ?? null,
+    temperature: finiteOrNull(current.temperature_2m),
+    humidity: finiteOrNull(current.relative_humidity_2m),
+    precipitation: finiteOrNull(current.precipitation),
+    windSpeed: finiteOrNull(current.wind_speed_10m),
     weatherCode,
     weatherDescription: interpretWeatherCode(weatherCode),
     observedTime: current?.time ?? null,
-    elevationMeters: data.elevation ?? null,
+    elevationMeters: finiteOrNull(data.elevation),
     units: data.current_units ?? {}
   };
 }
@@ -76,7 +84,11 @@ export async function fetchAirQuality(
     throw new Error(`Open-Meteo air quality service responded with HTTP ${response.status}`);
   }
 
-  const data = (await response.json()) as {
+  const payload: unknown = await response.json();
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("Open-Meteo air quality service returned an invalid response shape.");
+  }
+  const data = payload as {
     current?: {
       time?: string;
       european_aqi?: number;
@@ -89,16 +101,20 @@ export async function fetchAirQuality(
   };
 
   const current = data.current;
-  const aqi = current?.european_aqi ?? null;
+  if (!current || typeof current !== "object" || typeof current.time !== "string" || !Number.isFinite(Date.parse(current.time))) {
+    throw new Error("Open-Meteo air quality service returned missing or invalid current observations.");
+  }
+  const finiteOrNull = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null;
+  const aqi = finiteOrNull(current.european_aqi);
   const aqiInfo = interpretEuropeanAqi(aqi);
 
   return {
     europeanAqi: aqi,
     aqiLabel: aqiInfo.label,
-    pm25: current?.pm2_5 ?? null,
-    pm10: current?.pm10 ?? null,
-    nitrogenDioxide: current?.nitrogen_dioxide ?? null,
-    ozone: current?.ozone ?? null,
+    pm25: finiteOrNull(current.pm2_5),
+    pm10: finiteOrNull(current.pm10),
+    nitrogenDioxide: finiteOrNull(current.nitrogen_dioxide),
+    ozone: finiteOrNull(current.ozone),
     observedTime: current?.time ?? null,
     units: data.current_units ?? {}
   };
