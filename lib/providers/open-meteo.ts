@@ -49,18 +49,19 @@ export async function fetchWeatherAndElevation(
   if (!current || typeof current !== "object" || typeof current.time !== "string" || !Number.isFinite(Date.parse(current.time))) {
     throw new Error("Open-Meteo weather service returned missing or invalid current observations.");
   }
-  const finiteOrNull = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null;
-  const weatherCode = finiteOrNull(current.weather_code);
+  const boundedNumber = (value: unknown, min: number, max: number) =>
+    typeof value === "number" && Number.isFinite(value) && value >= min && value <= max ? value : null;
+  const weatherCode = boundedNumber(current.weather_code, 0, 99);
 
   const result: WeatherData = {
-    temperature: finiteOrNull(current.temperature_2m),
-    humidity: finiteOrNull(current.relative_humidity_2m),
-    precipitation: finiteOrNull(current.precipitation),
-    windSpeed: finiteOrNull(current.wind_speed_10m),
+    temperature: boundedNumber(current.temperature_2m, -100, 70),
+    humidity: boundedNumber(current.relative_humidity_2m, 0, 100),
+    precipitation: boundedNumber(current.precipitation, 0, 10_000),
+    windSpeed: boundedNumber(current.wind_speed_10m, 0, 500),
     weatherCode,
     weatherDescription: interpretWeatherCode(weatherCode),
     observedTime: current?.time ?? null,
-    elevationMeters: finiteOrNull(data.elevation),
+    elevationMeters: boundedNumber(data.elevation, -500, 10_000),
     units: data.current_units ?? {}
   };
   await setSharedJson(cacheKey, result, 5 * 60);
@@ -113,17 +114,18 @@ export async function fetchAirQuality(
   if (!current || typeof current !== "object" || typeof current.time !== "string" || !Number.isFinite(Date.parse(current.time))) {
     throw new Error("Open-Meteo air quality service returned missing or invalid current observations.");
   }
-  const finiteOrNull = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null;
-  const aqi = finiteOrNull(current.european_aqi);
+  const nonNegativeOrNull = (value: unknown, max = 1_000_000) =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= max ? value : null;
+  const aqi = nonNegativeOrNull(current.european_aqi, 1000);
   const aqiInfo = interpretEuropeanAqi(aqi);
 
   const result: AirQualityData = {
     europeanAqi: aqi,
     aqiLabel: aqiInfo.label,
-    pm25: finiteOrNull(current.pm2_5),
-    pm10: finiteOrNull(current.pm10),
-    nitrogenDioxide: finiteOrNull(current.nitrogen_dioxide),
-    ozone: finiteOrNull(current.ozone),
+    pm25: nonNegativeOrNull(current.pm2_5),
+    pm10: nonNegativeOrNull(current.pm10),
+    nitrogenDioxide: nonNegativeOrNull(current.nitrogen_dioxide),
+    ozone: nonNegativeOrNull(current.ozone),
     observedTime: current?.time ?? null,
     units: data.current_units ?? {}
   };
