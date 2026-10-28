@@ -115,3 +115,30 @@ No integration is “real” until it is implemented and tested against the actu
 - DOSL: https://www.dosl.in/
 - India Flood Atlas: https://flood.neer.io/
 - Esri GIS site-selection overview: https://distributor-blogs.esri.com/en-in/newsroom/blog/gis-for-real-estate-site-selection
+
+
+## 2026-10-28 release-blocking research update
+
+This is a web-researched security and provider-terms check, not a substitute for running the application.
+
+### Framework security: do not release the current dependency set as production-ready
+
+- The repository lockfile pins Next.js **14.2.35**. The official Next.js support policy lists 14.x as unsupported, while the official security advisory page includes critical 2026 issues. The Cyber Security Agency of Singapore's 20 October 2026 alert says affected Next.js versions must be patched immediately and lists fixed releases including Next.js 15.5.28 for 10.x–15.x and 16.4.1 for 16.x.
+- Sources: https://nextjs.org/support-policy ; https://github.com/vercel/next.js/security/advisories ; https://www.csa.gov.sg/alerts-and-advisories/alerts/al-2026-148/
+- **Release gate:** upgrade to a supported, security-patched Next.js release and compatible `eslint-config-next`, regenerate and commit the lockfile with the package manager, then run all tests, lint, typecheck, build, and deployed smoke tests. Do not edit only the version string while leaving a stale lockfile. A major framework upgrade must be tested, not assumed compatible.
+
+### Weather API terms: product use must match the plan
+
+- Open-Meteo's official terms state its free API is for non-commercial use with a 10,000-call/day ceiling and lower minute/hour limits; commercial use requires an appropriate paid plan. Data attribution under CC BY 4.0 is required. A commercial product must not rely on the free non-commercial tier merely because the endpoint works without an API key.
+- Sources: https://open-meteo.com/en/terms ; https://open-meteo.com/
+- **Release gate:** decide whether Infracis is non-commercial or commercial. If commercial, obtain the required plan or self-host a compliant instance; display required attribution near the data and document the selected service plan.
+
+### Nominatim: usage policy remains a hard constraint
+
+- The public Nominatim policy allows at most one request per second across the application, requires identifying User-Agent/Referer and attribution, prohibits autocomplete, and advises caching/proxying and a service-switch path. A process-local delay is not a shared global limiter across serverless instances.
+- Source: https://operations.osmfoundation.org/policies/nominatim/
+- **Release gate:** use an adapter that can switch providers; implement shared caching and enforce policy across the deployed service, or self-host/use another geocoder under its terms. Do not promise unrestricted public geocoding.
+
+### Practical release decision
+
+Until the framework dependency is upgraded, provider terms are aligned with intended use, and the exact release commit passes automated and live checks, Infracis should be presented as a functional MVP in verification—not as a production-ready or certified property-risk service.
