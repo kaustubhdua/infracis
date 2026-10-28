@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchWeatherAndElevation, fetchAirQuality } from "./open-meteo";
+import { geocodeLocation } from "./nominatim";
 import { fetchNearbyAmenities } from "./overpass";
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
@@ -8,6 +9,25 @@ describe("provider schema validation", () => {
   it("rejects an invalid weather response envelope", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify([]), { status: 200 })));
     await expect(fetchWeatherAndElevation(28.6139, 77.209)).rejects.toThrow(/invalid response shape/i);
+  });
+
+  it("ignores malformed optional Nominatim bounding boxes without accepting invalid coordinates", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{
+      lat: "28.6139",
+      lon: "77.2090",
+      display_name: "New Delhi, India",
+      boundingbox: "not-an-array"
+    }]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const location = await geocodeLocation("schema-test-new-delhi-bounding-box");
+    expect(location.latitude).toBe(28.6139);
+    expect(location.longitude).toBe(77.209);
+    expect(location.boundingbox).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("nominatim.openstreetmap.org/search"),
+      expect.objectContaining({ headers: expect.objectContaining({ "User-Agent": expect.stringContaining("Infracis") }) })
+    );
   });
 
   it("rejects weather data without valid current observation time", async () => {

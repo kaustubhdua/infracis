@@ -66,7 +66,15 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
     latitude: lat,
     longitude: lon,
     osmType: item.type,
-    boundingbox: item.boundingbox && item.boundingbox.length === 4 && item.boundingbox.every((v) => Number.isFinite(Number(v)))
+    boundingbox: Array.isArray(item.boundingbox) &&
+      item.boundingbox.length === 4 &&
+      item.boundingbox.every((value) => typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) &&
+      Number(item.boundingbox[0]) >= -90 && Number(item.boundingbox[0]) <= 90 &&
+      Number(item.boundingbox[1]) >= -90 && Number(item.boundingbox[1]) <= 90 &&
+      Number(item.boundingbox[2]) >= -180 && Number(item.boundingbox[2]) <= 180 &&
+      Number(item.boundingbox[3]) >= -180 && Number(item.boundingbox[3]) <= 180 &&
+      Number(item.boundingbox[0]) <= Number(item.boundingbox[1]) &&
+      Number(item.boundingbox[2]) <= Number(item.boundingbox[3])
       ? [Number(item.boundingbox[0]), Number(item.boundingbox[1]), Number(item.boundingbox[2]), Number(item.boundingbox[3])]
       : undefined,
     mapUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`
