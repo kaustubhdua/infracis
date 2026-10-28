@@ -220,6 +220,9 @@ export default function AnalyzeClient() {
                     <p className="mt-1 text-[11px] leading-relaxed text-[#718275]">
                       Source coverage reflects returned evidence only—not property quality, safety, legality, or value.
                     </p>
+                    <p className="mt-2 max-w-2xl rounded-xl border border-[#f0d7a8] bg-[#fff8e8] px-3 py-2 text-xs leading-relaxed text-[#76511a]">
+                      Confirm this resolved place and pin match your intended locality before relying on distance metrics. Geocoding can resolve to a nearby mapped place or boundary; use &quot;Open OSM&quot; to inspect the location.
+                    </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
