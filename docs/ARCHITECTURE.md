@@ -113,3 +113,8 @@ Log provider status, latency, cache outcome, and validation errors without stori
 ## Current implementation boundary
 
 The FastAPI service is source code only, prepared for the user's later upload/hosting step. It is not a second production backend yet. The Next.js API remains active and continues to use its existing TypeScript provider adapters. Avoid maintaining two divergent business-logic implementations indefinitely: before switching traffic, define a shared response contract, add contract tests against both implementations, verify provider-policy controls and run a real provider pilot. The standalone backend currently returns normalized location/source status, not the full Next.js `LocationReport` schema, so the frontend cannot be switched to it without a deliberate contract migration.
+
+
+## Current implementation boundary
+
+The FastAPI service is source code only, prepared for the user's later upload/hosting step. It is not a second production backend yet. The Next.js API remains active and continues to use its existing TypeScript provider adapters. Avoid maintaining two divergent business-logic implementations indefinitely: before switching traffic, define a shared response contract, add contract tests against both implementations, verify provider-policy controls and run a real provider pilot. The standalone backend currently returns normalized location/source status, not the full Next.js `LocationReport` schema, so the frontend cannot be switched to it without a deliberate contract migration.
