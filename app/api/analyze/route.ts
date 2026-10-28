@@ -5,6 +5,7 @@ import { fetchWeatherAndElevation, fetchAirQuality } from "@/lib/providers/open-
 import { assembleLocationReport } from "@/lib/evidence-engine";
 import { LocationData, LocationReport } from "@/lib/types";
 import { readJsonWithLimit } from "@/lib/request-body";
+import { enforceRateLimit } from "@/lib/distributed-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,15 +32,20 @@ function checkRateLimit(clientIp: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  // On hosted platforms these headers are set by the platform proxy. This is
-  // only best-effort protection; production traffic needs a trusted shared limiter.
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const clientIp = forwarded || request.headers.get("x-real-ip") || "unknown-client";
-
-  if (checkRateLimit(clientIp)) {
+  // x-real-ip is set by the hosting proxy. Do not trust the client-controlled
+  // leftmost X-Forwarded-For value. Production requires the shared Redis limiter.
+  const clientIp = request.headers.get("x-real-ip")?.trim() || "unknown-client";
+  const rateLimit = await enforceRateLimit(`analyze:${clientIp}`, 15);
+  if (!rateLimit) {
+    return NextResponse.json(
+      { error: "Search service is temporarily unavailable because shared rate limiting is not configured or reachable." },
+      { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "60" } }
+    );
+  }
+  if (!rateLimit.allowed) {
     return NextResponse.json(
       { error: "Too many search requests. Please wait a minute before requesting another analysis." },
-      { status: 429, headers: { "Cache-Control": "no-store" } }
+      { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": "60" } }
     );
   }
 
