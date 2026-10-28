@@ -21,7 +21,7 @@ This document separates implemented code and historical test evidence from check
 
 ## 2. Security/reliability hardening committed on 28 October
 
-- `/api/analyze` validates JSON shape, query length, and coordinate range; bounds the size of its per-process rate-limit map; avoids caching analysis responses at HTTP/CDN level; and returns generic upstream failure messages.
+- `/api/analyze` validates JSON shape, query length, and coordinate range; bounds the size of its per-process rate-limit map and in-memory report cache; avoids caching analysis responses at HTTP/CDN level; and returns generic upstream failure messages. Provider-level Nominatim and Overpass caches are also size-bounded.
 - `/api/compare` validates JSON shape and both query lengths; validates supported preference profiles by normalizing unknown values to the balanced profile; distinguishes unresolved locations from upstream failures; disables HTTP caching; and now applies its previously defined bounded per-process request throttle.
 
 These are defensive improvements, not a complete security review. Both endpoints still rely on in-process controls and public data providers. The analysis route's IP-based throttling is best-effort only: a shared, trusted rate limiter and provider-compliant production data strategy are required before high-volume public use.
