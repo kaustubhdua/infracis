@@ -67,7 +67,7 @@ export async function waitForNominatimSlot(): Promise<boolean> {
       "local scheduled = math.max(now, nextAt)",
       "redis.call('SET', KEYS[1], scheduled + spacing, 'PX', ARGV[3])",
       "return scheduled - now"
-    ].join("\\n");
+    ].join("\n");
     const wait = await redisCommand<number>(["EVAL", script, "1", "infracis:provider:nominatim:next", String(Date.now()), "1100", "30000"]);
     if (wait === null || !Number.isFinite(wait) || wait < 0 || wait > 8000) return false;
     if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
