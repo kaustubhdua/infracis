@@ -25,7 +25,7 @@ describe("shared rate limiter", () => {
   });
 
   it("uses the Redis atomic counter result when configured", async () => {
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     process.env.UPSTASH_REDIS_REST_URL = "https://redis.example.test";
     process.env.UPSTASH_REDIS_REST_TOKEN = "unit-test-token";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
@@ -39,7 +39,7 @@ describe("shared rate limiter", () => {
   });
 
   it("fails closed when the shared Redis service is unavailable in production", async () => {
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     process.env.UPSTASH_REDIS_REST_URL = "https://redis.example.test";
     process.env.UPSTASH_REDIS_REST_TOKEN = "unit-test-token";
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("connection refused")));
