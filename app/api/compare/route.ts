@@ -11,6 +11,22 @@ export const dynamic = "force-dynamic";
 
 const MAX_QUERY_LENGTH = 180;
 const validPreferences = new Set<PreferenceProfile>(["balanced", "family", "transit", "healthcare", "quiet"]);
+const ipWindows = new Map<string, { startedAt: number; count: number }>();
+
+function checkRateLimit(clientIp: string): boolean {
+  const now = Date.now();
+  const win = ipWindows.get(clientIp);
+  if (!win || now - win.startedAt >= 60_000) {
+    if (!win && ipWindows.size >= 10_000) {
+      const oldestKey = ipWindows.keys().next().value;
+      if (oldestKey) ipWindows.delete(oldestKey);
+    }
+    ipWindows.set(clientIp, { startedAt: now, count: 1 });
+    return false;
+  }
+  win.count += 1;
+  return win.count > 8;
+}
 
 async function getOrFetchReport(query: string): Promise<LocationReport> {
   const locationData = await geocodeLocation(query);
