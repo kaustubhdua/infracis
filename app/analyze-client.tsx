@@ -112,7 +112,7 @@ export default function AnalyzeClient() {
                 Investigate a residential location before you commit.
               </h2>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-[#53675a] sm:text-base">
-                Enter any address or locality. Infracis fetches traceable evidence from OpenStreetMap, Overpass, and Open-Meteo, calculates proximity metrics, isolates explicit unknowns, and generates an on-ground checklist.
+                Enter an address or locality to investigate. Infracis retrieves available evidence from OpenStreetMap and Open-Meteo, calculates transparent proximity metrics, and lists what still needs checking on the ground. Sources that are disabled, unavailable, or incomplete stay clearly marked as unknown.
               </p>
 
               <form onSubmit={handleFormSubmit} className="mt-5">

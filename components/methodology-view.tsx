@@ -20,10 +20,10 @@ export default function MethodologyView() {
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-              1. Observed Fact
+              1. Retrieved Source Data
             </span>
             <p className="mt-1 text-xs leading-relaxed text-emerald-950">
-              Raw measurements or records retrieved directly from named APIs (e.g. OpenStreetMap coordinates, Copernicus European AQI index, Open-Meteo numerical forecast).
+              Records returned by a named source. Each item must retain its source and limits; weather and air-quality values from Open-Meteo are model/grid estimates, not measurements taken at the property.
             </p>
           </div>
 
@@ -64,7 +64,7 @@ export default function MethodologyView() {
             <h3 className="text-base font-semibold text-[#1a2e23]">Integrated Source Registry</h3>
           </div>
           <p className="mt-0.5 text-xs text-[#66776b]">
-            All integrated public services and their operational terms.
+            Source roles, known constraints, and availability gates. A source being listed here does not mean it succeeded for the current report.
           </p>
         </div>
 
@@ -75,7 +75,7 @@ export default function MethodologyView() {
               <span className="rounded bg-[#e8f1e6] px-2 py-0.5 font-semibold text-[#104c38]">License: ODbL</span>
             </div>
             <p className="mt-1.5 text-[#556658]">
-              <strong>Role:</strong> Location resolution and text geocoding. Bounded to 1 req/sec spacing guard; no autocomplete calls to protect community infrastructure.
+              <strong>Role:</strong> Location resolution and text geocoding. Uses shared request-slot reservations when Redis is configured; global one-request-per-second behavior still needs multi-instance operational verification. No autocomplete calls are made.
             </p>
             <p className="mt-1 text-[11px] text-[#718276]">
               <strong>Limitation:</strong> Resolves point centroids, not cadastral survey numbers or private property boundaries.
@@ -85,10 +85,10 @@ export default function MethodologyView() {
           <div className="p-5">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1a2e23]">OpenStreetMap via Overpass API</span>
-              <span className="rounded bg-[#e8f1e6] px-2 py-0.5 font-semibold text-[#104c38]">License: ODbL</span>
+              <span className="rounded bg-amber-100 px-2 py-0.5 font-semibold text-amber-900">Production gated</span>
             </div>
             <p className="mt-1.5 text-[#556658]">
-              <strong>Role:</strong> Bounded query for essential amenities (transit stops, hospitals, schools, pharmacies, grocery) within 1.2 km radius.
+              <strong>Role:</strong> When a verified HTTPS endpoint is configured, query mapped amenities (transit stops, hospitals, schools, pharmacies, grocery) within 1.2 km radius. The initial pilot returned no valid Overpass responses, so this source must not be presented as currently reliable.
             </p>
             <p className="mt-1 text-[11px] text-[#718276]">
               <strong>Limitation:</strong> Crowdsourced coverage; absence of an amenity pin does not guarantee non-existence on the ground.
@@ -101,7 +101,7 @@ export default function MethodologyView() {
               <span className="rounded bg-[#e8f1e6] px-2 py-0.5 font-semibold text-[#104c38]">License: CC BY 4.0</span>
             </div>
             <p className="mt-1.5 text-[#556658]">
-              <strong>Role:</strong> Current ambient temperature, humidity, precipitation, wind speed, and digital elevation model (DEM).
+              <strong>Role:</strong> Weather-model estimates for temperature, humidity, precipitation, wind speed, plus a digital elevation model (DEM); these are not on-site sensor readings.
             </p>
             <p className="mt-1 text-[11px] text-[#718276]">
               <strong>Limitation:</strong> Numerical forecast model at 11 km grid resolution; not a physical sensor on the building facade.
