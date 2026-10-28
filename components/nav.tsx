@@ -48,6 +48,7 @@ export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) 
           <button type="button" onClick={() => setActiveTab("methodology")} aria-pressed={activeTab === "methodology"} className={navClass("methodology")}>
             Methodology
           </button>
+          <Link href="/privacy" className="inline-flex min-h-10 items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[#53685a] transition hover:bg-[#eaf0e5] hover:text-[#174b38] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] focus-visible:ring-offset-2">Data &amp; privacy</Link>
           <span className="mx-0.5 hidden h-6 w-px bg-[#e2e8dd] sm:block" aria-hidden="true" />
           <button
             type="button"
