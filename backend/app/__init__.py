@@ -1,0 +1,1 @@
+"""Infracis standalone API service."""

@@ -60,3 +60,20 @@ The counts below were recorded in earlier project notes and are **historical**, 
 | Deployed end-to-end smoke tests | Require a real deployment and recorded results |
 
 Run `npm ci`, `npm run test`, `npm run lint`, `npm run typecheck`, and `npm run build`. Record the commit SHA, date, Node/npm versions, exit status, and any failures. Do not replace missing evidence with assumed success.
+
+
+## 4. Standalone FastAPI backend (prepared for later hosting)
+
+The Python service under `backend/` is a separate source-only API and is not connected to the current Next.js UI.
+
+Run locally with Python 3.12+ and Redis available:
+
+```bash
+cd backend
+python -m pip install -r requirements.txt
+pytest -q
+```
+
+Automated tests cover health/readiness separation, strict input validation, API-key enforcement, production fail-closed configuration, coordinate math, numeric response validation, oversized request bodies, and explicit provider-unavailable responses. The backend CI workflow runs these tests on relevant pull requests.
+
+These are mocked/local checks. They do not prove that real provider services are reachable, that Nominatim traffic is paced correctly across a hosted multi-instance environment, or that a production host has the correct secrets. Before future integration, add response-contract tests against the TypeScript `LocationReport` shape; the current FastAPI response intentionally differs from that schema.

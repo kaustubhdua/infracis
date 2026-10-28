@@ -14,8 +14,12 @@ Next.js + TypeScript + Tailwind CSS.
 Responsibilities: location search, map, preferences, evidence cards, comparison, report review, loading/error/empty states.
 
 ### Server/API
-Server-side route handlers or a small FastAPI service. Start with one backend style to reduce deployment complexity; do not build both unless a concrete requirement appears.
-Responsibilities: validate inputs, call provider adapters, normalize results, calculate metrics, orchestrate evidence-grounded explanations, persist reports.
+
+**Active implementation:** the current Next.js server route handlers in `app/api/`. They are the API currently used by the frontend.
+
+**Prepared for later hosting:** `backend/` contains a standalone FastAPI service with real provider adapters, validation, explicit provider-unavailable states, API-key authentication, Redis-backed rate limiting, and a Nominatim global pacing gate. This service is not deployed or wired into the frontend in the current branch. Keep it as a separate candidate until a dedicated integration change chooses one API as the source of truth and adds contract tests between the UI and backend.
+
+Responsibilities: validate inputs, call provider adapters, normalize results, calculate metrics, orchestrate evidence-grounded explanations, and eventually persist reports after authentication and ownership checks are implemented.
 
 ### Provider adapters
 Each adapter implements a common interface and returns normalized evidence plus source metadata. Adapters must not return unlabelled fabricated fallback data.
@@ -104,3 +108,13 @@ Do not introduce one opaque “Livability Score” until metric definitions and 
 
 ## Observability
 Log provider status, latency, cache outcome, and validation errors without storing unnecessary personal data. Surface operational status in the report so the user can tell the difference between “no risk found” and “source unavailable.”
+
+
+## Current implementation boundary
+
+The FastAPI service is source code only, prepared for the user's later upload/hosting step. It is not a second production backend yet. The Next.js API remains active and continues to use its existing TypeScript provider adapters. Avoid maintaining two divergent business-logic implementations indefinitely: before switching traffic, define a shared response contract, add contract tests against both implementations, verify provider-policy controls and run a real provider pilot. The standalone backend currently returns normalized location/source status, not the full Next.js `LocationReport` schema, so the frontend cannot be switched to it without a deliberate contract migration.
+
+
+## Current implementation boundary
+
+The FastAPI service is source code only, prepared for the user's later upload/hosting step. It is not a second production backend yet. The Next.js API remains active and continues to use its existing TypeScript provider adapters. Avoid maintaining two divergent business-logic implementations indefinitely: before switching traffic, define a shared response contract, add contract tests against both implementations, verify provider-policy controls and run a real provider pilot. The standalone backend currently returns normalized location/source status, not the full Next.js `LocationReport` schema, so the frontend cannot be switched to it without a deliberate contract migration.
