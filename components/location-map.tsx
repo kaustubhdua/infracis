@@ -15,9 +15,10 @@ interface LocationMapProps {
 
 export default function LocationMap({
   location,
-  amenities = EMPTY_AMENITIES,
+  amenities: suppliedAmenities,
   onPickCoordinates
 }: LocationMapProps) {
+  const amenities = suppliedAmenities?.length ? suppliedAmenities : EMPTY_AMENITIES;
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
