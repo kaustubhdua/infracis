@@ -13,7 +13,7 @@ const providers = [
   },
   {
     name: "OpenStreetMap Overpass",
-    purpose: "Returns mapped amenities around the selected location. Mapped features may be incomplete.",
+    purpose: "When a verified HTTPS endpoint is configured, returns mapped amenities around the selected location. This provider is intentionally unavailable in production until that configuration is verified; mapped features may be incomplete.",
     href: "https://wiki.openstreetmap.org/wiki/Overpass_API"
   }
 ];
@@ -45,7 +45,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-bold text-[#153a2b]">External data providers</h2>
             <p className="mt-2 text-sm leading-7 text-[#53675a]">
-              To produce a report, Infracis sends the necessary query or coordinates to the providers below. Their own terms, privacy practices, availability, and data policies apply.
+              To produce a report, Infracis sends the necessary query or coordinates to the providers below when the relevant source is enabled. Their own terms, privacy practices, availability, and data policies apply. Provider failures and disabled sources are shown as unavailable rather than being replaced with invented data.
             </p>
             <ul className="mt-4 space-y-3">
               {providers.map((provider) => (
