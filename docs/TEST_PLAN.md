@@ -48,18 +48,22 @@ npm run build
 
 ## 3. Test Results and Evidence Status
 
-The counts below were recorded in earlier project notes and are **historical**, not proof that the current branch passes. Do not publish them as current release evidence unless the commands are rerun against the exact commit being released.
+**Verified repository candidate (2026-10-28):** commit `55ae41583922eb6796e16f4f4cd95caa7d610de1` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40664230275). The run completed `npm ci`, production and full `npm audit` checks (zero reported vulnerabilities), `npm run test` (53 tests across 10 files), lint, type-check, and production build successfully.
 
-| Check | Current release evidence |
+| Check | Evidence/status |
 |---|---|
-| Vitest suite | Must rerun on the release commit |
-| TypeScript typecheck | Must rerun on the release commit |
-| ESLint | Must rerun on the release commit |
-| Production build | Must rerun on the release commit |
-| GitHub Actions | Require a successful run for the exact commit |
-| Deployed end-to-end smoke tests | Require a real deployment and recorded results |
+| Vitest suite | 53 tests passed across 10 files on the candidate above |
+| TypeScript typecheck | Passed on the candidate above |
+| ESLint | Passed on the candidate above |
+| Production build | Passed on the candidate above |
+| Dependency audit | Both npm audit steps reported zero vulnerabilities; deprecated dev-tool warnings still need maintenance review |
+| GitHub Actions | [Green CI for exact candidate SHA](https://github.com/kaustubhdua/infracis/actions/runs/40664230275) |
+| Live-provider reliability | Not passed: see measured 20-location pilot and failures in the [production runbook](PRODUCTION_RUNBOOK.md) |
+| Deployed end-to-end smoke tests | Not run; no deployment performed |
 
-Run `npm ci`, `npm run test`, `npm run lint`, `npm run typecheck`, and `npm run build`. Record the commit SHA, date, Node/npm versions, exit status, and any failures. Do not replace missing evidence with assumed success.
+Automated route tests now cover malformed request bodies, coordinate bounds, query lengths, missing comparison fields, unsupported comparison preferences, and fail-closed 429/503 rate-limit behavior. Provider schema tests cover malformed weather, air-quality, Overpass, and optional Nominatim bounding-box payloads.
+
+This is evidence for repository correctness only. It does not establish live provider reliability, cross-instance Redis behavior, real browser accessibility conformance, user validation, cloud persistence, or deployment health. Do not claim those gates are complete until their own evidence is recorded.
 
 
 ## 4. Standalone FastAPI backend (prepared for later hosting)
