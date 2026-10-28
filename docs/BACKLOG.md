@@ -19,6 +19,7 @@ This backlog distinguishes code already present from operational work that requi
 - [x] Request body size, JSON shape, query length, and coordinate bounds validation.
 - [x] Provider response schema/range validation for malformed upstream payloads.
 - [x] Saved-report dialog keyboard behavior and storage-error feedback.
+- [x] Race-safe comparison results and stable Leaflet behavior when amenity data is unavailable.
 - [x] Privacy disclosures for conditional provider availability and temporary shared-cache retention.
 - [x] Exact main candidate `1b2fc6f16d04043509d34187088ac0de08f1a6dd` passed [CI](https://github.com/kaustubhdua/infracis/actions/runs/40679019570): 72 tests across 12 files, lint, type-check, production build, and both npm audit checks (zero reported vulnerabilities). The geocoder ranks up to five Nominatim candidates and rejects weak/tied matches, plus rejects unqualified POIs as substitutes for locality searches using Nominatim class/address-type metadata. This reduces known mismatches but does not replace semantic spot-checks or a fresh provider pilot. The report UI asks users to verify the resolved place and map pin before relying on distance metrics.
 - [x] Added route regression coverage for invalid inputs and 429/503 fail-closed rate-limit responses.

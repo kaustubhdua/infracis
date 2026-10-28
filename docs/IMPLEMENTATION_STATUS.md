@@ -1,7 +1,7 @@
 # Infracis Implementation & Verification Status
 
 **Last updated:** 28 October 2026  
-**Verified application candidate:** `1b2fc6f16d04043509d34187088ac0de08f1a6dd`  
+**Verified application candidate:** `e323313ae8feb3b2d3687d6b8a6c143f0fc95db8`  
 **Current status:** Feature-rich MVP with green repository CI. Production readiness is **not established**.
 
 This document separates code and automated-test evidence from operational evidence. A green build does not prove provider availability, deployment health, cloud persistence, accessibility conformance, or that the product is useful to real users.
@@ -19,6 +19,8 @@ This document separates code and automated-test evidence from operational eviden
 - Browser-local saved reports with export, reopen, and delete; the UI explicitly states these are stored on this device, not in the cloud.
 - Explicit location-resolution disclosure asking users to verify the resolved label and pin before relying on distance metrics.
 - Accessible saved-report dialog semantics, keyboard focus management, Escape-to-close behavior, storage error states, and malformed saved-record filtering.
+- Race-safe comparison UI that discards stale responses and clears outdated results when the locations or preference change.
+- Stable empty-amenity fallback for the Leaflet map so unavailable amenity data does not cause needless map reinitialization.
 - Privacy page describing provider data flows, browser-local storage, and current operational limits.
 - Shared Redis-backed rate-limit counters, Nominatim request-slot reservation, and provider cache implementation. Production analysis/comparison fail closed when shared Redis is absent or unavailable.
 - Separate FastAPI backend source under `backend/`, with tests and CI. It is not deployed or connected to the active Next.js frontend; the Next.js route handlers remain the active API.
@@ -26,7 +28,7 @@ This document separates code and automated-test evidence from operational eviden
 
 ## 2. Current repository verification
 
-The exact candidate `1b2fc6f16d04043509d34187088ac0de08f1a6dd` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40679019570) on 28 October 2026:
+The exact candidate `e323313ae8feb3b2d3687d6b8a6c143f0fc95db8` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40683847461) on 28 October 2026:
 
 - Locked dependency installation succeeded.
 - Production and full npm audits each reported zero vulnerabilities.
