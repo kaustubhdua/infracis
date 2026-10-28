@@ -65,6 +65,18 @@ def test_ready_checks_redis(client: TestClient) -> None:
     assert response.json()["status"] == "ready"
 
 
+def test_ready_fails_closed_when_redis_is_unavailable(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    class UnavailableRedis:
+        async def ping(self) -> bool:
+            raise TimeoutError("private redis endpoint details must not reach the client")
+
+    monkeypatch.setattr(main, "redis_client", UnavailableRedis())
+    response = client.get("/health/ready")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Redis is not reachable."}
+    assert "private redis endpoint" not in response.text
+
+
 def test_analyze_rejects_empty_body(client: TestClient) -> None:
     response = client.post("/v1/analyze", json={})
     assert response.status_code == 422
