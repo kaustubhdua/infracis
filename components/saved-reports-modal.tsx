@@ -10,7 +10,7 @@ interface SavedReportsModalProps {
   onSelectReport: (report: LocationReport) => void;
 }
 
-export function saveReportToStorage(report: LocationReport) {
+export function saveReportToStorage(report: LocationReport): boolean {
   try {
     const raw = localStorage.getItem("infracis_saved_reports");
     const reports: LocationReport[] = raw ? JSON.parse(raw) : [];
@@ -19,8 +19,10 @@ export function saveReportToStorage(report: LocationReport) {
       reports.unshift(report);
       localStorage.setItem("infracis_saved_reports", JSON.stringify(reports.slice(0, 20)));
     }
+    return true;
   } catch (err) {
     console.error("Failed to save report to local storage", err);
+    return false;
   }
 }
 
@@ -67,7 +69,7 @@ export default function SavedReportsModal({
         <div className="flex items-center justify-between border-b border-[#e9efe7] pb-4">
           <div className="flex items-center gap-2">
             <Bookmark className="text-[#104c38]" size={20} />
-            <h3 className="text-lg font-semibold text-[#1a2e23]">Saved Location Reports</h3>
+            <div><h3 className="text-lg font-semibold text-[#1a2e23]">Saved Location Reports</h3><p className="mt-1 text-xs text-[#738477]">Stored only in this browser on this device. Cloud sync is not available.</p></div>
           </div>
           <button
             onClick={onClose}
@@ -80,7 +82,7 @@ export default function SavedReportsModal({
         <div className="mt-4 flex-1 overflow-y-auto space-y-3">
           {reports.length === 0 ? (
             <div className="py-12 text-center text-xs text-[#738477]">
-              No saved reports yet. When viewing any analyzed location, click &quot;Save Report&quot; to bookmark it for future review.
+              No browser-local reports yet. Analyze a location and choose &quot;Save Report&quot; to keep a copy in this browser.
             </div>
           ) : (
             reports.map((rep) => (

@@ -1,0 +1,27 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 8
+    groups:
+      nextjs-security-and-framework:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+          - "react"
+          - "react-dom"
+      tooling-patches:
+        update-types:
+          - patch
+        patterns:
+          - "@types/*"
+          - "eslint"
+          - "typescript"
+          - "vitest"
+    labels:
+      - dependencies

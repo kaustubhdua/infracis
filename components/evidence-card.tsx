@@ -15,6 +15,12 @@ export function getClassificationBadge(classification: EvidenceClassification) {
           <CheckCircle2 size={12} /> Observed Fact
         </span>
       );
+    case "provider_model":
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-indigo-800 border border-indigo-200 uppercase">
+          <Sparkles size={12} /> Provider Model Output
+        </span>
+      );
     case "calculated":
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-sky-800 border border-sky-200 uppercase">
@@ -80,7 +86,7 @@ export default function EvidenceCard({ evidence }: EvidenceCardProps) {
       <div className="mt-2 flex items-center justify-between text-[10px] text-[#8fa094]">
         <span>Retrieved: {new Date(evidence.retrievedAt).toLocaleTimeString()}</span>
         {evidence.observedAt && (
-          <span>Observed: {new Date(evidence.observedAt).toLocaleDateString()}</span>
+          <span>{evidence.classification === "provider_model" ? "Provider timestamp:" : "Observed:"} {new Date(evidence.observedAt).toLocaleDateString()}</span>
         )}
       </div>
     </div>

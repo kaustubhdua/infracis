@@ -5,29 +5,14 @@ import { fetchNearbyAmenities } from "@/lib/providers/overpass";
 import { fetchWeatherAndElevation, fetchAirQuality } from "@/lib/providers/open-meteo";
 import { assembleLocationReport } from "@/lib/evidence-engine";
 import { LocationReport, PreferenceProfile } from "@/lib/types";
+import { readJsonWithLimit } from "@/lib/request-body";
+import { enforceRateLimit } from "@/lib/distributed-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_QUERY_LENGTH = 180;
 const validPreferences = new Set<PreferenceProfile>(["balanced", "family", "transit", "healthcare", "quiet"]);
-const ipWindows = new Map<string, { startedAt: number; count: number }>();
-
-function checkRateLimit(clientIp: string): boolean {
-  const now = Date.now();
-  const win = ipWindows.get(clientIp);
-  if (!win || now - win.startedAt >= 60_000) {
-    if (!win && ipWindows.size >= 10_000) {
-      const oldestKey = ipWindows.keys().next().value;
-      if (oldestKey) ipWindows.delete(oldestKey);
-    }
-    ipWindows.set(clientIp, { startedAt: now, count: 1 });
-    return false;
-  }
-  win.count += 1;
-  return win.count > 8;
-}
-
 async function getOrFetchReport(query: string): Promise<LocationReport> {
   const locationData = await geocodeLocation(query);
   const { latitude: lat, longitude: lon } = locationData;
@@ -49,23 +34,28 @@ async function getOrFetchReport(query: string): Promise<LocationReport> {
 }
 
 export async function POST(request: NextRequest) {
-  // Best-effort per-process protection only. Production traffic still needs a
-  // trusted shared limiter; proxy headers must be set by the hosting platform.
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const clientIp = request.headers.get("x-real-ip") || forwarded || "unknown-client";
-  if (checkRateLimit(clientIp)) {
+  // x-real-ip is set by the hosting proxy. Do not trust client-controlled
+  // X-Forwarded-For. Production requires the shared Redis limiter.
+  const clientIp = request.headers.get("x-real-ip")?.trim() || "unknown-client";
+  const rateLimit = await enforceRateLimit(`compare:${clientIp}`, 8);
+  if (!rateLimit) {
+    return NextResponse.json(
+      { error: "Comparison service is temporarily unavailable because shared rate limiting is not configured or reachable." },
+      { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "60" } }
+    );
+  }
+  if (!rateLimit.allowed) {
     return NextResponse.json(
       { error: "Too many comparison requests. Please wait a minute before trying again." },
-      { status: 429, headers: { "Cache-Control": "no-store" } }
+      { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": "60" } }
     );
   }
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
+  const parsedBody = await readJsonWithLimit(request, 16 * 1024);
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status });
   }
+  const body = parsedBody.value;
 
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 });

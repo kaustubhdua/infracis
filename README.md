@@ -50,7 +50,10 @@ Existing products already offer real-estate analytics and location/risk layers. 
 - [Research and competitive landscape](docs/RESEARCH.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Data provenance and scoring policy](docs/DATA_POLICY.md)
+- [Provider source registry and launch gates](docs/SOURCE_REGISTRY.md)
 - [MVP acceptance and test plan](docs/TEST_PLAN.md)
+- [Production release runbook](docs/PRODUCTION_RUNBOOK.md)
+- [Product validation protocol](docs/PRODUCT_VALIDATION.md)
 
 ## Proposed stack
 
@@ -63,14 +66,14 @@ Existing products already offer real-estate analytics and location/risk layers. 
 
 ## Current implementation status
 
-The repository now includes an interactive location-analysis flow backed by three real public services:
+The repository now includes an interactive location-analysis flow backed by real public services:
 - OpenStreetMap Nominatim for user-submitted location geocoding.
 - Open-Meteo for current weather-model output at the resolved coordinate.
 - OpenStreetMap via Overpass for a bounded sample of mapped amenities around the coordinate.
 
 The UI shows source URLs, retrieval time, source availability, and limitations. If weather or amenity retrieval fails, the UI shows an unavailable state instead of substituting synthetic values. This is a working initial integration, **not proof of production readiness**: build/CI, live end-to-end tests, multi-instance rate limiting, provider reliability, security review, accessibility QA, and deployment still need to be verified.
 
-The public Nominatim service is rate-limited and must not be used for autocomplete or high-volume traffic. The current implementation uses explicit form submission, basic in-process caching, and a request spacing guard. In-process controls are not sufficient for horizontally scaled production; use a compliant provider or shared cache/rate limiter before public launch.
+The public Nominatim service is rate-limited and must not be used for autocomplete or high-volume traffic. Production API requests now require a configured shared Redis limiter; geocoding slot reservations and provider caches use the same dedicated Redis service. The implementation remains unverified until Redis-backed concurrent and multi-instance tests pass.
 
 Weather values are model output, not on-site measurements. Mapped amenities are not guaranteed to be complete, open, accessible, or high-quality. This version does not make flood, crime, pollution, title, structural, or property-value claims.
 
@@ -78,11 +81,11 @@ Weather values are model output, not on-site measurements. Mapped amenities are 
 
 This repository is a functional MVP, not yet verified as production-ready. Before public or commercial launch:
 
-- Upgrade the currently locked Next.js 14.x dependency to a supported security-patched release and regenerate `package-lock.json` using npm; then run all tests, lint, typecheck, build, and live smoke tests.
+- Verify the branch-pinned Next.js 15.5.28 dependency and npm-generated lockfile using a green GitHub Actions run on the exact release candidate SHA; do not infer success from package metadata alone.
 - Confirm the Open-Meteo service plan matches the intended use. Its free API tier is for non-commercial use; commercial use requires an appropriate plan or a compliant self-hosted alternative. Attribute data under CC BY 4.0.
-- Respect the public Nominatim policy (maximum 1 request/second across the application, no autocomplete, clear attribution, caching, and a provider-switch path). Per-process throttling is not a global limit across multiple instances.
-- Confirm GitHub Actions is green for the exact release commit and verify the actual deployed domain.
-- Treat saved reports as browser-local until the Supabase migration is applied and an authenticated database-backed save/load flow is implemented and tested.
+- Configure a dedicated Upstash Redis REST store for the deployment. The API now fails closed in production if the shared limiter is absent or unreachable; Nominatim request-slot reservations and provider cache are shared through Redis. Prove aggregate limits under concurrent requests and across instances before launch.
+- Confirm GitHub Actions is green for the exact release commit and verify the actual deployed domain. A manual 20-location Delhi NCR live-provider pilot is available via `.github/workflows/provider-pilot.yml`; its artifact is evidence only after the workflow is actually run and reviewed.
+- Saved reports are explicitly browser-local; cloud save is deferred. No dedicated Infracis Supabase project was found in the connected account, and the migration is not considered applied. Do not use unrelated projects.
 
 References: [Next.js support policy](https://nextjs.org/support-policy), [Next.js security advisories](https://github.com/vercel/next.js/security/advisories), [Open-Meteo terms](https://open-meteo.com/en/terms), [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
 

@@ -6,12 +6,13 @@
 
 ## Claim categories
 
-1. **Observed** — directly returned by a named source, with its unit and context.
-2. **Calculated** — computed by a documented deterministic formula from identified evidence.
-3. **Model interpretation** — a model's explanation or classification grounded in identified evidence; never presented as an independently verified fact.
-4. **Unknown** — missing, stale, contradictory, unsupported, or inaccessible information.
+1. **Observed** — directly reported by a source that represents a direct observation or recorded fact, with unit and context.
+2. **Provider model output** — a value produced by a forecast, gridded reanalysis, interpolation, or other provider model; never imply it is an on-site sensor measurement.
+3. **Calculated** — computed by a documented deterministic formula from identified evidence.
+4. **Model interpretation** — an explanatory classification grounded in identified evidence; never presented as an independently verified fact.
+5. **Unknown** — missing, stale, contradictory, unsupported, or inaccessible information.
 
-Every report finding must carry one of these labels.
+Every report finding must carry one of these labels. Provider-model values must use `provider_model`, with retrieval time separated from the provider-supplied model timestamp.
 
 ## Required provenance
 

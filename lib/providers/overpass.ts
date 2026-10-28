@@ -1,5 +1,6 @@
 import { calculateHaversineDistance, categorizeAmenity } from "../geo";
 import { AmenityItem, AmenitiesSummary } from "../types";
+import { getSharedJson, setSharedJson } from "../shared-provider-cache";
 
 const cache = new Map<string, { expires: number; value: AmenitiesSummary }>();
 
@@ -9,6 +10,8 @@ export async function fetchNearbyAmenities(
   radiusMeters = 1200
 ): Promise<AmenitiesSummary> {
   const cacheKey = `amenities:${lat.toFixed(4)}:${lon.toFixed(4)}:${radiusMeters}`;
+  const shared = await getSharedJson<AmenitiesSummary>(cacheKey);
+  if (shared) return shared;
   const cached = cache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
     return cached.value;
@@ -42,7 +45,11 @@ out center tags 100;`;
     throw new Error(`Overpass amenity service responded with HTTP ${response.status}`);
   }
 
-  const data = (await response.json()) as {
+  const payload: unknown = await response.json();
+  if (!payload || typeof payload !== "object" || !Array.isArray((payload as { elements?: unknown }).elements)) {
+    throw new Error("Overpass returned an invalid response shape.");
+  }
+  const data = payload as {
     elements?: Array<{
       id: number;
       type: string;
@@ -53,7 +60,11 @@ out center tags 100;`;
     }>;
   };
 
-  const elements = Array.isArray(data.elements) ? data.elements : [];
+  const elements = (data.elements ?? []).filter((elem) =>
+    elem && typeof elem === "object" && Number.isInteger(elem.id) &&
+    (elem.type === "node" || elem.type === "way" || elem.type === "relation") &&
+    (elem.tags === undefined || (typeof elem.tags === "object" && elem.tags !== null && !Array.isArray(elem.tags)))
+  );
 
   const items: AmenityItem[] = elements
     .map((elem) => {
@@ -69,9 +80,11 @@ out center tags 100;`;
 
       const group = categorizeAmenity(tagVal);
 
-      const distance =
-        itemLat !== null && itemLon !== null
-          ? calculateHaversineDistance(lat, lon, itemLat, itemLon)
+      const validCoordinates = itemLat !== null && itemLon !== null && Number.isFinite(itemLat) && Number.isFinite(itemLon) && itemLat >= -90 && itemLat <= 90 && itemLon >= -180 && itemLon <= 180;
+      const safeLat = validCoordinates ? itemLat : null;
+      const safeLon = validCoordinates ? itemLon : null;
+      const distance = validCoordinates
+          ? calculateHaversineDistance(lat, lon, safeLat!, safeLon!)
           : radiusMeters;
 
       const name =
@@ -86,8 +99,8 @@ out center tags 100;`;
         category: tagVal,
         group,
         distanceMeters: distance,
-        lat: itemLat,
-        lon: itemLon
+        lat: safeLat,
+        lon: safeLon
       };
     })
     .sort((a, b) => a.distanceMeters - b.distanceMeters);
@@ -124,6 +137,7 @@ out center tags 100;`;
     expires: Date.now() + 60 * 60 * 1000, // 1 hour cache
     value: summary
   });
+  await setSharedJson(cacheKey, summary, 60 * 60);
 
   return summary;
 }

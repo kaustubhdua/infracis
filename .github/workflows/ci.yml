@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, hardening/production-readiness]
   pull_request:
     branches: [main]
 
@@ -32,6 +32,9 @@ jobs:
 
       - name: Audit production dependency vulnerabilities
         run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit all dependencies
+        run: npm audit --audit-level=high
 
       - name: Unit tests
         run: npm run test

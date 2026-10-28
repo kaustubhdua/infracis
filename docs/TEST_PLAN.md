@@ -34,7 +34,8 @@ npm run build
 - **Weather and AQI Code Interpretation:** Tests WMO code mapping and European AQI severity boundaries.
 
 ### B. Evidence Provenance Integrity (`tests/evidence.test.ts`)
-- **Evidence Record Schema:** Ensures every record has non-empty ID, provider, source URL, limitations, and valid classification (`observed`, `calculated`, `model_interpretation`, `unknown`).
+- **Evidence Record Schema:** Ensures every record has non-empty ID, provider, source URL, limitations, and valid classification (`observed`, `provider_model`, `calculated`, `model_interpretation`, `unknown`).
+- **Provider-model classification:** Weather, air-quality and DEM outputs must not be labelled as direct observations; tests assert `provider_model`.
 - **Strict Grounding Validation:** Asserts that 100% of generated findings cite only valid evidence IDs present in the report payload.
 - **Explicit Unknown Detection:** Confirms that when upstream providers are unavailable, the engine generates explicit unknown statements rather than substituting synthetic placeholders.
 
