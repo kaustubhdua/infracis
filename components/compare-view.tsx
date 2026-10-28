@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ComparisonReport, PreferenceProfile } from "@/lib/types";
 import { ArrowRight, LoaderCircle, Scale, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -11,8 +11,17 @@ export default function CompareView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<ComparisonReport | null>(null);
+  const requestIdRef = useRef(0);
+
+  const invalidateComparison = () => {
+    requestIdRef.current += 1;
+    setLoading(false);
+    setData(null);
+    setError("");
+  };
 
   const setExample = (a: string, b: string) => {
+    invalidateComparison();
     setQueryA(a);
     setQueryB(b);
   };
@@ -24,8 +33,10 @@ export default function CompareView() {
       return;
     }
 
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError("");
+    setData(null);
 
     try {
       const res = await fetch("/api/compare", {
@@ -35,11 +46,13 @@ export default function CompareView() {
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error || "Could not compare locations.");
+      if (requestId !== requestIdRef.current) return;
       setData(payload as ComparisonReport);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError(err instanceof Error ? err.message : "Failed to run comparison.");
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }
 
@@ -67,7 +80,7 @@ export default function CompareView() {
               maxLength={180}
               autoComplete="off"
               value={queryA}
-              onChange={(e) => setQueryA(e.target.value)}
+              onChange={(e) => { invalidateComparison(); setQueryA(e.target.value); }}
               placeholder="e.g. Koramangala, Bengaluru"
               required
               className="w-full rounded-2xl border border-[#dce3da] bg-[#fbfcf9] px-4 py-3 text-sm outline-none focus:border-[#104c38]"
@@ -84,7 +97,7 @@ export default function CompareView() {
               maxLength={180}
               autoComplete="off"
               value={queryB}
-              onChange={(e) => setQueryB(e.target.value)}
+              onChange={(e) => { invalidateComparison(); setQueryB(e.target.value); }}
               placeholder="e.g. HSR Layout, Bengaluru"
               required
               className="w-full rounded-2xl border border-[#dce3da] bg-[#fbfcf9] px-4 py-3 text-sm outline-none focus:border-[#104c38]"
@@ -101,7 +114,7 @@ export default function CompareView() {
                   key={p}
                   type="button"
                   aria-pressed={preference === p}
-                  onClick={() => setPreference(p)}
+                  onClick={() => { invalidateComparison(); setPreference(p); }}
                   className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${
                     preference === p
                       ? "bg-[#104c38] text-white"

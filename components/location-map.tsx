@@ -5,6 +5,8 @@ import type L from "leaflet";
 import { LocationData, AmenityItem } from "@/lib/types";
 import { escapeHtml } from "@/lib/escape-html";
 
+const EMPTY_AMENITIES: AmenityItem[] = [];
+
 interface LocationMapProps {
   location: LocationData;
   amenities?: AmenityItem[];
@@ -13,7 +15,7 @@ interface LocationMapProps {
 
 export default function LocationMap({
   location,
-  amenities = [],
+  amenities = EMPTY_AMENITIES,
   onPickCoordinates
 }: LocationMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
