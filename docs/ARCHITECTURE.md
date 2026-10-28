@@ -39,7 +39,7 @@ Reports distinguish:
 - **Observed**: a source-returned record, with the source's own limitations.
 - **Provider model**: weather/air-quality model outputs and other gridded products.
 - **Calculated**: deterministic metrics derived from identified inputs and documented formulas.
-- **Model interpretation**: optional explanatory text grounded in evidence IDs.
+- **Rule-based interpretation**: deterministic explanatory text assembled by `lib/synthesizer.ts` from evidence IDs. The current build does not call an LLM; any future AI adapter must be implemented and tested separately.
 - **Unknown**: unavailable, malformed, stale, or unverified evidence.
 
 A missing amenity is not evidence that the service does not exist. A successful HTTP response is not proof that a geocoded label matches the intended neighbourhood. No synthetic substitute values are allowed for unavailable real providers.

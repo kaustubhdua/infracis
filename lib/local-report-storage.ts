@@ -1,6 +1,6 @@
 import type { LocationReport } from "./types";
 
-const classifications = new Set(["observed", "provider_model", "calculated", "model_interpretation", "unknown"]);
+const classifications = new Set(["observed", "provider_model", "calculated", "rule_based_interpretation", "unknown"]);
 const groups = new Set(["transit", "education", "healthcare", "essentials", "civic", "other"]);
 const priorities = new Set(["high", "medium", "low"]);
 const riskLevels = new Set(["neutral", "favorable", "caution"]);
@@ -138,10 +138,26 @@ function isStoredReport(value: unknown): value is LocationReport {
     Array.isArray(value.limitations) && value.limitations.every(isString);
 }
 
-/** Parse and bound browser-local report data before it reaches UI rendering. */
+function migrateLegacyClassification(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  const migrated: Record<string, unknown> = { ...value };
+  // Preserve browser-local reports created before the label was clarified from
+  // "model_interpretation" to "rule_based_interpretation". No report data is lost.
+  for (const field of ["evidence", "findings"]) {
+    const entries = migrated[field];
+    if (!Array.isArray(entries)) continue;
+    migrated[field] = entries.map((entry) => {
+      if (!isRecord(entry) || entry.classification !== "model_interpretation") return entry;
+      return { ...entry, classification: "rule_based_interpretation" };
+    });
+  }
+  return migrated;
+}
+
+/** Parse, migrate, and bound browser-local report data before UI rendering. */
 export function parseStoredReports(value: unknown): LocationReport[] {
   if (!Array.isArray(value)) return [];
-  return value.filter(isStoredReport).slice(0, 20);
+  return value.map(migrateLegacyClassification).filter(isStoredReport).slice(0, 20);
 }
 
 /** Save the latest report for a location, avoiding stale duplicate entries. */

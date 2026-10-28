@@ -1,4 +1,4 @@
-export type EvidenceClassification = "observed" | "provider_model" | "calculated" | "model_interpretation" | "unknown";
+export type EvidenceClassification = "observed" | "provider_model" | "calculated" | "rule_based_interpretation" | "unknown";
 
 export type EvidenceCategory =
   | "location"

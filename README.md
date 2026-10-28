@@ -10,11 +10,11 @@ Infracis helps a home buyer or renter investigate a location before committing t
 
 The first release focuses on **one user: a home buyer/renter evaluating a specific location**.
 
-A user searches for a place, reviews nearby amenities and available environmental/hazard context, compares it with a second location, and receives a report that separates:
+A user searches for a place, reviews nearby amenities and available environmental and mapped-amenity context, compares it with a second location, and receives a report that separates:
 
 - **Observed facts** — retrieved from a named source.
 - **Calculated metrics** — derived using documented formulas.
-- **Model-assisted interpretations** — AI-generated explanations grounded in retrieved evidence.
+- **Rule-based interpretations** — deterministic explanations assembled from retrieved evidence IDs. This build does not call an LLM or generate AI-written summaries.
 - **Unknowns** — unavailable, stale, incomplete, or unverified information.
 
 The first release is not a property valuation engine, legal title verification service, safety guarantee, or investment recommendation.
@@ -23,7 +23,7 @@ The first release is not a property valuation engine, legal title verification s
 
 Property listings usually optimize discovery of properties. Infracis focuses on the location-specific questions a buyer needs to investigate before deciding: what is known, what could matter to my preferences, how current is the evidence, and what should I verify next?
 
-Existing products already offer real-estate analytics and location/risk layers. Infracis must differentiate through **auditable evidence, uncertainty-aware comparison, and actionable due-diligence gaps**, not simply by combining maps with an AI summary.
+Existing products already offer real-estate analytics and location/risk layers. Infracis must differentiate through **auditable evidence, uncertainty-aware comparison, and actionable due-diligence gaps**, not through unsupported AI claims.
 
 ## MVP scope
 
@@ -63,7 +63,7 @@ Existing products already offer real-estate analytics and location/risk layers. 
 - Map: Leaflet with properly attributed OpenStreetMap data
 - Backend/data: Supabase (Postgres, Auth, Storage, Row Level Security)
 - Geospatial utilities: PostGIS where enabled, otherwise well-tested geospatial helpers
-- AI: optional provider adapter for evidence-grounded explanations; deterministic calculations remain outside the model
+- AI: not active in this build; a future optional evidence-grounded provider adapter would require separate implementation and tests. Current findings use deterministic rules and templates.
 - Deployment: Vercel or another supported host after local build and environment configuration are verified
 
 ## Current implementation status

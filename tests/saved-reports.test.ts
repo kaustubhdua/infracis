@@ -78,6 +78,34 @@ describe("browser-local saved report parsing", () => {
     ])).toEqual([]);
   });
 
+  it("migrates legacy model-interpretation labels without dropping saved reports", () => {
+    const report = storedReport("legacy");
+    const migrated = parseStoredReports([{
+      ...report,
+      evidence: [{
+        id: "evidence-legacy",
+        category: "due_diligence",
+        title: "Legacy interpretation",
+        value: "review",
+        classification: "model_interpretation",
+        provider: "Infracis rules",
+        sourceUrl: "https://github.com/kaustubhdua/infracis",
+        retrievedAt: "2026-10-28T00:00:00.000Z",
+        limitations: "Deterministic template"
+      }],
+      findings: [{
+        id: "finding-legacy",
+        headline: "Legacy finding",
+        explanation: "Deterministic explanation",
+        classification: "model_interpretation",
+        supportingEvidenceIds: ["evidence-legacy"]
+      }]
+    }]);
+    expect(migrated).toHaveLength(1);
+    expect(migrated[0].evidence[0].classification).toBe("rule_based_interpretation");
+    expect(migrated[0].findings[0].classification).toBe("rule_based_interpretation");
+  });
+
   it("keeps at most the twenty newest records in stored order", () => {
     const reports = Array.from({ length: 25 }, (_, index) => storedReport(String(index)));
     const parsed = parseStoredReports(reports);

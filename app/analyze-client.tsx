@@ -456,7 +456,7 @@ export default function AnalyzeClient() {
 
                     {/* Filter buttons */}
                     <div className="flex flex-wrap gap-1.5">
-                      {(["all", "observed", "provider_model", "calculated", "model_interpretation", "unknown"] as const).map(
+                      {(["all", "observed", "provider_model", "calculated", "rule_based_interpretation", "unknown"] as const).map(
                         (f) => (
                           <button
                             key={f}

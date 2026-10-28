@@ -9,7 +9,7 @@
 1. **Observed** — directly reported by a source that represents a direct observation or recorded fact, with unit and context.
 2. **Provider model output** — a value produced by a forecast, gridded reanalysis, interpolation, or other provider model; never imply it is an on-site sensor measurement.
 3. **Calculated** — computed by a documented deterministic formula from identified evidence.
-4. **Model interpretation** — an explanatory classification grounded in identified evidence; never presented as an independently verified fact.
+4. **Rule-based interpretation** — an explanatory classification grounded in identified evidence; never presented as an independently verified fact.
 5. **Unknown** — missing, stale, contradictory, unsupported, or inaccessible information.
 
 Every report finding must carry one of these labels. Provider-model values must use `provider_model`, with retrieval time separated from the provider-supplied model timestamp.
@@ -33,14 +33,15 @@ Freshness thresholds are source-specific. A live weather observation, annual dat
 
 Stale data may remain useful as historical context, but must be labeled as such.
 
-## AI grounding
+## Future AI grounding (not active in this build)
+The current implementation uses deterministic rules and templates in `lib/synthesizer.ts`; it does not call an LLM. If an AI provider is introduced later:
 - Pass only normalized evidence and calculations required for the task.
 - Require every factual claim to reference one or more evidence IDs.
 - Validate returned IDs against the input bundle.
 - Reject unsupported factual claims; do not fill gaps from model memory.
 - Render uncertainty and conflicting sources explicitly.
 - AI may summarize or explain. It must not invent source URLs, statistics, hazard classifications, property prices, crime data, or legal conclusions.
-- Provide deterministic fallback rendering when AI is unavailable.
+- Keep deterministic fallback rendering when AI is unavailable.
 
 ## Location and risk language
 - Use “within X metres” only when the distance calculation and coordinate source support it.

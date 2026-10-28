@@ -53,7 +53,7 @@ export function generateGroundedFindings(
       headline: "Public Transit Access Unverified in Open Feeds",
       explanation:
         "No public transit stops, metro stations, or railway terminals were found within a 1.2 km radius in OpenStreetMap. Physical on-ground verification of local shared autos or private shuttles is recommended.",
-      classification: "model_interpretation",
+      classification: "rule_based_interpretation",
       supportingEvidenceIds: ["ev-amenity-total"].filter((id) => evidenceMap.has(id)),
       riskLevel: "caution"
     });

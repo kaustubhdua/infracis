@@ -103,7 +103,7 @@ describe("Evidence Engine & Provenance Integrity", () => {
       expect(ev.provider).toBeDefined();
       expect(ev.sourceUrl).toMatch(/^https?:\/\//);
       expect(ev.limitations).toBeDefined();
-      expect(["observed", "provider_model", "calculated", "model_interpretation", "unknown"]).toContain(
+      expect(["observed", "provider_model", "calculated", "rule_based_interpretation", "unknown"]).toContain(
         ev.classification
       );
     }

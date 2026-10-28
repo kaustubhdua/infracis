@@ -1,7 +1,7 @@
 "use client";
 
 import { EvidenceRecord, EvidenceClassification } from "@/lib/types";
-import { ExternalLink, CheckCircle2, Calculator, Sparkles, HelpCircle } from "lucide-react";
+import { ExternalLink, CheckCircle2, Calculator, Sparkles, HelpCircle, ListChecks } from "lucide-react";
 
 interface EvidenceCardProps {
   evidence: EvidenceRecord;
@@ -27,10 +27,10 @@ export function getClassificationBadge(classification: EvidenceClassification) {
           <Calculator size={12} /> Calculated Metric
         </span>
       );
-    case "model_interpretation":
+    case "rule_based_interpretation":
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-purple-800 border border-purple-200 uppercase">
-          <Sparkles size={12} /> Model Interpretation
+          <ListChecks size={12} /> Rule-based Interpretation
         </span>
       );
     case "unknown":
