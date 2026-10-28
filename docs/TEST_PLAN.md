@@ -45,16 +45,17 @@ npm run build
 
 ---
 
-## 3. Test Results (Verified)
+## 3. Test Results and Evidence Status
 
-```
-✓ tests/geo.test.ts (7 tests)
-✓ tests/comparison.test.ts (3 tests)
-✓ tests/evidence.test.ts (3 tests)
+The counts below were recorded in earlier project notes and are **historical**, not proof that the current branch passes. Do not publish them as current release evidence unless the commands are rerun against the exact commit being released.
 
-Test Files  3 passed (3)
-Tests       13 passed (13)
-TypeScript  0 errors
-ESLint      0 errors, 0 warnings
-Build       Success (Static + Dynamic routes)
-```
+| Check | Current release evidence |
+|---|---|
+| Vitest suite | Must rerun on the release commit |
+| TypeScript typecheck | Must rerun on the release commit |
+| ESLint | Must rerun on the release commit |
+| Production build | Must rerun on the release commit |
+| GitHub Actions | Require a successful run for the exact commit |
+| Deployed end-to-end smoke tests | Require a real deployment and recorded results |
+
+Run `npm ci`, `npm run test`, `npm run lint`, `npm run typecheck`, and `npm run build`. Record the commit SHA, date, Node/npm versions, exit status, and any failures. Do not replace missing evidence with assumed success.
