@@ -5,6 +5,7 @@ import { fetchNearbyAmenities } from "@/lib/providers/overpass";
 import { fetchWeatherAndElevation, fetchAirQuality } from "@/lib/providers/open-meteo";
 import { assembleLocationReport } from "@/lib/evidence-engine";
 import { LocationReport, PreferenceProfile } from "@/lib/types";
+import { readJsonWithLimit } from "@/lib/request-body";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,12 +61,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
+  const parsedBody = await readJsonWithLimit(request, 16 * 1024);
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status });
   }
+  const body = parsedBody.value;
 
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 });
