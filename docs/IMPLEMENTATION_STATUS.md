@@ -1,7 +1,7 @@
 # Infracis Implementation & Verification Status
 
 **Last updated:** 28 October 2026  
-**Verified application candidate:** `82586ab059f198c4fa8ff3276bb7509bc29bfe58`  
+**Verified application candidate:** `d8d5784d6fdf4be5bd646a2eb71e2c4afc039e1a`  
 **Current status:** Feature-rich MVP with green repository CI. Production readiness is **not established**.
 
 This document separates code and automated-test evidence from operational evidence. A green build does not prove provider availability, deployment health, cloud persistence, accessibility conformance, or that the product is useful to real users.
@@ -25,10 +25,11 @@ This document separates code and automated-test evidence from operational eviden
 - Shared Redis-backed rate-limit counters, Nominatim request-slot reservation, and provider cache implementation. Production analysis/comparison fail closed when shared Redis is absent or unavailable; automated tests cover Redis command shape, key namespacing, expiry, malformed cached JSON, and outage cache misses, but not real multi-instance behavior.
 - Separate FastAPI backend source under `backend/`, with tests and CI. It is not deployed or connected to the active Next.js frontend; the Next.js route handlers remain the active API.
 - Supabase migration source exists, but it has not been verified as applied and does not constitute a working cloud-save flow.
+- The separate backend now has a version-pinned Linux/container dependency file (`backend/requirements-lock.txt`); Backend CI installs it, verifies compatibility with the declared ranges, runs `pip check` and `pip-audit`, and passes 21 tests. The lock is version-pinned but not hash-pinned; the backend is still not connected to the frontend or deployed.
 
 ## 2. Current repository verification
 
-The exact candidate `82586ab059f198c4fa8ff3276bb7509bc29bfe58` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40686191082) on 28 October 2026:
+The exact candidate `d8d5784d6fdf4be5bd646a2eb71e2c4afc039e1a` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40687905463) on 28 October 2026:
 
 - Locked dependency installation succeeded.
 - Production and full npm audits each reported zero vulnerabilities.
@@ -90,7 +91,7 @@ Infracis does **not** verify legal title, structural condition, crime rates, flo
 
 - Keep local browser saving clearly labeled until a dedicated Infracis Supabase project is authorized, migration history/schema/RLS are verified, authenticated CRUD is implemented, and cross-user isolation tests pass.
 - Before integrating the separate FastAPI service, align its response contract with the frontend `LocationReport`, add contract tests, choose a single canonical provider path, and verify its authentication and hosting setup.
-- Add pinned/locked Python dependency resolution for the standalone backend before treating its build as reproducible.
+- Improve the backend lockfile with artifact hashes before treating it as maximally reproducible; the current Linux/container lock pins package versions and is CI-tested, but is not hash-pinned.
 
 ### Release / deployment
 
