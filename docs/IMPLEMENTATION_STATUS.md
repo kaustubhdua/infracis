@@ -14,6 +14,7 @@ This document separates implemented code and historical test evidence from check
 - Two-location comparison with preference profiles and incomparable states for missing metrics.
 - Interactive map and location pin selection.
 - Location-specific due-diligence checklist and print styling.
+- Evidence-led decision brief that surfaces actual source availability, explicit unknowns, and highest-priority checklist actions without inventing a property verdict.
 - Local browser saved reports and JSON export.
 - Health endpoint that reports the web route response, not upstream health.
 - Supabase saved-report schema with RLS policies committed as a migration; this is not proof the migration has been applied or that cloud persistence is wired into the UI.
@@ -23,6 +24,8 @@ This document separates implemented code and historical test evidence from check
 
 - `/api/analyze` validates JSON shape, query length, and coordinate range; bounds the size of its per-process rate-limit map and in-memory report cache; avoids caching analysis responses at HTTP/CDN level; and returns generic upstream failure messages. Provider-level Nominatim and Overpass caches are also size-bounded.
 - `/api/compare` validates JSON shape and both query lengths; validates supported preference profiles by normalizing unknown values to the balanced profile; distinguishes unresolved locations from upstream failures; disables HTTP caching; and now applies its previously defined bounded per-process request throttle.
+- Leaflet map popups escape provider-sourced location and amenity text before HTML insertion; dedicated unit tests cover HTML metacharacter escaping.
+- The report UI avoids the overstated “Live Audited Report” label and explains that source-linked findings are not independent ground-truth verification.
 
 These are defensive improvements, not a complete security review. Both endpoints still rely on in-process controls and public data providers. The analysis route's IP-based throttling is best-effort only: a shared, trusted rate limiter and provider-compliant production data strategy are required before high-volume public use.
 
