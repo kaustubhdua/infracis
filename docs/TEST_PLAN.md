@@ -48,7 +48,7 @@ npm run build
 
 ## 3. Test Results and Evidence Status
 
-**Verified repository candidate (2026-10-28):** commit `55ae41583922eb6796e16f4f4cd95caa7d610de1` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40664230275). The run completed `npm ci`, production and full `npm audit` checks (zero reported vulnerabilities), `npm run test` (53 tests across 10 files), lint, type-check, and production build successfully.
+**Verified repository candidate (2026-10-28):** commit `1a266b78782b4ef35c6ca1003b839cefe5ac7175` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40667585958). The run completed `npm ci`, production and full `npm audit` checks (zero reported vulnerabilities), unit tests, lint, type-check, and production build successfully. The implementation-status record for this candidate documents 55 tests across 10 files.
 
 | Check | Evidence/status |
 |---|---|

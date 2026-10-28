@@ -1,7 +1,7 @@
 # Infracis Implementation & Verification Status
 
 **Last updated:** 28 October 2026  
-**Verified application candidate:** `841a82884c66b2744e164ae80901fd25b7296f69`  
+**Verified application candidate:** `1a266b78782b4ef35c6ca1003b839cefe5ac7175`  
 **Current status:** Feature-rich MVP with green repository CI. Production readiness is **not established**.
 
 This document separates code and automated-test evidence from operational evidence. A green build does not prove provider availability, deployment health, cloud persistence, accessibility conformance, or that the product is useful to real users.
@@ -25,7 +25,7 @@ This document separates code and automated-test evidence from operational eviden
 
 ## 2. Current repository verification
 
-The exact candidate `841a82884c66b2744e164ae80901fd25b7296f69` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40664710454) on 28 October 2026:
+The exact candidate `1a266b78782b4ef35c6ca1003b839cefe5ac7175` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40667585958) on 28 October 2026:
 
 - Locked dependency installation succeeded.
 - Production and full npm audits each reported zero vulnerabilities.
