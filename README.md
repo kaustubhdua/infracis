@@ -74,6 +74,18 @@ The public Nominatim service is rate-limited and must not be used for autocomple
 
 Weather values are model output, not on-site measurements. Mapped amenities are not guaranteed to be complete, open, accessible, or high-quality. This version does not make flood, crime, pollution, title, structural, or property-value claims.
 
+## Production release warning
+
+This repository is a functional MVP, not yet verified as production-ready. Before public or commercial launch:
+
+- Upgrade the currently locked Next.js 14.x dependency to a supported security-patched release and regenerate `package-lock.json` using npm; then run all tests, lint, typecheck, build, and live smoke tests.
+- Confirm the Open-Meteo service plan matches the intended use. Its free API tier is for non-commercial use; commercial use requires an appropriate plan or a compliant self-hosted alternative. Attribute data under CC BY 4.0.
+- Respect the public Nominatim policy (maximum 1 request/second across the application, no autocomplete, clear attribution, caching, and a provider-switch path). Per-process throttling is not a global limit across multiple instances.
+- Confirm GitHub Actions is green for the exact release commit and verify the actual deployed domain.
+- Treat saved reports as browser-local until the Supabase migration is applied and an authenticated database-backed save/load flow is implemented and tested.
+
+References: [Next.js support policy](https://nextjs.org/support-policy), [Next.js security advisories](https://github.com/vercel/next.js/security/advisories), [Open-Meteo terms](https://open-meteo.com/en/terms), [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+
 ## Development principles
 
 - Real data or clearly labeled demo fixtures only.
