@@ -118,6 +118,7 @@ export default function AnalyzeClient() {
                     <MapPin size={18} className="shrink-0 text-[#104c38]" />
                     <input
                       id="location-input"
+                      aria-label="Address or locality to investigate"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       minLength={3}
@@ -208,7 +209,7 @@ export default function AnalyzeClient() {
                     </h3>
                     <p className="mt-1 text-xs text-[#6b7b70]">
                       Coordinates: {report.location.latitude.toFixed(5)},{" "}
-                      {report.location.longitude.toFixed(5)} · Data Completeness:{" "}
+                      {report.location.longitude.toFixed(5)} · Source coverage:{" "}
                       <strong className="text-[#104c38]">
                         {report.scores.completenessScore}%
                       </strong>
@@ -273,7 +274,7 @@ export default function AnalyzeClient() {
                     <p className="mt-1 text-xs text-[#6e7e72]">
                       {report.amenities?.nearest.transit
                         ? report.amenities.nearest.transit.name
-                        : "No transit stops within 1.2 km"}
+                        : "No mapped transit stop returned within 1.2 km. Map coverage may be incomplete."}
                     </p>
                   </div>
 
@@ -292,7 +293,7 @@ export default function AnalyzeClient() {
                     <p className="mt-1 text-xs text-[#6e7e72]">
                       {report.amenities?.nearest.healthcare
                         ? report.amenities.nearest.healthcare.name
-                        : "No clinic/hospital mapped in 1.2km"}
+                        : "No mapped clinic or hospital returned within 1.2 km. Map coverage may be incomplete."}
                     </p>
                   </div>
 
@@ -323,14 +324,14 @@ export default function AnalyzeClient() {
                     </div>
                     <div className="mt-3 flex items-baseline gap-2">
                       <span className="text-2xl font-bold text-[#143023]">
-                        {report.weather?.elevationMeters !== null
-                          ? `${report.weather?.elevationMeters}m`
+                        {report.weather?.elevationMeters != null
+                          ? `${report.weather.elevationMeters}m`
                           : "—"}
                       </span>
                       <span className="text-xs text-[#6e7e72]">above sea level</span>
                     </div>
                     <p className="mt-1 text-xs text-[#6e7e72]">
-                      Temp: {report.weather?.temperature ?? "—"}°C · {report.weather?.weatherDescription}
+                      Temp: {report.weather?.temperature ?? "—"}°C · {report.weather?.weatherDescription ?? "Weather unavailable"}
                     </p>
                   </div>
                 </section>
