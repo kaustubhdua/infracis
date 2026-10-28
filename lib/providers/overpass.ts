@@ -60,7 +60,7 @@ out center tags 100;`;
     }>;
   };
 
-  const elements = data.elements.filter((elem) =>
+  const elements = (data.elements ?? []).filter((elem) =>
     elem && typeof elem === "object" && Number.isInteger(elem.id) &&
     (elem.type === "node" || elem.type === "way" || elem.type === "relation") &&
     (elem.tags === undefined || (typeof elem.tags === "object" && elem.tags !== null && !Array.isArray(elem.tags)))
