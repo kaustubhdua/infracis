@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { LocationReport } from "@/lib/types";
-import { parseStoredReports } from "@/lib/local-report-storage";
+import { parseStoredReports, upsertStoredReport } from "@/lib/local-report-storage";
 import { Bookmark, Trash2, Download, X } from "lucide-react";
 
 interface SavedReportsModalProps {
@@ -19,12 +19,8 @@ function readStoredReports(): LocationReport[] {
 
 export function saveReportToStorage(report: LocationReport): boolean {
   try {
-    const reports = readStoredReports();
-    const exists = reports.some((r) => r.id === report.id || r.location.label === report.location.label);
-    if (!exists) {
-      reports.unshift(report);
-      localStorage.setItem("infracis_saved_reports", JSON.stringify(reports.slice(0, 20)));
-    }
+    const reports = upsertStoredReport(readStoredReports(), report);
+    localStorage.setItem("infracis_saved_reports", JSON.stringify(reports));
     return true;
   } catch (err) {
     console.error("Failed to save report to local storage", err);
