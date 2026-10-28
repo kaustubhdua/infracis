@@ -2,12 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { enforceRateLimit } from "./distributed-rate-limit";
 import { waitForNominatimSlot } from "./shared-provider-cache";
 
-const originalNodeEnv = process.env.NODE_ENV;
 const originalUrl = process.env.UPSTASH_REDIS_REST_URL;
 const originalToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 afterEach(() => {
-  process.env.NODE_ENV = originalNodeEnv;
+  vi.unstubAllEnvs();
   if (originalUrl === undefined) delete process.env.UPSTASH_REDIS_REST_URL;
   else process.env.UPSTASH_REDIS_REST_URL = originalUrl;
   if (originalToken === undefined) delete process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -18,7 +17,7 @@ afterEach(() => {
 
 describe("shared rate limiter", () => {
   it("fails closed in production when shared Redis is not configured", async () => {
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
     await expect(enforceRateLimit("test-client", 2)).resolves.toBeNull();
