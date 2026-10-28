@@ -29,8 +29,19 @@ export async function fetchNearbyAmenities(
 out center tags 100;`;
 
   const body = new URLSearchParams({ data: query });
-  const overpassUrl = process.env.OVERPASS_API_URL || "https://overpass-api.de/api/interpreter";
-  const response = await fetch(overpassUrl, {
+  const configuredEndpoint = process.env.OVERPASS_API_URL?.trim();
+  if (!configuredEndpoint && process.env.NODE_ENV === "production") {
+    throw new Error("Overpass is not configured for production; set OVERPASS_API_URL to a verified HTTPS endpoint.");
+  }
+  const overpassUrl = configuredEndpoint || "https://overpass-api.de/api/interpreter";
+  let parsedEndpoint: URL;
+  try {
+    parsedEndpoint = new URL(overpassUrl);
+  } catch {
+    throw new Error("OVERPASS_API_URL must be a valid HTTPS URL.");
+  }
+  if (parsedEndpoint.protocol !== "https:") throw new Error("OVERPASS_API_URL must use HTTPS.");
+  const response = await fetch(parsedEndpoint.toString(), {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",

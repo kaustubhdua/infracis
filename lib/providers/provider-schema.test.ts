@@ -25,6 +25,25 @@ describe("provider schema validation", () => {
     await expect(fetchNearbyAmenities(28.6139, 77.209)).rejects.toThrow(/invalid response shape/i);
   });
 
+  it("fails closed in production when no verified Overpass endpoint is configured", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OVERPASS_API_URL", "");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchNearbyAmenities(11.2345, 22.3456, 1200)).rejects.toThrow(/not configured for production/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects insecure HTTP Overpass endpoint configuration", async () => {
+    vi.stubEnv("OVERPASS_API_URL", "http://overpass.example/interpreter");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchNearbyAmenities(13.2345, 24.3456, 1200)).rejects.toThrow(/must use HTTPS/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("uses a configured Overpass endpoint and a single lower-cost union query", async () => {
     vi.stubEnv("OVERPASS_API_URL", "https://overpass.example/interpreter");
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ elements: [] }), { status: 200 }));
