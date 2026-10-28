@@ -50,6 +50,7 @@ Existing products already offer real-estate analytics and location/risk layers. 
 - [Research and competitive landscape](docs/RESEARCH.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Data provenance and scoring policy](docs/DATA_POLICY.md)
+- [Provider source registry and launch gates](docs/SOURCE_REGISTRY.md)
 - [MVP acceptance and test plan](docs/TEST_PLAN.md)
 
 ## Proposed stack
