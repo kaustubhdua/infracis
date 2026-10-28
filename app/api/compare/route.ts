@@ -9,6 +9,9 @@ import { LocationReport, PreferenceProfile } from "@/lib/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const MAX_QUERY_LENGTH = 180;
+const validPreferences = new Set<PreferenceProfile>(["balanced", "family", "transit", "healthcare", "quiet"]);
+
 async function getOrFetchReport(query: string): Promise<LocationReport> {
   const locationData = await geocodeLocation(query);
   const { latitude: lat, longitude: lon } = locationData;
@@ -30,28 +33,54 @@ async function getOrFetchReport(query: string): Promise<LocationReport> {
 }
 
 export async function POST(request: NextRequest) {
+  let body: unknown;
   try {
-    const body = await request.json();
-    const queryA = typeof body?.queryA === "string" ? body.queryA.trim() : "";
-    const queryB = typeof body?.queryB === "string" ? body.queryB.trim() : "";
-    const preference = (body?.preference || "balanced") as PreferenceProfile;
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
+  }
 
-    if (!queryA || !queryB) {
-      return NextResponse.json(
-        { error: "Provide both Location A and Location B to compare." },
-        { status: 400 }
-      );
-    }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 });
+  }
 
+  const input = body as { queryA?: unknown; queryB?: unknown; preference?: unknown };
+  const queryA = typeof input.queryA === "string" ? input.queryA.trim() : "";
+  const queryB = typeof input.queryB === "string" ? input.queryB.trim() : "";
+  const preference = typeof input.preference === "string" && validPreferences.has(input.preference as PreferenceProfile)
+    ? input.preference as PreferenceProfile
+    : "balanced";
+
+  if (!queryA || !queryB) {
+    return NextResponse.json(
+      { error: "Provide both Location A and Location B to compare." },
+      { status: 400 }
+    );
+  }
+
+  if (queryA.length > MAX_QUERY_LENGTH || queryB.length > MAX_QUERY_LENGTH) {
+    return NextResponse.json(
+      { error: `Each location query must be ${MAX_QUERY_LENGTH} characters or fewer.` },
+      { status: 400 }
+    );
+  }
+
+  try {
     const [reportA, reportB] = await Promise.all([
       getOrFetchReport(queryA),
       getOrFetchReport(queryB)
     ]);
 
     const comparison = compareLocations(reportA, reportB, preference);
-    return NextResponse.json(comparison);
+    return NextResponse.json(comparison, {
+      headers: { "Cache-Control": "no-store" }
+    });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Comparison failed.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const message = err instanceof Error ? err.message : "";
+    const isNotFound = message.includes("No matching location");
+    return NextResponse.json(
+      { error: isNotFound ? message : "Comparison data could not be retrieved. Please retry shortly." },
+      { status: isNotFound ? 404 : 502, headers: { "Cache-Control": "no-store" } }
+    );
   }
 }
