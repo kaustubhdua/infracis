@@ -23,6 +23,13 @@ const locations = [
   "Faridabad Sector 15, Haryana, India",
   "Greater Noida Knowledge Park, Uttar Pradesh, India"
 ];
+const requestedSampleLimit = process.env.PILOT_SAMPLE_LIMIT === undefined
+  ? locations.length
+  : Number(process.env.PILOT_SAMPLE_LIMIT);
+if (!Number.isInteger(requestedSampleLimit) || requestedSampleLimit < 1 || requestedSampleLimit > locations.length) {
+  throw new Error(`PILOT_SAMPLE_LIMIT must be an integer from 1 to ${locations.length}.`);
+}
+const pilotLocations = locations.slice(0, requestedSampleLimit);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const checks = [];
@@ -62,7 +69,7 @@ async function checkJson(url, options = {}, timeoutMs = 12_000) {
   }
 }
 
-for (const query of locations) {
+for (const query of pilotLocations) {
   const wait = Math.max(0, 1100 - (Date.now() - lastNominatimAt));
   if (wait) await sleep(wait);
   const geocodeUrl = new URL("https://nominatim.openstreetmap.org/search");
@@ -191,7 +198,7 @@ for (const field of ["geocoding", "weather", "airQuality", "amenities"]) {
 const report = {
   generatedAt: new Date().toISOString(),
   pilotGeography: "Delhi NCR, India",
-  sampleCount: locations.length,
+  sampleCount: pilotLocations.length,
   method: "Live provider calls; Nominatim queries are spaced at least 1.1 seconds apart. A pass requires the provider response envelope and every requested field for that provider to be present and valid. A pass does not prove geographic completeness or ground truth. Overpass failover is sequential and bounded to at most three explicitly configured HTTPS endpoints.",
   attribution: [
     "© OpenStreetMap contributors (ODbL) — https://www.openstreetmap.org/copyright",
