@@ -1,14 +1,14 @@
 # Infracis Implementation & Verification Status
 
 **Last updated:** 28 October 2026  
-**Verified application candidate:** `1a266b78782b4ef35c6ca1003b839cefe5ac7175`  
+**Verified application candidate:** `35abf303dc9cc8346fb7945b6a289fae280b4d7b`  
 **Current status:** Feature-rich MVP with green repository CI. Production readiness is **not established**.
 
 This document separates code and automated-test evidence from operational evidence. A green build does not prove provider availability, deployment health, cloud persistence, accessibility conformance, or that the product is useful to real users.
 
 ## 1. Implemented product capabilities
 
-- Explicit user-submitted location geocoding through OpenStreetMap Nominatim.
+- Explicit user-submitted location geocoding through OpenStreetMap Nominatim, with conservative multi-candidate query-token relevance checks and rejection of weak/tied matches; the heuristic is not a guarantee of semantic correctness.
 - Real provider adapters for Open-Meteo weather and air-quality model data.
 - OpenStreetMap/Overpass amenity adapter, but production amenity retrieval is deliberately unavailable unless a verified HTTPS endpoint is configured.
 - Evidence records with source URLs, retrieval/observation timestamps where supplied, geographic resolution, and limitations.
@@ -25,11 +25,11 @@ This document separates code and automated-test evidence from operational eviden
 
 ## 2. Current repository verification
 
-The exact candidate `1a266b78782b4ef35c6ca1003b839cefe5ac7175` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40667585958) on 28 October 2026:
+The exact candidate `35abf303dc9cc8346fb7945b6a289fae280b4d7b` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40669033805) on 28 October 2026:
 
 - Locked dependency installation succeeded.
 - Production and full npm audits each reported zero vulnerabilities.
-- **55 tests passed across 10 test files.**
+- **59 tests passed across 11 test files.**
 - ESLint passed.
 - TypeScript type-check passed.
 - Production build passed.
