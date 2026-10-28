@@ -1,6 +1,6 @@
 "use client";
 
-import { Shield, Scale, Bookmark, Github, MapPin } from "lucide-react";
+import { Shield, Scale, Bookmark, ExternalLink, MapPin } from "lucide-react";
 
 interface NavProps {
   activeTab: "analyze" | "compare" | "methodology";
@@ -81,7 +81,7 @@ export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) 
             aria-label="GitHub Repository"
             className="ml-1 hidden rounded-xl p-2 text-[#5d6e60] hover:bg-[#eef3ea] hover:text-[#143023] md:block"
           >
-            <Github size={18} />
+            <ExternalLink size={18} />
           </a>
         </div>
       </div>
