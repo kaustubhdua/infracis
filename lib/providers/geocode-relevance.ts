@@ -5,6 +5,8 @@ export interface GeocodeCandidate {
   type?: string;
   class?: string;
   addresstype?: string;
+  importance?: number;
+  address?: Record<string, string | undefined>;
   boundingbox?: [string, string, string, string];
 }
 
@@ -35,11 +37,20 @@ const EXPLICIT_POI_TERMS = new Set([
 ]);
 
 function normalize(value: string): string {
-  return value.normalize("NFKD").toLocaleLowerCase("en").replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+  return value.normalize("NFKD").toLocaleLowerCase("en")
+    .replace(/\bbangalore\b/g, "bengaluru")
+    .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
 }
 
 function meaningfulTokens(value: string): string[] {
   return [...new Set(normalize(value).split(" ").filter((token) => token.length > 1 && !GENERIC_TOKENS.has(token)))];
+}
+
+function candidateTokens(candidate: GeocodeCandidate): Set<string> {
+  const addressValues = candidate.address ? Object.values(candidate.address).filter(
+    (value): value is string => typeof value === "string"
+  ) : [];
+  return new Set(meaningfulTokens([candidate.display_name, ...addressValues].join(" ")));
 }
 
 /**
@@ -55,7 +66,7 @@ export function rankGeocodeCandidates(query: string, candidates: GeocodeCandidat
     .filter((candidate) => candidate && typeof candidate.display_name === "string" && candidate.display_name.trim())
     .map((candidate) => {
       const label = normalize(candidate.display_name);
-      const labelTokens = new Set(meaningfulTokens(candidate.display_name));
+      const labelTokens = candidateTokens(candidate);
       const matchedTokens = queryTokens.filter((token) => labelTokens.has(token) || label.includes(token));
       const missingTokens = queryTokens.filter((token) => !matchedTokens.includes(token));
       // Numbers in locality queries often identify a specific sector, phase,
@@ -89,6 +100,21 @@ export function selectRelevantGeocodeCandidate(query: string, candidates: Geocod
   const runnerUp = ranked[1];
   if (runnerUp && runnerUp.score === best.score &&
       normalize(runnerUp.candidate.display_name) !== normalize(best.candidate.display_name)) {
+    const bestLocality = LOCALITY_ADDRESS_TYPES.has(best.candidate.addresstype ?? "") ||
+      LOCALITY_ADDRESS_TYPES.has(best.candidate.type ?? "");
+    const runnerUpLocality = LOCALITY_ADDRESS_TYPES.has(runnerUp.candidate.addresstype ?? "") ||
+      LOCALITY_ADDRESS_TYPES.has(runnerUp.candidate.type ?? "");
+    const bestImportance = typeof best.candidate.importance === "number" ? best.candidate.importance : 0;
+    const runnerUpImportance = typeof runnerUp.candidate.importance === "number" ? runnerUp.candidate.importance : 0;
+
+    // Nominatim commonly returns the same locality as both a boundary and a
+    // place. Prefer the structured locality result when it is available.
+    if (bestLocality !== runnerUpLocality) {
+      return bestLocality ? best.candidate : runnerUp.candidate;
+    }
+    if (bestImportance !== runnerUpImportance) {
+      return bestImportance > runnerUpImportance ? best.candidate : runnerUp.candidate;
+    }
     return null;
   }
   return best.candidate;
