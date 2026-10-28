@@ -173,3 +173,13 @@ def test_rate_limit_fails_closed_without_redis(
     response = client.post("/v1/analyze", json={"latitude": 28.6, "longitude": 77.2})
     assert response.status_code == 503
     assert "rate limiting" in response.json()["detail"].lower()
+
+
+def test_analyze_rejects_oversized_request_body(client: TestClient) -> None:
+    response = client.post(
+        "/v1/analyze",
+        content=b'{"query":"' + (b"x" * (16 * 1024)) + b'"}',
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 413
+    assert "16 KiB" in response.json()["detail"]
