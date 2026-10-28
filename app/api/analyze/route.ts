@@ -4,6 +4,7 @@ import { fetchNearbyAmenities } from "@/lib/providers/overpass";
 import { fetchWeatherAndElevation, fetchAirQuality } from "@/lib/providers/open-meteo";
 import { assembleLocationReport } from "@/lib/evidence-engine";
 import { LocationData, LocationReport } from "@/lib/types";
+import { readJsonWithLimit } from "@/lib/request-body";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,22 +47,19 @@ export async function POST(request: NextRequest) {
   let manualLat: number | null = null;
   let manualLon: number | null = null;
 
-  try {
-    const body: unknown = await request.json();
-    if (!body || typeof body !== "object" || Array.isArray(body)) {
-      return NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 });
-    }
-    const input = body as { query?: unknown; lat?: unknown; lon?: unknown };
-    if (typeof input.query === "string") query = input.query.trim();
-    if (typeof input.lat === "number" && typeof input.lon === "number") {
-      manualLat = input.lat;
-      manualLon = input.lon;
-    }
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON request body. Provide a query string or coordinates." },
-      { status: 400 }
-    );
+  const parsedBody = await readJsonWithLimit(request, 16 * 1024);
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status });
+  }
+  const body = parsedBody.value;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 });
+  }
+  const input = body as { query?: unknown; lat?: unknown; lon?: unknown };
+  if (typeof input.query === "string") query = input.query.trim();
+  if (typeof input.lat === "number" && typeof input.lon === "number") {
+    manualLat = input.lat;
+    manualLon = input.lon;
   }
 
   if (query.length > MAX_QUERY_LENGTH) {
