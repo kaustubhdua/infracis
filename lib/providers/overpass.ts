@@ -18,23 +18,23 @@ export async function fetchNearbyAmenities(
   }
 
   // Bounded query for essential due-diligence categories
+  // Use one union with nwr selectors to reduce query overhead on shared public infrastructure.
   const query = `[out:json][timeout:10];
 (
-  node(around:${radiusMeters},${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];
-  way(around:${radiusMeters},${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];
-  node(around:${radiusMeters},${lat},${lon})[highway~"^(bus_stop)$"];
-  node(around:${radiusMeters},${lat},${lon})[railway~"^(station|subway_entrance|tram_stop)$"];
-  node(around:${radiusMeters},${lat},${lon})[leisure~"^(park|playground)$"];
-  way(around:${radiusMeters},${lat},${lon})[leisure~"^(park|playground)$"];
+  nwr(around:${radiusMeters},${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];
+  nwr(around:${radiusMeters},${lat},${lon})[highway="bus_stop"];
+  nwr(around:${radiusMeters},${lat},${lon})[railway~"^(station|subway_entrance|tram_stop)$"];
+  nwr(around:${radiusMeters},${lat},${lon})[leisure~"^(park|playground)$"];
 );
 out center tags 100;`;
 
   const body = new URLSearchParams({ data: query });
-  const response = await fetch("https://overpass-api.de/api/interpreter", {
+  const overpassUrl = process.env.OVERPASS_API_URL || "https://overpass-api.de/api/interpreter";
+  const response = await fetch(overpassUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "User-Agent": "InfracisLocationDueDiligence/1.0"
+      "User-Agent": "InfracisLocationDueDiligence/1.0 (https://github.com/kaustubhdua/infracis)"
     },
     body,
     signal: AbortSignal.timeout(11000),

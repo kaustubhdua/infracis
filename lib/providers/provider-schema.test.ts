@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchWeatherAndElevation, fetchAirQuality } from "./open-meteo";
 import { fetchNearbyAmenities } from "./overpass";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
 describe("provider schema validation", () => {
   it("rejects an invalid weather response envelope", async () => {
@@ -23,5 +23,23 @@ describe("provider schema validation", () => {
   it("rejects Overpass responses without an elements array", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ version: 0.6 }), { status: 200 })));
     await expect(fetchNearbyAmenities(28.6139, 77.209)).rejects.toThrow(/invalid response shape/i);
+  });
+
+  it("uses a configured Overpass endpoint and a single lower-cost union query", async () => {
+    vi.stubEnv("OVERPASS_API_URL", "https://overpass.example/interpreter");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ elements: [] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchNearbyAmenities(1.2345, 2.3456, 1200);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://overpass.example/interpreter",
+      expect.objectContaining({ method: "POST" })
+    );
+    const options = fetchMock.mock.calls[0][1] as RequestInit;
+    const body = options.body as URLSearchParams;
+    const query = body.get("data") ?? "";
+    expect(query.split("nwr(around:")).toHaveLength(5);
+    expect(query).toContain("[out:json][timeout:10]");
   });
 });

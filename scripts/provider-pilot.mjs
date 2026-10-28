@@ -109,10 +109,11 @@ for (const query of locations) {
       source: "Open-Meteo Air Quality API"
     };
 
-    const overpassQuery = `[out:json][timeout:10];(node(around:1200,${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];way(around:1200,${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];node(around:1200,${lat},${lon})[highway="bus_stop"];node(around:1200,${lat},${lon})[railway~"^(station|subway_entrance|tram_stop)$"];node(around:1200,${lat},${lon})[leisure~"^(park|playground)$"];way(around:1200,${lat},${lon})[leisure~"^(park|playground)$"];);out center tags 100;`;
-    const overpass = await checkJson("https://overpass-api.de/api/interpreter", {
+    const overpassQuery = `[out:json][timeout:10];(nwr(around:1200,${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];nwr(around:1200,${lat},${lon})[highway="bus_stop"];nwr(around:1200,${lat},${lon})[railway~"^(station|subway_entrance|tram_stop)$"];nwr(around:1200,${lat},${lon})[leisure~"^(park|playground)$"];);out center tags 100;`;
+    const overpassUrl = process.env.OVERPASS_API_URL || "https://overpass-api.de/api/interpreter";
+    const overpass = await checkJson(overpassUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "User-Agent": "InfracisProviderPilot/1.0" },
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "User-Agent": "InfracisProviderPilot/1.0 (https://github.com/kaustubhdua/infracis)" },
       body: new URLSearchParams({ data: overpassQuery })
     });
     const elements = overpass.ok && Array.isArray(overpass.body?.elements) ? overpass.body.elements : null;
