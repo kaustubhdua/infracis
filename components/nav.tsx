@@ -11,7 +11,7 @@ interface NavProps {
 export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) {
   return (
     <header className="border-b border-[#e2e9df] bg-[#fbfcf9]/90 backdrop-blur-md sticky top-0 z-40">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#104c38] text-white shadow-sm">
             <Shield size={20} />
@@ -29,10 +29,11 @@ export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) 
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <nav aria-label="Main navigation" className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={() => setActiveTab("analyze")}
+            aria-pressed={activeTab === "analyze"}
             className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition ${
               activeTab === "analyze"
                 ? "bg-[#104c38] text-white shadow-sm"
@@ -45,6 +46,7 @@ export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) 
           <button
             type="button"
             onClick={() => setActiveTab("compare")}
+            aria-pressed={activeTab === "compare"}
             className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition ${
               activeTab === "compare"
                 ? "bg-[#104c38] text-white shadow-sm"
@@ -57,6 +59,7 @@ export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) 
           <button
             type="button"
             onClick={() => setActiveTab("methodology")}
+            aria-pressed={activeTab === "methodology"}
             className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition ${
               activeTab === "methodology"
                 ? "bg-[#104c38] text-white shadow-sm"
@@ -83,7 +86,7 @@ export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) 
           >
             <Github size={18} />
           </a>
-        </div>
+        </nav>
       </div>
     </header>
   );
