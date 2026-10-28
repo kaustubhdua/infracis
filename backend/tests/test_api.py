@@ -11,6 +11,7 @@ from app import main
 class FakeRedis:
     def __init__(self) -> None:
         self.values: dict[str, int] = {}
+        self.cache: dict[str, str] = {}
         self.slots: set[str] = set()
 
     async def ping(self) -> bool:
@@ -23,10 +24,19 @@ class FakeRedis:
     async def expire(self, key: str, seconds: int) -> bool:
         return True
 
+    async def get(self, key: str) -> str | None:
+        return self.cache.get(key)
+
+    async def delete(self, key: str) -> int:
+        self.cache.pop(key, None)
+        return 1
+
     async def set(self, key: str, value: str, *, nx: bool = False, ex: int | None = None) -> bool:
         if nx and key in self.slots:
             return False
-        self.slots.add(key)
+        if nx:
+            self.slots.add(key)
+        self.cache[key] = value
         return True
 
     async def aclose(self) -> None:
@@ -183,3 +193,31 @@ def test_analyze_rejects_oversized_request_body(client: TestClient) -> None:
     )
     assert response.status_code == 413
     assert "16 KiB" in response.json()["detail"]
+
+
+def test_geocoder_results_are_cached_in_shared_redis(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = {"count": 0}
+
+    async def fake_get_json(*args: Any, **kwargs: Any) -> list[dict[str, str]]:
+        calls["count"] += 1
+        return [{"display_name": "Connaught Place, New Delhi", "lat": "28.6315", "lon": "77.2167"}]
+
+    async def unavailable_provider(*args: Any, **kwargs: Any) -> main.SourceStatus:
+        return main.SourceStatus(
+            provider="provider", status="unavailable", source_url="https://example.invalid",
+            retrieved_at=main.now_iso(), note="Unavailable; no substitute values were generated."
+        )
+
+    monkeypatch.setattr(main, "get_json", fake_get_json)
+    monkeypatch.setattr(main, "fetch_weather", unavailable_provider)
+    monkeypatch.setattr(main, "fetch_air_quality", unavailable_provider)
+    monkeypatch.setattr(main, "fetch_amenities", unavailable_provider)
+
+    first = client.post("/v1/analyze", json={"query": "Connaught Place, New Delhi"})
+    second = client.post("/v1/analyze", json={"query": "  connaught   place, new delhi "})
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert calls["count"] == 1
+    assert second.json()["location"]["label"] == "Connaught Place, New Delhi"
