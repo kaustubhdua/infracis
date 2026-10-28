@@ -214,6 +214,9 @@ export default function AnalyzeClient() {
                         {report.scores.completenessScore}%
                       </strong>
                     </p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#718275]">
+                      Source coverage reflects returned evidence only—not property quality, safety, legality, or value.
+                    </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
