@@ -37,7 +37,9 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
     throw new Error(`Nominatim geocoding failed with HTTP ${response.status}`);
   }
 
-  const results = (await response.json()) as Array<{
+  const payload: unknown = await response.json();
+  if (!Array.isArray(payload)) throw new Error("Geocoding service returned an invalid response shape.");
+  const results = payload as Array<{
     lat: string;
     lon: string;
     display_name: string;
@@ -50,10 +52,13 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
   }
 
   const item = results[0];
+  if (!item || typeof item !== "object" || typeof item.display_name !== "string" || !item.display_name.trim()) {
+    throw new Error("Geocoding service returned a result without a valid location label.");
+  }
   const lat = Number(item.lat);
   const lon = Number(item.lon);
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
     throw new Error("Geocoding service returned invalid numerical coordinates.");
   }
 
@@ -62,13 +67,8 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
     latitude: lat,
     longitude: lon,
     osmType: item.type,
-    boundingbox: item.boundingbox
-      ? [
-          Number(item.boundingbox[0]),
-          Number(item.boundingbox[1]),
-          Number(item.boundingbox[2]),
-          Number(item.boundingbox[3])
-        ]
+    boundingbox: item.boundingbox && item.boundingbox.length === 4 && item.boundingbox.every((v) => Number.isFinite(Number(v)))
+      ? [Number(item.boundingbox[0]), Number(item.boundingbox[1]), Number(item.boundingbox[2]), Number(item.boundingbox[3])]
       : undefined,
     mapUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`
   };
