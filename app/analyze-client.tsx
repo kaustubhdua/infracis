@@ -86,7 +86,7 @@ export default function AnalyzeClient() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f8f3] text-[#1c2e24]">
+    <div className="min-h-screen bg-[#f5f6ef] text-[#20352a]">
       <Nav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -101,14 +101,17 @@ export default function AnalyzeClient() {
         {activeTab === "analyze" && (
           <div className="space-y-6">
             {/* Search Input Banner */}
-            <section className="rounded-3xl border border-[#dce3da] bg-white p-5 shadow-sm sm:p-7">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#104c38]">
-                Location Due Diligence Engine
+            <section className="relative isolate overflow-hidden rounded-[1.75rem] border border-[#d6e1d2] bg-gradient-to-br from-white via-[#fbfcf8] to-[#edf3e8] p-5 shadow-[0_16px_50px_rgba(24,62,42,0.07)] sm:p-8 lg:p-9">
+              <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-20 -z-10 h-64 w-64 rounded-full border-[36px] border-[#e6eddf]/80" />
+              <div aria-hidden="true" className="pointer-events-none absolute right-16 top-0 -z-10 h-2 w-16 rounded-b-full bg-[#e8a23a]" />
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#d7e4d2] bg-[#f0f5ec] px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#174b38]">
+                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[#e8a23a]" />
+                Location due diligence
               </span>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#143023] sm:text-3xl">
+              <h2 className="mt-4 max-w-3xl text-3xl font-extrabold leading-[1.08] tracking-[-0.045em] text-[#153a2b] sm:text-4xl lg:text-5xl">
                 Investigate a residential location before you commit.
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#556658]">
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-[#53675a] sm:text-base">
                 Enter any address or locality. Infracis fetches traceable evidence from OpenStreetMap, Overpass, and Open-Meteo, calculates proximity metrics, isolates explicit unknowns, and generates an on-ground checklist.
               </p>
 

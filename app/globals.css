@@ -4,21 +4,32 @@
 
 :root {
   color-scheme: light;
-  background: #f5f8f3;
+  background: #f5f6ef;
+  color: #20352a;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --field-forest: #174b38;
+  --field-deep: #103728;
+  --field-leaf: #dfead9;
+  --field-cream: #f5f6ef;
+  --field-saffron: #e8a23a;
+  --field-line: #dce4d8;
 }
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 1.5rem;
+  scroll-padding-top: 5.5rem;
+  background: var(--field-cream);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(232, 162, 58, 0.075), transparent 32rem),
+    var(--field-cream);
 }
 
 ::selection {
@@ -28,9 +39,32 @@ body {
 
 a:focus-visible,
 button:focus-visible,
-input:focus-visible {
-  outline: 3px solid #104c38;
-  outline-offset: 2px;
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #d78b21;
+  outline-offset: 3px;
+}
+
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  main section.rounded-3xl,
+  main > div > section.rounded-3xl {
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  main section.rounded-3xl:hover {
+    border-color: #cbd9c8;
+  }
 }
 
 @media print {
@@ -56,9 +90,7 @@ input:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
