@@ -1,14 +1,14 @@
 # Infracis Implementation & Verification Status
 
 **Last updated:** 28 October 2026  
-**Verified application candidate:** `66242a2e00f23f592830a2c4cbd78ce58f1d5e45`  
+**Verified application candidate:** `2dd471802d37e3883d3d6779c250ed1fb95cb502`  
 **Current status:** Feature-rich MVP with green repository CI. Production readiness is **not established**.
 
 This document separates code and automated-test evidence from operational evidence. A green build does not prove provider availability, deployment health, cloud persistence, accessibility conformance, or that the product is useful to real users.
 
 ## 1. Implemented product capabilities
 
-- Explicit user-submitted location geocoding through OpenStreetMap Nominatim, with conservative multi-candidate query-token relevance checks and rejection of weak/tied matches; the heuristic is not a guarantee of semantic correctness.
+- Explicit user-submitted location geocoding through OpenStreetMap Nominatim, with conservative multi-candidate query-token relevance checks, rejection of weak/tied matches, and a class/address-type guard against nearby POIs being substituted for locality searches; the heuristic is not a guarantee of semantic correctness.
 - Real provider adapters for Open-Meteo weather and air-quality model data.
 - OpenStreetMap/Overpass amenity adapter, but production amenity retrieval is deliberately unavailable unless a verified HTTPS endpoint is configured.
 - Evidence records with source URLs, retrieval/observation timestamps where supplied, geographic resolution, and limitations.
@@ -26,11 +26,11 @@ This document separates code and automated-test evidence from operational eviden
 
 ## 2. Current repository verification
 
-The exact candidate `66242a2e00f23f592830a2c4cbd78ce58f1d5e45` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40669653684) on 28 October 2026:
+The exact candidate `2dd471802d37e3883d3d6779c250ed1fb95cb502` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40670804839) on 28 October 2026:
 
 - Locked dependency installation succeeded.
 - Production and full npm audits each reported zero vulnerabilities.
-- **59 tests passed across 11 test files.**
+- **61 tests passed across 11 test files.**
 - ESLint passed.
 - TypeScript type-check passed.
 - Production build passed.

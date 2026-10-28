@@ -20,7 +20,7 @@ This backlog distinguishes code already present from operational work that requi
 - [x] Provider response schema/range validation for malformed upstream payloads.
 - [x] Saved-report dialog keyboard behavior and storage-error feedback.
 - [x] Privacy disclosures for conditional provider availability and temporary shared-cache retention.
-- [x] Exact main candidate `66242a2e00f23f592830a2c4cbd78ce58f1d5e45` passed [CI](https://github.com/kaustubhdua/infracis/actions/runs/40669653684): 59 tests across 11 files, lint, type-check, production build, and both npm audit checks (zero reported vulnerabilities). The geocoder now ranks up to five Nominatim candidates and rejects weak or tied matches; this reduces obvious mismatches but does not replace semantic spot-checks. The report UI asks users to verify the resolved place and map pin before relying on distance metrics.
+- [x] Exact main candidate `2dd471802d37e3883d3d6779c250ed1fb95cb502` passed [CI](https://github.com/kaustubhdua/infracis/actions/runs/40670804839): 61 tests across 11 files, lint, type-check, production build, and both npm audit checks (zero reported vulnerabilities). The geocoder ranks up to five Nominatim candidates and rejects weak/tied matches, plus rejects unqualified POIs as substitutes for locality searches using Nominatim class/address-type metadata. This reduces known mismatches but does not replace semantic spot-checks or a fresh provider pilot. The report UI asks users to verify the resolved place and map pin before relying on distance metrics.
 - [x] Added route regression coverage for invalid inputs and 429/503 fail-closed rate-limit responses.
 - [x] Added regression coverage for malformed Nominatim bounding-box data and Redis slot-reservation command construction.
 
