@@ -31,6 +31,7 @@ export default function AnalyzeClient() {
   const [error, setError] = useState("");
   const [report, setReport] = useState<LocationReport | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [savedModalOpen, setSavedModalOpen] = useState(false);
   const [evidenceFilter, setEvidenceFilter] = useState<EvidenceClassification | "all">("all");
 
@@ -76,9 +77,11 @@ export default function AnalyzeClient() {
 
   const handleSave = () => {
     if (!report) return;
-    saveReportToStorage(report);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setSaveError("");
+    const saved = saveReportToStorage(report);
+    setSavedSuccess(saved);
+    if (!saved) setSaveError("Could not save in this browser. Check browser storage settings or export the report as JSON.");
+    if (saved) setTimeout(() => setSavedSuccess(false), 3000);
   };
 
   return (
@@ -218,7 +221,7 @@ export default function AnalyzeClient() {
                       className="inline-flex items-center gap-1.5 rounded-xl border border-[#dce3da] bg-[#fbfcf9] px-3.5 py-2 text-xs font-semibold text-[#104c38] transition hover:bg-[#eef3eb]"
                     >
                       <Bookmark size={14} />
-                      {savedSuccess ? "Saved to Bookmarks!" : "Save Report"}
+                      {savedSuccess ? "Saved in This Browser" : "Save Locally"}
                     </button>
                     <button
                       type="button"
@@ -236,6 +239,8 @@ export default function AnalyzeClient() {
                       Open OSM <ExternalLink size={13} />
                     </a>
                   </div>
+                  <p className="mt-2 text-xs text-[#718276]">Reports are stored in this browser on this device only. Cloud sync is not available.</p>
+                  {saveError && <p role="alert" className="mt-2 text-xs text-rose-700">{saveError}</p>}
                 </div>
 
                 {/* Interactive Map */}
