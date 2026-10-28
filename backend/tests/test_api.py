@@ -111,3 +111,65 @@ def test_haversine_known_delhi_distance() -> None:
 )
 def test_safe_number(value: Any, low: float, high: float, expected: float | None) -> None:
     assert main.safe_number(value, low, high) == expected
+
+
+def test_analyze_returns_real_provider_statuses_without_fallbacks(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def unavailable_weather(*args: Any, **kwargs: Any) -> main.SourceStatus:
+        return main.SourceStatus(
+            provider="Open-Meteo weather",
+            status="unavailable",
+            source_url="https://api.open-meteo.com/v1/forecast",
+            retrieved_at=main.now_iso(),
+            note="Weather data could not be retrieved; no substitute values were generated.",
+        )
+
+    async def unavailable_air(*args: Any, **kwargs: Any) -> main.SourceStatus:
+        return main.SourceStatus(
+            provider="Open-Meteo air quality",
+            status="unavailable",
+            source_url="https://air-quality-api.open-meteo.com/v1/air-quality",
+            retrieved_at=main.now_iso(),
+            note="Air-quality data could not be retrieved; no substitute values were generated.",
+        )
+
+    async def unavailable_amenities(*args: Any, **kwargs: Any) -> main.SourceStatus:
+        return main.SourceStatus(
+            provider="OpenStreetMap Overpass",
+            status="unavailable",
+            source_url="https://overpass-api.de/api/interpreter",
+            retrieved_at=main.now_iso(),
+            note="Mapped features could not be retrieved; no substitute features were generated.",
+        )
+
+    monkeypatch.setattr(main, "fetch_weather", unavailable_weather)
+    monkeypatch.setattr(main, "fetch_air_quality", unavailable_air)
+    monkeypatch.setattr(main, "fetch_amenities", unavailable_amenities)
+
+    response = client.post(
+        "/v1/analyze",
+        json={"latitude": 28.6315, "longitude": 77.2167, "label": "User-selected map point"},
+    )
+    assert response.status_code == 200
+    result = response.json()
+    assert result["location"]["resolved_by"] == "user_coordinates"
+    assert len(result["sources"]) == 4
+    assert all(source["status"] in {"available", "unavailable"} for source in result["sources"])
+    assert all(source["status"] == "unavailable" for source in result["sources"][1:])
+    assert any("no substitute values" in source["note"] for source in result["sources"][1:])
+    assert any("unknown" in note.lower() for note in result["limitations"])
+
+
+def test_rate_limit_fails_closed_without_redis(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fail_ping() -> bool:
+        raise ConnectionError("redis unavailable")
+
+    fake_redis = FakeRedis()
+    fake_redis.ping = fail_ping  # type: ignore[method-assign]
+    monkeypatch.setattr(main, "redis_client", fake_redis)
+    response = client.post("/v1/analyze", json={"latitude": 28.6, "longitude": 77.2})
+    assert response.status_code == 503
+    assert "rate limiting" in response.json()["detail"].lower()
