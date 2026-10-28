@@ -38,7 +38,7 @@ describe("readJsonWithLimit", () => {
         }
       }),
       duplex: "half"
-    } as RequestInit & { duplex: "half" });
+    } as unknown as RequestInit);
     await expect(readJsonWithLimit(request, 8)).resolves.toEqual({
       ok: false,
       status: 413,
