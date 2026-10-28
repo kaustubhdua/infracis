@@ -11,6 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const memoryCache = new Map<string, { expires: number; value: LocationReport }>();
+const MAX_QUERY_LENGTH = 180;
 export async function POST(request: NextRequest) {
   // x-real-ip is set by the hosting proxy. Do not trust the client-controlled
   // leftmost X-Forwarded-For value. Production requires the shared Redis limiter.
