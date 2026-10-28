@@ -101,6 +101,22 @@ describe("provider schema validation", () => {
   });
 
 
+
+  it("rejects more than three configured Overpass endpoints before network requests", async () => {
+    vi.stubEnv("OVERPASS_API_URLS", [
+      "https://overpass-a.example/interpreter",
+      "https://overpass-b.example/interpreter",
+      "https://overpass-c.example/interpreter",
+      "https://overpass-d.example/interpreter"
+    ].join(";"));
+    vi.stubEnv("OVERPASS_API_URL", "");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchNearbyAmenities(14.1234, 15.2345, 1200)).rejects.toThrow(/at most three/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("fails over to the next explicitly configured HTTPS endpoint after an upstream 502", async () => {
     vi.stubEnv("OVERPASS_API_URLS", "https://overpass-primary.example/interpreter;https://overpass-secondary.example/interpreter");
     vi.stubEnv("OVERPASS_API_URL", "");

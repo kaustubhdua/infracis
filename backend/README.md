@@ -20,7 +20,7 @@ cd backend
 python -m venv .venv
 # Windows: .venv\Scripts\activate
 # macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-lock.txt
 cp .env.example .env
 # Start Redis separately and configure REDIS_URL.
 # Set APP_ENV=development and a long random INFRACIS_API_KEY.
@@ -61,7 +61,7 @@ See `.env.example`. Production mode requires Redis and a configured API secret. 
 pytest -q
 ```
 
-The tests use a fake Redis client and mocked HTTP transports; they test validation and failure behavior without relying on live provider responses. Run the provider pilot separately for real-service verification.
+The pinned Linux/container dependency set is in `requirements-lock.txt`; `requirements.txt` documents the supported direct dependency ranges for deliberate lockfile updates. Backend CI installs the lockfile, runs `pip check`, audits the resolved environment with `pip-audit`, and runs the tests. The tests use a fake Redis client and mocked HTTP transports; they test validation and failure behavior without relying on live provider responses. Run the provider pilot separately for real-service verification.
 
 ## Provider policies
 

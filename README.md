@@ -105,7 +105,7 @@ npm run dev
 
 Open the local URL printed by Next.js (normally `http://localhost:3000`). On Windows, copy `.env.example` to `.env.local` using File Explorer or `Copy-Item .env.example .env.local` in PowerShell.
 
-The app uses real public data providers during local development. Their availability, response quality, and rate limits can vary; failed sources should remain marked unavailable. Do not use the public Nominatim endpoint for autocomplete or high-volume traffic. Local development can use process-local fallback controls, but production analysis and comparison require a reachable shared Redis limiter. Production amenity retrieval also requires an operator-verified HTTPS `OVERPASS_API_URL`; do not copy an unverified endpoint into production.
+The app uses real public data providers during local development. Their availability, response quality, and rate limits can vary; failed sources should remain marked unavailable. Do not use the public Nominatim endpoint for autocomplete or high-volume traffic. Local development can use process-local fallback controls, but production analysis and comparison require a reachable shared Redis limiter. Production amenity retrieval also requires one or more operator-verified HTTPS endpoints via `OVERPASS_API_URL` or `OVERPASS_API_URLS` (up to three, tried sequentially); do not copy an unverified endpoint into production.
 
 ### Verify changes
 
