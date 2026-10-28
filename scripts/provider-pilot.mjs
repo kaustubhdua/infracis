@@ -28,10 +28,31 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const checks = [];
 let lastNominatimAt = 0;
 
-async function checkJson(url, options = {}) {
+const configuredOverpassList = process.env.OVERPASS_API_URLS?.trim();
+const configuredOverpassSingle = process.env.OVERPASS_API_URL?.trim();
+const configuredOverpassEndpoints = configuredOverpassList
+  ? configuredOverpassList.split(/[;,]/).map((value) => value.trim()).filter(Boolean)
+  : configuredOverpassSingle ? [configuredOverpassSingle] : [];
+if (configuredOverpassEndpoints.length > 3) {
+  throw new Error("Configure at most three OVERPASS_API_URLS endpoints for a bounded pilot run.");
+}
+const overpassEndpoints = (configuredOverpassEndpoints.length
+  ? configuredOverpassEndpoints
+  : ["https://overpass-api.de/api/interpreter"]).map((endpoint) => {
+    let parsedEndpoint;
+    try {
+      parsedEndpoint = new URL(endpoint);
+    } catch {
+      throw new Error("OVERPASS_API_URLS must contain valid HTTPS URLs.");
+    }
+    if (parsedEndpoint.protocol !== "https:") throw new Error("OVERPASS_API_URLS must use HTTPS.");
+    return { url: parsedEndpoint.toString(), label: parsedEndpoint.host };
+  });
+
+async function checkJson(url, options = {}, timeoutMs = 12_000) {
   const started = Date.now();
   try {
-    const response = await fetch(url, { ...options, signal: AbortSignal.timeout(12_000) });
+    const response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
     const elapsedMs = Date.now() - started;
     if (!response.ok) return { ok: false, status: response.status, elapsedMs, error: `HTTP ${response.status}` };
     const body = await response.json();
@@ -114,20 +135,41 @@ for (const query of locations) {
     };
 
     const overpassQuery = `[out:json][timeout:10];(nwr(around:1200,${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];nwr(around:1200,${lat},${lon})[highway="bus_stop"];nwr(around:1200,${lat},${lon})[railway~"^(station|subway_entrance|tram_stop)$"];nwr(around:1200,${lat},${lon})[leisure~"^(park|playground)$"];);out center tags 100;`;
-    const overpassUrl = process.env.OVERPASS_API_URL || "https://overpass-api.de/api/interpreter";
-    const overpass = await checkJson(overpassUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "User-Agent": "InfracisProviderPilot/1.0 (https://github.com/kaustubhdua/infracis)" },
-      body: new URLSearchParams({ data: overpassQuery })
-    });
-    const elements = overpass.ok && Array.isArray(overpass.body?.elements) ? overpass.body.elements : null;
+    let overpass = null;
+    const overpassAttempts = [];
+    for (const endpointConfig of overpassEndpoints) {
+      const endpoint = endpointConfig.url;
+      const probe = await checkJson(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          "User-Agent": "InfracisProviderPilot/1.0 (https://github.com/kaustubhdua/infracis)"
+        },
+        body: new URLSearchParams({ data: overpassQuery })
+      }, 7000);
+      const elements = probe.ok && Array.isArray(probe.body?.elements) ? probe.body.elements : null;
+      overpassAttempts.push({
+        endpoint: endpointConfig.label,
+        ok: elements !== null,
+        status: probe.status ?? null,
+        elapsedMs: probe.elapsedMs,
+        error: elements !== null ? null : probe.error ?? "Invalid or missing elements array"
+      });
+      if (elements !== null) {
+        overpass = { ...probe, endpoint: endpointConfig.label, elements };
+        break;
+      }
+    }
+    const elements = overpass?.elements ?? null;
     result.amenities = {
       ok: elements !== null,
-      status: overpass.status ?? null,
-      elapsedMs: overpass.elapsedMs,
+      status: overpass?.status ?? null,
+      elapsedMs: overpassAttempts.reduce((total, attempt) => total + (attempt.elapsedMs ?? 0), 0),
+      endpoint: overpass?.endpoint ?? null,
+      attempts: overpassAttempts,
       returnedElementCount: elements?.length ?? null,
       namedElementCount: elements?.filter((element) => typeof element?.tags?.name === "string" && element.tags.name.trim()).length ?? null,
-      error: elements !== null ? null : overpass.error ?? "Invalid or missing elements array",
+      error: elements !== null ? null : overpassAttempts.at(-1)?.error ?? "No Overpass endpoint was configured or reachable",
       source: "OpenStreetMap Overpass API"
     };
     // Be conservative with the shared public Overpass service.
@@ -150,7 +192,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   pilotGeography: "Delhi NCR, India",
   sampleCount: locations.length,
-  method: "Live provider calls; Nominatim queries are spaced at least 1.1 seconds apart. A pass means the response shape and at least one expected data field were valid, not that source coverage is complete or ground truth is verified.",
+  method: "Live provider calls; Nominatim queries are spaced at least 1.1 seconds apart. A pass requires the provider response envelope and every requested field for that provider to be present and valid. A pass does not prove geographic completeness or ground truth. Overpass failover is sequential and bounded to at most three explicitly configured HTTPS endpoints.",
   attribution: [
     "© OpenStreetMap contributors (ODbL) — https://www.openstreetmap.org/copyright",
     "Weather and air-quality data from Open-Meteo (CC BY 4.0) — https://open-meteo.com/en/terms"
