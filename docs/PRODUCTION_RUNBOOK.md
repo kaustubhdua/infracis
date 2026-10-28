@@ -101,8 +101,9 @@ Until the P0/P1 gates above have evidence, describe Infracis as a functional MVP
 **Status: source files added; not deployed and not connected to the frontend.** The separate FastAPI service is in `backend/`, with a Dockerfile for a future hosting step, environment template, API-key guard, Redis-backed shared rate limiting, Nominatim slot reservation, real provider adapters, health/readiness endpoints, and tests. This is not evidence that the service has been run, that Redis is provisioned, or that providers have been exercised from a deployed instance.
 
 Before a future backend upload/hosting step:
-- [ ] Run `cd backend && pip install -r requirements.txt && pytest -q` in a clean Python 3.12 environment.
-- [ ] Confirm the backend CI workflow passes on the exact branch commit.
+- [x] Run `cd backend && pip install -r requirements.txt && pytest -q` in a clean Python 3.12 environment; [Backend CI passed 21 tests on merged candidate `2586e1bbd9e9a7fda5d5ed741556a540b627737c`](https://github.com/kaustubhdua/infracis/actions/runs/40671914079).
+- [x] Confirm the backend CI workflow passes on the exact merged branch commit: [Backend CI run](https://github.com/kaustubhdua/infracis/actions/runs/40671914079).
+- [ ] Pin and audit a backend dependency lockfile for reproducible builds.
 - [ ] Pin and audit a backend dependency lockfile for reproducible builds.
 - [ ] Review security settings and trusted-proxy configuration for the selected host.
 - [ ] Contract-test the FastAPI response against the frontend. It currently does not return the full TypeScript `LocationReport` schema.
