@@ -103,10 +103,17 @@ describe("Evidence Engine & Provenance Integrity", () => {
       expect(ev.provider).toBeDefined();
       expect(ev.sourceUrl).toMatch(/^https?:\/\//);
       expect(ev.limitations).toBeDefined();
-      expect(["observed", "calculated", "model_interpretation", "unknown"]).toContain(
+      expect(["observed", "provider_model", "calculated", "model_interpretation", "unknown"]).toContain(
         ev.classification
       );
     }
+  });
+
+  it("labels gridded weather and air-quality estimates as provider model output", () => {
+    const report = assembleLocationReport("Indiranagar", mockLocation, mockWeather, mockAirQuality, mockAmenities, "2026-10-28T01:00:00Z");
+    const modeled = report.evidence.filter((item) => item.category === "weather" || item.category === "air_quality" || item.category === "topography");
+    expect(modeled.length).toBeGreaterThan(0);
+    expect(modeled.every((item) => item.classification === "provider_model")).toBe(true);
   });
 
   it("strictly validates that every finding references valid evidence IDs in the report", () => {
