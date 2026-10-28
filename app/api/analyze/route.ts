@@ -11,26 +11,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const memoryCache = new Map<string, { expires: number; value: LocationReport }>();
-const ipWindows = new Map<string, { startedAt: number; count: number }>();
-const MAX_QUERY_LENGTH = 180;
-const MAX_TRACKED_CLIENTS = 10_000;
-
-function checkRateLimit(clientIp: string): boolean {
-  const now = Date.now();
-  const win = ipWindows.get(clientIp);
-  if (!win || now - win.startedAt >= 60_000) {
-    // Bound the map so spoofed/rotating addresses cannot grow it without limit.
-    if (!win && ipWindows.size >= MAX_TRACKED_CLIENTS) {
-      const oldestKey = ipWindows.keys().next().value;
-      if (oldestKey) ipWindows.delete(oldestKey);
-    }
-    ipWindows.set(clientIp, { startedAt: now, count: 1 });
-    return false;
-  }
-  win.count += 1;
-  return win.count > 15; // Best-effort per-process guard, not a shared production limiter.
-}
-
 export async function POST(request: NextRequest) {
   // x-real-ip is set by the hosting proxy. Do not trust the client-controlled
   // leftmost X-Forwarded-For value. Production requires the shared Redis limiter.
