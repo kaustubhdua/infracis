@@ -1,6 +1,8 @@
 name: Live provider pilot
 
 on:
+  push:
+    branches: [pilot/overpass-smoke]
   workflow_dispatch:
 
 permissions:
@@ -18,12 +20,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: pilot/overpass-smoke
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Probe real providers across Delhi NCR sample
+        env:
+          PILOT_SAMPLE_LIMIT: "1"
+          OVERPASS_API_URLS: "https://overpass-api.de/api/interpreter;https://overpass.private.coffee/api/interpreter;https://maps.mail.ru/osm/tools/overpass/api/interpreter"
         run: node scripts/provider-pilot.mjs
       - name: Upload measured pilot report
         uses: actions/upload-artifact@v4
