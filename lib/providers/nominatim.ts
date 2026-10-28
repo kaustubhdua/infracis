@@ -1,21 +1,22 @@
 import { LocationData } from "../types";
+import { getSharedJson, setSharedJson, waitForNominatimSlot } from "../shared-provider-cache";
 
 const cache = new Map<string, { expires: number; value: LocationData }>();
 let lastRequestTimestamp = 0;
 
 export async function geocodeLocation(query: string): Promise<LocationData> {
   const normalizedKey = query.toLowerCase().trim();
+  const shared = await getSharedJson<LocationData>(`nominatim:${normalizedKey}`);
+  if (shared) return shared;
   const cached = cache.get(normalizedKey);
   if (cached && cached.expires > Date.now()) {
     return cached.value;
   }
 
-  // Comply with Nominatim 1 req/sec policy
-  const now = Date.now();
-  const waitMs = Math.max(0, 1100 - (now - lastRequestTimestamp));
-  if (waitMs > 0) {
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
-  }
+  // The shared Redis reservation enforces the application-wide 1 req/sec policy.
+  // Local spacing is only a development fallback; production fails closed.
+  const slotReserved = await waitForNominatimSlot();
+  if (!slotReserved) throw new Error("Geocoding is temporarily unavailable because shared provider throttling is not configured or reachable.");
   lastRequestTimestamp = Date.now();
 
   const url = new URL("https://nominatim.openstreetmap.org/search");
@@ -81,6 +82,7 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
     expires: Date.now() + 24 * 60 * 60 * 1000,
     value: locationData
   });
+  await setSharedJson(`nominatim:${normalizedKey}`, locationData, 24 * 60 * 60);
 
   return locationData;
 }
