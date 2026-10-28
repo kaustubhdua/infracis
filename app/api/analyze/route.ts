@@ -136,6 +136,10 @@ export async function POST(request: NextRequest) {
       new Date().toISOString()
     );
 
+    if (!memoryCache.has(cacheKey) && memoryCache.size >= 1000) {
+      const oldestKey = memoryCache.keys().next().value;
+      if (oldestKey !== undefined) memoryCache.delete(oldestKey);
+    }
     memoryCache.set(cacheKey, {
       expires: Date.now() + 15 * 60 * 1000,
       value: report
