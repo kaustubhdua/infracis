@@ -73,6 +73,10 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
     mapUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`
   };
 
+  if (!cache.has(normalizedKey) && cache.size >= 2000) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) cache.delete(oldestKey);
+  }
   cache.set(normalizedKey, {
     expires: Date.now() + 24 * 60 * 60 * 1000,
     value: locationData
