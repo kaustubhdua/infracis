@@ -254,7 +254,8 @@ export function assembleLocationReport(
     hasCoordinates: true,
     hasWeather: Boolean(weather && weather.temperature !== null),
     hasAirQuality: Boolean(airQuality && airQuality.europeanAqi !== null),
-    hasAmenities: Boolean(amenities),
+    // A capped Overpass response is a partial sample, not a verified amenities dimension.
+    hasAmenities: Boolean(amenities && !amenities.resultLimitReached),
     hasElevation: Boolean(weather && weather.elevationMeters !== null)
   });
 
@@ -263,7 +264,7 @@ export function assembleLocationReport(
     dailyConvenienceScore: "Linear decay: 100 if grocery/supermarket <= 500m; 0 if >= 2000m.",
     healthcareAccessScore: "Linear decay: 100 if hospital/clinic <= 600m; 0 if >= 2500m.",
     educationAccessScore: "Linear decay: 100 if school <= 800m; 0 if >= 3000m.",
-    completenessScore: "Available dimensions (coords, weather, air quality, amenities, elevation) / 5 * 100%"
+    completenessScore: "Available dimensions (coords, weather, air quality, uncapped amenities, elevation) / 5 * 100%"
   };
 
   const checklist = generateDueDiligenceChecklist(location, weather, airQuality, amenities);

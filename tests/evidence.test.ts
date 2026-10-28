@@ -171,6 +171,16 @@ describe("Evidence Engine & Provenance Integrity", () => {
     expect(report.unknowns.some((item) => item.includes("100-element output cap"))).toBe(true);
     expect(report.findings.some((finding) => finding.headline.includes("Public Transit Access Unverified in Open Feeds"))).toBe(false);
     expect(report.evidence.find((item) => item.id === "ev-amenity-total")?.limitations).toContain("partial sample");
+
+    const completeSampleReport = assembleLocationReport(
+      "Dense Urban Locality",
+      mockLocation,
+      null,
+      null,
+      { ...mockAmenities, resultLimitReached: false },
+      "2026-10-28T01:00:00Z"
+    );
+    expect(report.scores.completenessScore).toBeLessThan(completeSampleReport.scores.completenessScore);
   });
 
   it("reports explicit unknowns when optional data layers are null", () => {
