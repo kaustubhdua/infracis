@@ -9,6 +9,7 @@ import CompareView from "@/components/compare-view";
 import MethodologyView from "@/components/methodology-view";
 import SavedReportsModal, { saveReportToStorage, exportReportJson } from "@/components/saved-reports-modal";
 import Nav from "@/components/nav";
+import DecisionBrief from "@/components/decision-brief";
 import {
   MapPin,
   ArrowRight,
@@ -196,7 +197,7 @@ export default function AnalyzeClient() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
-                        Live Audited Report
+                        Evidence Report
                       </span>
                       <span className="text-xs text-[#718275]">
                         Retrieved {new Date(report.generatedAt).toLocaleString()}
@@ -242,6 +243,9 @@ export default function AnalyzeClient() {
                   <p className="mt-2 text-xs text-[#718276]">Reports are stored in this browser on this device only. Cloud sync is not available.</p>
                   {saveError && <p role="alert" className="mt-2 text-xs text-rose-700">{saveError}</p>}
                 </div>
+
+                {/* Action-first decision summary, derived only from retrieved report data */}
+                <DecisionBrief report={report} onCompare={() => setActiveTab("compare")} />
 
                 {/* Interactive Map */}
                 <section>
@@ -340,7 +344,7 @@ export default function AnalyzeClient() {
                     </h3>
                   </div>
                   <p className="mt-1 text-xs text-[#647468]">
-                    Every finding is tied directly to verified source evidence IDs. No hallucinated risk statements.
+                    Each finding references the evidence records used to derive it. Open the cited sources and review limitations before relying on a claim.
                   </p>
 
                   <div className="mt-5 space-y-3">

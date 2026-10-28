@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type L from "leaflet";
 import { LocationData, AmenityItem } from "@/lib/types";
+import { escapeHtml } from "@/lib/escape-html";
 
 interface LocationMapProps {
   location: LocationData;
@@ -74,7 +75,7 @@ export default function LocationMap({
       mainMarker.bindPopup(`
         <div style="font-family: inherit; font-size: 13px; max-width: 240px; padding: 4px;">
           <strong style="color: #104c38; display: block; margin-bottom: 4px;">Evaluated Location</strong>
-          <span>${location.label}</span>
+          <span>${escapeHtml(location.label)}</span>
           <div style="margin-top: 6px; font-size: 11px; color: #666;">
             Lat: ${location.latitude.toFixed(5)}, Lon: ${location.longitude.toFixed(5)}
           </div>
@@ -109,9 +110,9 @@ export default function LocationMap({
         const marker = leafletModule.marker([item.lat, item.lon], { icon: amenityIcon }).addTo(map);
         marker.bindPopup(`
           <div style="font-family: inherit; font-size: 12px; padding: 2px;">
-            <strong style="display: block; margin-bottom: 2px;">${item.name}</strong>
+            <strong style="display: block; margin-bottom: 2px;">${escapeHtml(item.name)}</strong>
             <span style="display: inline-block; padding: 1px 6px; border-radius: 4px; background: #f1f5f9; font-size: 10px; color: #334155; text-transform: uppercase;">
-              ${item.group} (${item.category.replace(/_/g, " ")})
+              ${escapeHtml(item.group)} (${escapeHtml(item.category.replace(/_/g, " "))})
             </span>
             <div style="margin-top: 4px; font-size: 11px; color: #104c38; font-weight: 600;">
               ~${item.distanceMeters}m straight-line
