@@ -106,12 +106,12 @@ class AnalyzeResponse(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global redis_client
-    if settings.redis_url:
+    created_redis = False
+    if settings.redis_url and redis_client is None:
         redis_client = Redis.from_url(settings.redis_url, decode_responses=True, socket_connect_timeout=2, socket_timeout=2)
-    else:
-        redis_client = None
+        created_redis = True
     yield
-    if redis_client is not None:
+    if created_redis and redis_client is not None:
         await redis_client.aclose()
         redis_client = None
 
@@ -262,8 +262,13 @@ async def resolve_location(
     item = data[0]
     if not isinstance(item, dict) or not isinstance(item.get("display_name"), str):
         raise HTTPException(status_code=502, detail="Geocoding provider returned an invalid location record.")
-    lat = safe_number(float(item.get("lat", "nan")), -90, 90)
-    lon = safe_number(float(item.get("lon", "nan")), -180, 180)
+    try:
+        raw_lat = float(item.get("lat", "nan"))
+        raw_lon = float(item.get("lon", "nan"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=502, detail="Geocoding provider returned invalid coordinates.")
+    lat = safe_number(raw_lat, -90, 90)
+    lon = safe_number(raw_lon, -180, 180)
     if lat is None or lon is None:
         raise HTTPException(status_code=502, detail="Geocoding provider returned invalid coordinates.")
     return LocationSummary(
