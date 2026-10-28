@@ -100,6 +100,45 @@ describe("provider schema validation", () => {
     expect(summary.nearest.transit).toBeUndefined();
   });
 
+
+  it("fails over to the next explicitly configured HTTPS endpoint after an upstream 502", async () => {
+    vi.stubEnv("OVERPASS_API_URLS", "https://overpass-primary.example/interpreter;https://overpass-secondary.example/interpreter");
+    vi.stubEnv("OVERPASS_API_URL", "");
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("upstream unavailable", { status: 502 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ elements: [] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const summary = await fetchNearbyAmenities(7.1234, 8.2345, 1200);
+
+    expect(summary.totalCount).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][0]).toBe("https://overpass-primary.example/interpreter");
+    expect(fetchMock.mock.calls[1][0]).toBe("https://overpass-secondary.example/interpreter");
+  });
+
+  it("fails over when an endpoint returns malformed JSON shape", async () => {
+    vi.stubEnv("OVERPASS_API_URLS", "https://overpass-primary.example/interpreter,https://overpass-secondary.example/interpreter");
+    vi.stubEnv("OVERPASS_API_URL", "");
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ version: 0.6 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ elements: [] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchNearbyAmenities(9.1234, 10.2345, 1200)).resolves.toMatchObject({ totalCount: 0 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects non-HTTPS endpoints before making provider requests", async () => {
+    vi.stubEnv("OVERPASS_API_URLS", "https://overpass-primary.example/interpreter;http://insecure.example/interpreter");
+    vi.stubEnv("OVERPASS_API_URL", "");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchNearbyAmenities(12.1234, 13.2345, 1200)).rejects.toThrow(/must use HTTPS/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("uses a configured Overpass endpoint and a single lower-cost union query", async () => {
     vi.stubEnv("OVERPASS_API_URL", "https://overpass.example/interpreter");
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ elements: [] }), { status: 200 }));

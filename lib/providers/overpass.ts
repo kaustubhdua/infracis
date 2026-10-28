@@ -29,47 +29,71 @@ export async function fetchNearbyAmenities(
 out center tags 100;`;
 
   const body = new URLSearchParams({ data: query });
-  const configuredEndpoint = process.env.OVERPASS_API_URL?.trim();
-  if (!configuredEndpoint && process.env.NODE_ENV === "production") {
-    throw new Error("Overpass is not configured for production; set OVERPASS_API_URL to a verified HTTPS endpoint.");
+  const configuredList = process.env.OVERPASS_API_URLS?.trim();
+  const configuredSingle = process.env.OVERPASS_API_URL?.trim();
+  const configuredEndpoints = configuredList
+    ? configuredList.split(/[;,]/).map((value) => value.trim()).filter(Boolean)
+    : configuredSingle ? [configuredSingle] : [];
+  if (configuredEndpoints.length > 3) {
+    throw new Error("Configure at most three OVERPASS_API_URLS endpoints to keep provider retries bounded.");
   }
-  const overpassUrl = configuredEndpoint || "https://overpass-api.de/api/interpreter";
-  let parsedEndpoint: URL;
-  try {
-    parsedEndpoint = new URL(overpassUrl);
-  } catch {
-    throw new Error("OVERPASS_API_URL must be a valid HTTPS URL.");
+  if (configuredEndpoints.length === 0 && process.env.NODE_ENV === "production") {
+    throw new Error("Overpass is not configured for production; set OVERPASS_API_URL or OVERPASS_API_URLS to verified HTTPS endpoint(s).");
   }
-  if (parsedEndpoint.protocol !== "https:") throw new Error("OVERPASS_API_URL must use HTTPS.");
-  const response = await fetch(parsedEndpoint.toString(), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "User-Agent": "InfracisLocationDueDiligence/1.0 (https://github.com/kaustubhdua/infracis)"
-    },
-    body,
-    signal: AbortSignal.timeout(11000),
-    cache: "no-store"
+  const endpointValues = configuredEndpoints.length > 0
+    ? configuredEndpoints
+    : ["https://overpass-api.de/api/interpreter"];
+  const endpoints = endpointValues.map((value) => {
+    let parsed: URL;
+    try {
+      parsed = new URL(value);
+    } catch {
+      throw new Error("OVERPASS_API_URL and OVERPASS_API_URLS must contain valid HTTPS URLs.");
+    }
+    if (parsed.protocol !== "https:") throw new Error("OVERPASS_API_URL and OVERPASS_API_URLS must use HTTPS.");
+    return parsed.toString();
   });
 
-  if (!response.ok) {
-    throw new Error(`Overpass amenity service responded with HTTP ${response.status}`);
-  }
-
-  const payload: unknown = await response.json();
-  if (!payload || typeof payload !== "object" || !Array.isArray((payload as { elements?: unknown }).elements)) {
-    throw new Error("Overpass returned an invalid response shape.");
-  }
-  const data = payload as {
-    elements?: Array<{
-      id: number;
-      type: string;
-      tags?: Record<string, string>;
-      lat?: number;
-      lon?: number;
-      center?: { lat: number; lon: number };
-    }>;
+  type OverpassElement = {
+    id: number;
+    type: string;
+    tags?: Record<string, string>;
+    lat?: number;
+    lon?: number;
+    center?: { lat: number; lon: number };
   };
+  let elementsFromProvider: OverpassElement[] | null = null;
+  let lastProviderError = "Overpass providers are unavailable.";
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          "User-Agent": "InfracisLocationDueDiligence/1.0 (https://github.com/kaustubhdua/infracis)"
+        },
+        body,
+        signal: AbortSignal.timeout(9000),
+        cache: "no-store"
+      });
+      if (!response.ok) {
+        lastProviderError = `Overpass amenity service responded with HTTP ${response.status}`;
+        continue;
+      }
+      const payload: unknown = await response.json();
+      if (!payload || typeof payload !== "object" || Array.isArray(payload) ||
+          !Array.isArray((payload as { elements?: unknown }).elements)) {
+        lastProviderError = "Overpass returned an invalid response shape.";
+        continue;
+      }
+      elementsFromProvider = (payload as { elements: OverpassElement[] }).elements;
+      break;
+    } catch {
+      lastProviderError = "Overpass amenity service timed out or could not be reached.";
+    }
+  }
+  if (!elementsFromProvider) throw new Error(lastProviderError);
+  const data = { elements: elementsFromProvider };
 
   // Overpass output is capped at 100 elements. Reaching the cap means the result is a sample,
   // so do not present category counts or a sampled feature as a verified nearest facility.
