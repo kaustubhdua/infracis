@@ -1,4 +1,5 @@
 import { writeFile } from "node:fs/promises";
+import { hasFiniteFields } from "./provider-pilot-validation.mjs";
 
 const locations = [
   "Connaught Place, New Delhi, India",
@@ -86,7 +87,7 @@ for (const query of locations) {
     const weather = await checkJson(weatherUrl.toString(), { headers: { Accept: "application/json" } });
     const current = weather.ok ? weather.body?.current : null;
     const weatherValid = !!current && typeof current.time === "string" && Number.isFinite(Date.parse(current.time)) &&
-      ["temperature_2m", "relative_humidity_2m", "precipitation", "weather_code", "wind_speed_10m"].some((key) => typeof current[key] === "number" && Number.isFinite(current[key]));
+      hasFiniteFields(current, ["temperature_2m", "relative_humidity_2m", "precipitation", "weather_code", "wind_speed_10m"]);
     result.weather = {
       ok: weatherValid, status: weather.status ?? null, elapsedMs: weather.elapsedMs,
       observationTime: weatherValid ? current.time : null,
@@ -103,7 +104,7 @@ for (const query of locations) {
     const air = await checkJson(airUrl.toString(), { headers: { Accept: "application/json" } });
     const airCurrent = air.ok ? air.body?.current : null;
     const airValid = !!airCurrent && typeof airCurrent.time === "string" && Number.isFinite(Date.parse(airCurrent.time)) &&
-      ["european_aqi", "pm10", "pm2_5", "nitrogen_dioxide", "ozone"].some((key) => typeof airCurrent[key] === "number" && Number.isFinite(airCurrent[key]));
+      hasFiniteFields(airCurrent, ["european_aqi", "pm10", "pm2_5", "nitrogen_dioxide", "ozone"]);
     result.airQuality = {
       ok: airValid, status: air.status ?? null, elapsedMs: air.elapsedMs,
       observationTime: airValid ? airCurrent.time : null,
