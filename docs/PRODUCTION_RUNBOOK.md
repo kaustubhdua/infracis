@@ -47,13 +47,19 @@ The code for a shared Redis limiter, provider cache, and Nominatim slot reservat
 - [ ] Keep UI labels explicit: reports are stored in this browser only until cloud persistence ships.
 
 ## P1 — real-data pilot
-- [ ] Run the manual [provider-pilot workflow](https://github.com/kaustubhdua/infracis/actions/workflows/provider-pilot.yml) against at least 20 varied Delhi NCR queries (dense urban, residential, edge/rural, ambiguous address, no-match).
-- [ ] Review and retain the artifact containing each query, resolved label/coordinates, provider status, returned item count, timing, and limitations.
-- [ ] Independently spot-check a sample against source pages/maps; do not treat OSM absence as proof of absence.
+- [x] Run one bounded [Delhi NCR live-provider pilot](https://github.com/kaustubhdua/infracis/actions/runs/40660404776) against 20 varied location queries and retain the measured [workflow artifact](https://github.com/kaustubhdua/infracis/actions/runs/40660404776).
+- [ ] Independently spot-check geocoder relevance against source pages/maps; a valid response shape does not prove the resolved label matches the requested neighbourhood.
+- [ ] Re-run a bounded pilot only after provider configuration/query changes, then record each provider's measured pass/fail rate and failure classes.
 - [ ] Report coverage only as measured counts/rates with denominators; do not invent a completeness percentage.
 - [ ] Document failed, ambiguous, stale, and partial results, and confirm provider terms/attribution.
 
-The workflow and script exist, but no reviewed pilot artifact is recorded by this audit.
+**Measured pilot, 2026-10-28 (20 requested locations):**
+- Nominatim: 18/20 valid-shaped geocoding responses (90%); two returned no valid match. Some valid results were nearby POIs rather than the requested neighbourhood, so semantic relevance is not yet verified.
+- Open-Meteo forecast: 11/18 valid responses (61.1%); seven failed during this run.
+- Open-Meteo air quality: 11/18 valid responses (61.1%); seven failed during this run.
+- Overpass amenities: 0/18 valid responses; requests timed out or returned HTTP 502.
+
+These figures are a single point-in-time probe, not an SLA or a claim about provider-wide availability. The Overpass result blocks production amenity claims; the app now fails closed in production unless a verified HTTPS endpoint is explicitly configured. Open-Meteo failures must stay unknown rather than be imputed, and the intermittent failures warrant a smaller controlled follow-up before launch. The run artifact expires 2026-11-27; retain its findings in this runbook and avoid relying on the temporary artifact link alone.
 
 ## P1 — full user journey and accessibility
 - [ ] Mobile (at least 360px wide) and desktop: search, map pick, evidence detail/source links, comparison, export, local save/reopen/delete, provider failure.
