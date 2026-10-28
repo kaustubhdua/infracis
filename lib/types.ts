@@ -111,10 +111,10 @@ export interface LocationReport {
   evidence: EvidenceRecord[];
   scores: {
     completenessScore: number; // 0-100% of verifiable metrics retrieved
-    transitAccessibilityScore: number; // 0-100 based on verified distances
-    dailyConvenienceScore: number; // 0-100 based on essential services
-    healthcareAccessScore: number; // 0-100 based on clinics/hospitals
-    educationAccessScore: number; // 0-100 based on schools
+    transitAccessibilityScore: number | null; // 0-100 based on verified distances
+    dailyConvenienceScore: number | null; // 0-100 based on essential services
+    healthcareAccessScore: number | null; // 0-100 based on clinics/hospitals
+    educationAccessScore: number | null; // 0-100 based on schools
     calculationFormulas: Record<string, string>;
   };
   findings: Array<{

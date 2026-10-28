@@ -1,5 +1,11 @@
 import { LocationReport, ComparisonReport, PreferenceProfile } from "./types";
 
+function missingAmenityLabel(report: LocationReport, category: string): string {
+  return report.amenities
+    ? `No mapped ${category} result`
+    : "Amenity provider unavailable";
+}
+
 export function compareLocations(
   reportA: LocationReport,
   reportB: LocationReport,
@@ -49,11 +55,13 @@ export function compareLocations(
     deltas.push({
       metric: "Distance to Nearest Public Transit",
       category: "Mobility",
-      valueA: transitA !== null ? `${transitA}m` : "Unmapped in OSM",
-      valueB: transitB !== null ? `${transitB}m` : "Unmapped in OSM",
+      valueA: transitA !== null ? `${transitA}m` : missingAmenityLabel(reportA, "transit"),
+      valueB: transitB !== null ? `${transitB}m` : missingAmenityLabel(reportB, "transit"),
       differenceSummary: "Cannot compare fairly: one or both locations lack verified mapped transit data.",
       favoredSide: "incomparable",
-      incomparableReason: "Transit mapping is missing for at least one location within the search radius."
+      incomparableReason: reportA.amenities && reportB.amenities
+        ? "Transit mapping is missing for at least one location within the search radius."
+        : "Amenity provider data is unavailable for at least one location; absence cannot be inferred."
     });
   }
 
@@ -81,11 +89,13 @@ export function compareLocations(
     deltas.push({
       metric: "Distance to Nearest Healthcare",
       category: "Healthcare",
-      valueA: healthA !== null ? `${healthA}m` : "Unmapped in OSM",
-      valueB: healthB !== null ? `${healthB}m` : "Unmapped in OSM",
+      valueA: healthA !== null ? `${healthA}m` : missingAmenityLabel(reportA, "healthcare facility"),
+      valueB: healthB !== null ? `${healthB}m` : missingAmenityLabel(reportB, "healthcare facility"),
       differenceSummary: "One of the locations has no mapped hospitals/clinics within 1.2 km.",
       favoredSide: "incomparable",
-      incomparableReason: "Missing healthcare data in open feed."
+      incomparableReason: reportA.amenities && reportB.amenities
+        ? "No mapped healthcare result was available for at least one location."
+        : "Amenity provider data is unavailable for at least one location; absence cannot be inferred."
     });
   }
 
@@ -113,29 +123,41 @@ export function compareLocations(
     deltas.push({
       metric: "Distance to Nearest School",
       category: "Education",
-      valueA: eduA !== null ? `${eduA}m` : "Unmapped in OSM",
-      valueB: eduB !== null ? `${eduB}m` : "Unmapped in OSM",
+      valueA: eduA !== null ? `${eduA}m` : missingAmenityLabel(reportA, "school"),
+      valueB: eduB !== null ? `${eduB}m` : missingAmenityLabel(reportB, "school"),
       differenceSummary: "Cannot compare school proximity fairly due to unmapped entries.",
       favoredSide: "incomparable"
     });
   }
 
   // 5. Daily Essentials & Retail Count
-  const essA = reportA.amenities?.byGroup.essentials ?? 0;
-  const essB = reportB.amenities?.byGroup.essentials ?? 0;
-  deltas.push({
-    metric: "Mapped Daily Essentials Count (~1.2km)",
-    category: "Convenience",
-    valueA: `${essA} retail points`,
-    valueB: `${essB} retail points`,
-    differenceSummary:
-      essA === essB
-        ? "Both locations have the same count of mapped daily retail points."
-        : essA > essB
-        ? `Location A has ${essA - essB} more mapped grocery/supermarkets nearby.`
-        : `Location B has ${essB - essA} more mapped grocery/supermarkets nearby.`,
-    favoredSide: essA === essB ? "neutral" : essA > essB ? "A" : "B"
-  });
+  const essA = reportA.amenities?.byGroup.essentials ?? null;
+  const essB = reportB.amenities?.byGroup.essentials ?? null;
+  if (essA !== null && essB !== null) {
+    deltas.push({
+      metric: "Mapped Daily Essentials Count (~1.2km)",
+      category: "Convenience",
+      valueA: `${essA} retail points`,
+      valueB: `${essB} retail points`,
+      differenceSummary:
+        essA === essB
+          ? "Both locations have the same count of mapped daily retail points."
+          : essA > essB
+          ? `Location A has ${essA - essB} more mapped grocery/supermarkets nearby.`
+          : `Location B has ${essB - essA} more mapped grocery/supermarkets nearby.`,
+      favoredSide: essA === essB ? "neutral" : essA > essB ? "A" : "B"
+    });
+  } else {
+    deltas.push({
+      metric: "Mapped Daily Essentials Count (~1.2km)",
+      category: "Convenience",
+      valueA: essA !== null ? `${essA} retail points` : "Unavailable",
+      valueB: essB !== null ? `${essB} retail points` : "Unavailable",
+      differenceSummary: "Cannot compare mapped daily essentials because amenity data is unavailable for at least one location.",
+      favoredSide: "incomparable",
+      incomparableReason: "Missing provider data must not be interpreted as zero mapped retail points."
+    });
+  }
 
   // 6. Air Quality Index (AQI)
   const aqiA = reportA.airQuality?.europeanAqi ?? null;

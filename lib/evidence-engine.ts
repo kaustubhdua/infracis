@@ -231,16 +231,16 @@ export function assembleLocationReport(
   unknowns.push("Nighttime noise levels and commercial vehicular traffic density cannot be observed from static maps.");
 
   // Deterministic Step-Function Scoring
-  const transitScore = calculateProximityScore(amenities?.nearest.transit?.distanceMeters, 400, 1500) ?? 0;
-  const healthcareScore = calculateProximityScore(amenities?.nearest.healthcare?.distanceMeters, 600, 2500) ?? 0;
-  const educationScore = calculateProximityScore(amenities?.nearest.education?.distanceMeters, 800, 3000) ?? 0;
-  const essentialsScore = calculateProximityScore(amenities?.nearest.essentials?.distanceMeters, 500, 2000) ?? 0;
+  const transitScore = calculateProximityScore(amenities?.nearest.transit?.distanceMeters, 400, 1500);
+  const healthcareScore = calculateProximityScore(amenities?.nearest.healthcare?.distanceMeters, 600, 2500);
+  const educationScore = calculateProximityScore(amenities?.nearest.education?.distanceMeters, 800, 3000);
+  const essentialsScore = calculateProximityScore(amenities?.nearest.essentials?.distanceMeters, 500, 2000);
 
   const completenessScore = calculateDataCompleteness({
     hasCoordinates: true,
     hasWeather: Boolean(weather && weather.temperature !== null),
     hasAirQuality: Boolean(airQuality && airQuality.europeanAqi !== null),
-    hasAmenities: Boolean(amenities && amenities.totalCount > 0),
+    hasAmenities: Boolean(amenities),
     hasElevation: Boolean(weather && weather.elevationMeters !== null)
   });
 

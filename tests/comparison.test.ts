@@ -142,5 +142,10 @@ describe("Location Comparison Engine", () => {
     const transitDelta = comp.deltas.find((d) => d.category === "Mobility");
     expect(transitDelta?.favoredSide).toBe("incomparable");
     expect(transitDelta?.incomparableReason).toBeDefined();
+    expect(transitDelta?.valueA).toBe("Amenity provider unavailable");
+    const essentialsDelta = comp.deltas.find((delta) => delta.metric === "Mapped Daily Essentials Count (~1.2km)");
+    expect(essentialsDelta?.valueA).toBe("Unavailable");
+    expect(essentialsDelta?.favoredSide).toBe("incomparable");
+
   });
 });

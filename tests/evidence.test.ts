@@ -147,6 +147,13 @@ describe("Evidence Engine & Provenance Integrity", () => {
     );
 
     expect(reportWithoutAirOrAmenities.scores.completenessScore).toBeLessThan(100);
+    expect(reportWithoutAirOrAmenities.scores.transitAccessibilityScore).toBeNull();
+    expect(reportWithoutAirOrAmenities.scores.healthcareAccessScore).toBeNull();
+    expect(reportWithoutAirOrAmenities.scores.educationAccessScore).toBeNull();
+    expect(reportWithoutAirOrAmenities.scores.dailyConvenienceScore).toBeNull();
+    expect(reportWithoutAirOrAmenities.findings.some((finding) =>
+      finding.headline.includes("Public Transit Access Unverified in Open Feeds")
+    )).toBe(false);
     expect(
       reportWithoutAirOrAmenities.unknowns.some((u) => u.toLowerCase().includes("air quality"))
     ).toBe(true);
