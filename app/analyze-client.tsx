@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { LocationReport, EvidenceClassification } from "@/lib/types";
 import LocationMap from "@/components/location-map";
 import EvidenceCard from "@/components/evidence-card";
@@ -35,8 +35,10 @@ export default function AnalyzeClient() {
   const [saveError, setSaveError] = useState("");
   const [savedModalOpen, setSavedModalOpen] = useState(false);
   const [evidenceFilter, setEvidenceFilter] = useState<EvidenceClassification | "all">("all");
+  const analysisRequestId = useRef(0);
 
   const runAnalysis = useCallback(async (searchQuery: string, lat?: number, lon?: number) => {
+    const requestId = ++analysisRequestId.current;
     setLoading(true);
     setError("");
     // Hide the previous result while a new investigation is pending. If the
@@ -60,12 +62,16 @@ export default function AnalyzeClient() {
         throw new Error(data.error || "Could not analyze this location.");
       }
 
+      // Quick successive searches can finish out of order. Only the newest
+      // request may update the visible report or loading/error state.
+      if (requestId !== analysisRequestId.current) return;
       setReport(data as LocationReport);
       if (searchQuery) setQuery(searchQuery);
     } catch (err) {
+      if (requestId !== analysisRequestId.current) return;
       setError(err instanceof Error ? err.message : "Failed to analyze location.");
     } finally {
-      setLoading(false);
+      if (requestId === analysisRequestId.current) setLoading(false);
     }
   }, []);
 
