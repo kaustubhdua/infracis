@@ -1,7 +1,7 @@
 # Infracis Implementation & Verification Status
 
 **Last updated:** 28 October 2026  
-**Verified application candidate:** `35abf303dc9cc8346fb7945b6a289fae280b4d7b`  
+**Verified application candidate:** `66242a2e00f23f592830a2c4cbd78ce58f1d5e45`  
 **Current status:** Feature-rich MVP with green repository CI. Production readiness is **not established**.
 
 This document separates code and automated-test evidence from operational evidence. A green build does not prove provider availability, deployment health, cloud persistence, accessibility conformance, or that the product is useful to real users.
@@ -17,6 +17,7 @@ This document separates code and automated-test evidence from operational eviden
 - Interactive map and location pin selection.
 - Due-diligence checklist, evidence-led decision brief, methodology/source details, and print styling.
 - Browser-local saved reports with export, reopen, and delete; the UI explicitly states these are stored on this device, not in the cloud.
+- Explicit location-resolution disclosure asking users to verify the resolved label and pin before relying on distance metrics.
 - Accessible saved-report dialog semantics, keyboard focus management, Escape-to-close behavior, storage error states, and malformed saved-record filtering.
 - Privacy page describing provider data flows, browser-local storage, and current operational limits.
 - Shared Redis-backed rate-limit counters, Nominatim request-slot reservation, and provider cache implementation. Production analysis/comparison fail closed when shared Redis is absent or unavailable.
@@ -25,7 +26,7 @@ This document separates code and automated-test evidence from operational eviden
 
 ## 2. Current repository verification
 
-The exact candidate `35abf303dc9cc8346fb7945b6a289fae280b4d7b` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40669033805) on 28 October 2026:
+The exact candidate `66242a2e00f23f592830a2c4cbd78ce58f1d5e45` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40669653684) on 28 October 2026:
 
 - Locked dependency installation succeeded.
 - Production and full npm audits each reported zero vulnerabilities.
