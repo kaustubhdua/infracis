@@ -1,5 +1,6 @@
 import { LocationData } from "../types";
 import { getSharedJson, setSharedJson, waitForNominatimSlot } from "../shared-provider-cache";
+import { selectRelevantGeocodeCandidate, GeocodeCandidate } from "./geocode-relevance";
 
 const cache = new Map<string, { expires: number; value: LocationData }>();
 
@@ -21,7 +22,7 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
   url.searchParams.set("q", query);
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("addressdetails", "1");
-  url.searchParams.set("limit", "1");
+  url.searchParams.set("limit", "5");
 
   const response = await fetch(url.toString(), {
     headers: {
@@ -38,19 +39,16 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
 
   const payload: unknown = await response.json();
   if (!Array.isArray(payload)) throw new Error("Geocoding service returned an invalid response shape.");
-  const results = payload as Array<{
-    lat: string;
-    lon: string;
-    display_name: string;
-    type?: string;
-    boundingbox?: [string, string, string, string];
-  }>;
+  const results = payload as GeocodeCandidate[];
 
   if (!Array.isArray(results) || results.length === 0) {
     throw new Error(`No matching location found for "${query}". Try providing locality, city, or postal code.`);
   }
 
-  const item = results[0];
+  const item = selectRelevantGeocodeCandidate(query, results);
+  if (!item) {
+    throw new Error(`No matching location found confidently for "${query}". The top map results did not match enough of the location name, or multiple results were equally plausible. Add a sector, locality, city, or postal code and try again.`);
+  }
   if (!item || typeof item !== "object" || typeof item.display_name !== "string" || !item.display_name.trim()) {
     throw new Error("Geocoding service returned a result without a valid location label.");
   }

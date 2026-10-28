@@ -20,7 +20,7 @@ describe("provider schema validation", () => {
     }]), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const location = await geocodeLocation("schema-test-new-delhi-bounding-box");
+    const location = await geocodeLocation("New Delhi");
     expect(location.latitude).toBe(28.6139);
     expect(location.longitude).toBe(77.209);
     expect(location.boundingbox).toBeUndefined();
