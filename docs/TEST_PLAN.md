@@ -59,6 +59,8 @@ npm run build
 | Dependency audit | Both npm audit steps reported zero vulnerabilities; deprecated dev-tool warnings still need maintenance review |
 | GitHub Actions | [Green CI for exact candidate SHA](https://github.com/kaustubhdua/infracis/actions/runs/40670804839) |
 | Live-provider reliability | Not passed: see measured 20-location pilot and failures in the [production runbook](PRODUCTION_RUNBOOK.md) |
+
+**Pilot metric correction:** the original live pilot counted weather and air-quality responses as valid if at least one requested numeric field was finite. The script now requires every requested numeric field to be present and finite, with regression tests in `tests/provider-pilot-validation.test.ts`. The historical pilot figures above are not comparable to future runs under the stricter definition; rerun the bounded pilot before using provider pass rates for a release decision.
 | Deployed end-to-end smoke tests | Not run; no deployment performed |
 
 Automated route tests now cover malformed request bodies, coordinate bounds, query lengths, missing comparison fields, unsupported comparison preferences, and fail-closed 429/503 rate-limit behavior. Provider schema tests cover malformed weather, air-quality, Overpass, and optional Nominatim bounding-box payloads.
