@@ -46,7 +46,7 @@ export function assembleLocationReport(
       evidence.push({
         id: "ev-weather-temp",
         category: "weather",
-        title: "Current Ambient Temperature",
+        title: "Modeled Ambient Temperature",
         value: weather.temperature,
         unit: weather.units.temperature_2m || "°C",
         classification: "provider_model",
@@ -65,7 +65,7 @@ export function assembleLocationReport(
       evidence.push({
         id: "ev-weather-precip",
         category: "weather",
-        title: "Current Precipitation",
+        title: "Modeled Precipitation",
         value: weather.precipitation,
         unit: weather.units.precipitation || "mm",
         classification: "provider_model",
@@ -81,7 +81,7 @@ export function assembleLocationReport(
       evidence.push({
         id: "ev-topography-elevation",
         category: "topography",
-        title: "Ground Elevation Above Sea Level",
+        title: "Terrain Elevation Estimate",
         value: weather.elevationMeters,
         unit: "meters",
         classification: "provider_model",
@@ -102,7 +102,7 @@ export function assembleLocationReport(
     evidence.push({
       id: "ev-aqi-eu",
       category: "air_quality",
-      title: "European Air Quality Index (AQI)",
+      title: "Modeled European Air Quality Index (AQI)",
       value: airQuality.europeanAqi,
       unit: "index (1-100+)",
       classification: "provider_model",
@@ -119,7 +119,7 @@ export function assembleLocationReport(
       evidence.push({
         id: "ev-aqi-pm25",
         category: "air_quality",
-        title: "Fine Particulate Matter (PM2.5)",
+        title: "Modeled Fine Particulate Matter (PM2.5)",
         value: airQuality.pm25,
         unit: airQuality.units.pm2_5 || "µg/m³",
         classification: "provider_model",
