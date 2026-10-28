@@ -162,22 +162,32 @@ export default function AnalyzeClient() {
                   <button
                     type="button"
                     onClick={() => {
-                      setQuery("Koramangala, Bengaluru");
-                      runAnalysis("Koramangala, Bengaluru");
-                    }}
-                    className="rounded-md bg-[#eef3eb] px-2 py-0.5 text-[11px] font-medium text-[#104c38] hover:bg-[#e2ede0]"
-                  >
-                    Koramangala, Bengaluru
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
                       setQuery("Sector 62, Noida");
                       runAnalysis("Sector 62, Noida");
                     }}
                     className="rounded-md bg-[#eef3eb] px-2 py-0.5 text-[11px] font-medium text-[#104c38] hover:bg-[#e2ede0]"
                   >
                     Sector 62, Noida
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery("New Delhi");
+                      runAnalysis("New Delhi");
+                    }}
+                    className="rounded-md bg-[#eef3eb] px-2 py-0.5 text-[11px] font-medium text-[#104c38] hover:bg-[#e2ede0]"
+                  >
+                    New Delhi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery("Koramangala, Bengaluru");
+                      runAnalysis("Koramangala, Bengaluru");
+                    }}
+                    className="rounded-md bg-[#eef3eb] px-2 py-0.5 text-[11px] font-medium text-[#104c38] hover:bg-[#e2ede0]"
+                  >
+                    Koramangala, Bengaluru
                   </button>
                   <button
                     type="button"
