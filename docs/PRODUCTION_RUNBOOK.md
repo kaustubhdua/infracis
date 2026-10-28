@@ -84,3 +84,19 @@ A dedicated Supabase migration file exists, but that does not prove a database p
 
 ## Release decision
 Until the P0/P1 gates above have evidence, describe Infracis as a functional MVP under release verification, not a production-proven service. Never claim that data coverage, cloud persistence, a separate backend, or a live deployment exists unless it has been independently verified.
+
+
+## Standalone backend source preparation (not a deployment)
+
+**Status: source files added; not deployed and not connected to the frontend.** The separate FastAPI service is in `backend/`, with a Dockerfile for a future hosting step, environment template, API-key guard, Redis-backed shared rate limiting, Nominatim slot reservation, real provider adapters, health/readiness endpoints, and tests. This is not evidence that the service has been run, that Redis is provisioned, or that providers have been exercised from a deployed instance.
+
+Before a future backend upload/hosting step:
+- [ ] Run `cd backend && pip install -r requirements.txt && pytest -q` in a clean Python 3.12 environment.
+- [ ] Confirm the backend CI workflow passes on the exact branch commit.
+- [ ] Pin and audit a backend dependency lockfile for reproducible builds.
+- [ ] Review security settings and trusted-proxy configuration for the selected host.
+- [ ] Contract-test the FastAPI response against the frontend. It currently does not return the full TypeScript `LocationReport` schema.
+- [ ] Decide which API implementation is canonical before switching frontend traffic; avoid maintaining divergent provider logic.
+- [ ] Add Supabase Auth and RLS-protected persistence only as a separate reviewed feature. No cloud-save behavior is claimed by this backend.
+
+No deployment was performed as requested.
