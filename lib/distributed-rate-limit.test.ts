@@ -12,6 +12,7 @@ afterEach(() => {
   if (originalToken === undefined) delete process.env.UPSTASH_REDIS_REST_TOKEN;
   else process.env.UPSTASH_REDIS_REST_TOKEN = originalToken;
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("shared rate limiter", () => {
