@@ -38,6 +38,8 @@ The code for a shared Redis limiter, provider cache, and Nominatim slot reservat
 - [ ] Add live integration checks for provider timeout, malformed payload, partial outage, and recovery.
 - [ ] Ensure client errors do not leak upstream response bodies, secrets, or stack traces.
 - [ ] Confirm no credentials or private environment values are committed or exposed in NEXT_PUBLIC_* variables.
+- [x] Configure baseline response headers in `next.config.mjs`: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, DNS prefetch control, and production-only HSTS.
+- [ ] Verify the actual deployed domain returns the intended headers and review a CSP/security-header scan; source configuration alone is not runtime proof.
 - [ ] Test the deployed API's rate-limit behavior, not just unit tests.
 
 ## P0 — saved report persistence
