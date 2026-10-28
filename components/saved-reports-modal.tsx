@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LocationReport } from "@/lib/types";
+import { parseStoredReports } from "@/lib/local-report-storage";
 import { Bookmark, Trash2, Download, X } from "lucide-react";
 
 interface SavedReportsModalProps {
@@ -10,11 +11,16 @@ interface SavedReportsModalProps {
   onSelectReport: (report: LocationReport) => void;
 }
 
+function readStoredReports(): LocationReport[] {
+  const raw = localStorage.getItem("infracis_saved_reports");
+  if (!raw) return [];
+  return parseStoredReports(JSON.parse(raw));
+}
+
 export function saveReportToStorage(report: LocationReport): boolean {
   try {
-    const raw = localStorage.getItem("infracis_saved_reports");
-    const reports: LocationReport[] = raw ? JSON.parse(raw) : [];
-    const exists = reports.find((r) => r.id === report.id || r.location.label === report.location.label);
+    const reports = readStoredReports();
+    const exists = reports.some((r) => r.id === report.id || r.location.label === report.location.label);
     if (!exists) {
       reports.unshift(report);
       localStorage.setItem("infracis_saved_reports", JSON.stringify(reports.slice(0, 20)));
@@ -27,10 +33,11 @@ export function saveReportToStorage(report: LocationReport): boolean {
 }
 
 export function exportReportJson(report: LocationReport) {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2));
+  const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2));
   const downloadAnchor = document.createElement("a");
+  const safeLabel = report.location.label.slice(0, 25).replace(/[^a-zA-Z0-9_-]+/g, "_");
   downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `infracis-due-diligence-${report.location.label.slice(0, 25).replace(/\s+/g, "_")}.json`);
+  downloadAnchor.setAttribute("download", `infracis-due-diligence-${safeLabel || "location"}.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
@@ -42,94 +49,157 @@ export default function SavedReportsModal({
   onSelectReport
 }: SavedReportsModalProps) {
   const [reports, setReports] = useState<LocationReport[]>([]);
+  const [storageError, setStorageError] = useState("");
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      try {
-        const raw = localStorage.getItem("infracis_saved_reports");
-        if (raw) setReports(JSON.parse(raw));
-      } catch {
-        setReports([]);
-      }
+    if (!isOpen) return;
+    try {
+      setReports(readStoredReports());
+      setStorageError("");
+    } catch {
+      setReports([]);
+      setStorageError("Saved reports could not be read from this browser. You can still export a report from the analysis screen.");
     }
   }, [isOpen]);
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  useEffect(() => {
+    if (!isOpen) return;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeButtonRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+        "button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
+      )).filter((element) => element.offsetParent !== null);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [isOpen, onClose]);
+
+  const handleDelete = (id: string) => {
     const updated = reports.filter((r) => r.id !== id);
-    setReports(updated);
-    localStorage.setItem("infracis_saved_reports", JSON.stringify(updated));
+    try {
+      localStorage.setItem("infracis_saved_reports", JSON.stringify(updated));
+      setReports(updated);
+      setStorageError("");
+    } catch {
+      setStorageError("This browser could not update saved reports. Check storage permissions and try again.");
+    }
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-3xl border border-[#dce3da] bg-white p-6 shadow-xl max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between border-b border-[#e9efe7] pb-4">
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="saved-reports-title"
+        className="flex max-h-[80vh] w-full max-w-xl flex-col rounded-3xl border border-[#dce3da] bg-white p-6 shadow-xl"
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-[#e9efe7] pb-4">
           <div className="flex items-center gap-2">
-            <Bookmark className="text-[#104c38]" size={20} />
-            <div><h3 className="text-lg font-semibold text-[#1a2e23]">Saved Location Reports</h3><p className="mt-1 text-xs text-[#738477]">Stored only in this browser on this device. Cloud sync is not available.</p></div>
+            <Bookmark className="shrink-0 text-[#104c38]" size={20} aria-hidden="true" />
+            <div>
+              <h3 id="saved-reports-title" className="text-lg font-semibold text-[#1a2e23]">Saved Location Reports</h3>
+              <p className="mt-1 text-xs text-[#738477]">Stored only in this browser on this device. Cloud sync is not available.</p>
+            </div>
           </div>
           <button
+            ref={closeButtonRef}
+            type="button"
             onClick={onClose}
-            className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            aria-label="Close saved location reports"
+            className="rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d78b21]"
           >
-            <X size={18} />
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
-        <div className="mt-4 flex-1 overflow-y-auto space-y-3">
+        {storageError && (
+          <p role="alert" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            {storageError}
+          </p>
+        )}
+
+        <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
           {reports.length === 0 ? (
             <div className="py-12 text-center text-xs text-[#738477]">
-              No browser-local reports yet. Analyze a location and choose &quot;Save Report&quot; to keep a copy in this browser.
+              No browser-local reports yet. Analyze a location and choose &quot;Save Locally&quot; to keep a copy in this browser.
             </div>
           ) : (
             reports.map((rep) => (
-              <div
+              <article
                 key={rep.id}
-                onClick={() => {
-                  onSelectReport(rep);
-                  onClose();
-                }}
-                className="group cursor-pointer rounded-2xl border border-[#e5ece2] bg-[#fbfcf9] p-4 transition hover:border-[#104c38] hover:bg-white"
+                className="group rounded-2xl border border-[#e5ece2] bg-[#fbfcf9] p-4 transition hover:border-[#104c38] hover:bg-white"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h4 className="text-sm font-semibold text-[#1a2e23] group-hover:text-[#104c38]">
+                <div className="flex items-start justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelectReport(rep);
+                      onClose();
+                    }}
+                    className="min-w-0 flex-1 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d78b21]"
+                  >
+                    <span className="block break-words text-sm font-semibold text-[#1a2e23] group-hover:text-[#104c38]">
                       {rep.location.label}
-                    </h4>
-                    <p className="mt-1 text-xs text-[#6e8073]">
+                    </span>
+                    <span className="mt-1 block text-xs text-[#6e8073]">
                       Saved {new Date(rep.generatedAt).toLocaleDateString()} · Completeness: {rep.scores.completenessScore}%
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1.5">
+                    </span>
+                    <span className="mt-2 block text-xs font-semibold text-[#315b40]">Open report</span>
+                  </button>
+                  <div className="flex shrink-0 items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        exportReportJson(rep);
-                      }}
-                      title="Export Auditable JSON"
-                      className="rounded-lg p-1.5 text-[#5e7063] hover:bg-[#eef3eb] hover:text-[#104c38]"
+                      onClick={() => exportReportJson(rep)}
+                      aria-label={`Export ${rep.location.label} report as JSON`}
+                      title="Export report as JSON"
+                      className="rounded-lg p-2 text-[#5e7063] transition hover:bg-[#eef3eb] hover:text-[#104c38] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d78b21]"
                     >
-                      <Download size={15} />
+                      <Download size={15} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => handleDelete(rep.id, e)}
-                      title="Delete Report"
-                      className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700"
+                      onClick={() => handleDelete(rep.id)}
+                      aria-label={`Delete ${rep.location.label} report`}
+                      title="Delete report"
+                      className="rounded-lg p-2 text-rose-600 transition hover:bg-rose-50 hover:text-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={15} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
-              </div>
+              </article>
             ))
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }
