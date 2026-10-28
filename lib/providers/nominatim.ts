@@ -2,7 +2,6 @@ import { LocationData } from "../types";
 import { getSharedJson, setSharedJson, waitForNominatimSlot } from "../shared-provider-cache";
 
 const cache = new Map<string, { expires: number; value: LocationData }>();
-let lastRequestTimestamp = 0;
 
 export async function geocodeLocation(query: string): Promise<LocationData> {
   const normalizedKey = query.toLowerCase().trim();
@@ -17,7 +16,6 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
   // Local spacing is only a development fallback; production fails closed.
   const slotReserved = await waitForNominatimSlot();
   if (!slotReserved) throw new Error("Geocoding is temporarily unavailable because shared provider throttling is not configured or reachable.");
-  lastRequestTimestamp = Date.now();
 
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("q", query);
