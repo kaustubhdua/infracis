@@ -42,7 +42,11 @@ out center tags 100;`;
     throw new Error(`Overpass amenity service responded with HTTP ${response.status}`);
   }
 
-  const data = (await response.json()) as {
+  const payload: unknown = await response.json();
+  if (!payload || typeof payload !== "object" || !Array.isArray((payload as { elements?: unknown }).elements)) {
+    throw new Error("Overpass returned an invalid response shape.");
+  }
+  const data = payload as {
     elements?: Array<{
       id: number;
       type: string;
@@ -53,7 +57,11 @@ out center tags 100;`;
     }>;
   };
 
-  const elements = Array.isArray(data.elements) ? data.elements : [];
+  const elements = data.elements.filter((elem) =>
+    elem && typeof elem === "object" && Number.isInteger(elem.id) &&
+    (elem.type === "node" || elem.type === "way" || elem.type === "relation") &&
+    (elem.tags === undefined || (typeof elem.tags === "object" && elem.tags !== null && !Array.isArray(elem.tags)))
+  );
 
   const items: AmenityItem[] = elements
     .map((elem) => {
@@ -69,9 +77,11 @@ out center tags 100;`;
 
       const group = categorizeAmenity(tagVal);
 
-      const distance =
-        itemLat !== null && itemLon !== null
-          ? calculateHaversineDistance(lat, lon, itemLat, itemLon)
+      const validCoordinates = itemLat !== null && itemLon !== null && Number.isFinite(itemLat) && Number.isFinite(itemLon) && itemLat >= -90 && itemLat <= 90 && itemLon >= -180 && itemLon <= 180;
+      const safeLat = validCoordinates ? itemLat : null;
+      const safeLon = validCoordinates ? itemLon : null;
+      const distance = validCoordinates
+          ? calculateHaversineDistance(lat, lon, safeLat!, safeLon!)
           : radiusMeters;
 
       const name =
@@ -86,8 +96,8 @@ out center tags 100;`;
         category: tagVal,
         group,
         distanceMeters: distance,
-        lat: itemLat,
-        lon: itemLon
+        lat: safeLat,
+        lon: safeLon
       };
     })
     .sort((a, b) => a.distanceMeters - b.distanceMeters);
