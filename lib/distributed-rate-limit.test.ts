@@ -45,4 +45,36 @@ describe("shared rate limiter", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("connection refused")));
     await expect(enforceRateLimit("test-client", 2)).resolves.toBeNull();
   });
+
+  it("reserves a Nominatim request slot atomically through Redis", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    process.env.UPSTASH_REDIS_REST_URL = "https://redis.example.test";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "unit-test-token";
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ result: 0 })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(waitForNominatimSlot()).resolves.toBe(true);
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://redis.example.test");
+    const command = JSON.parse(String(options.body)) as string[];
+    expect(command[0]).toBe("EVAL");
+    expect(command[1]).toContain("math.max(now, nextAt)");
+    expect(command[1]).toContain("redis.call('SET', KEYS[1]");
+    expect(command[5]).toBe("1100");
+  });
+
+  it("rejects a Nominatim slot that would wait beyond the bounded request budget", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    process.env.UPSTASH_REDIS_REST_URL = "https://redis.example.test";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "unit-test-token";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ result: 9001 })
+    }));
+
+    await expect(waitForNominatimSlot()).resolves.toBe(false);
+  });
 });
