@@ -1,71 +1,98 @@
 # Infracis Implementation & Verification Status
 
 **Last updated:** 28 October 2026  
-**Current status:** Feature-rich MVP; release verification is not complete for the current HEAD.
+**Verified application candidate:** `841a82884c66b2744e164ae80901fd25b7296f69`  
+**Current status:** Feature-rich MVP with green repository CI. Production readiness is **not established**.
 
-This document separates implemented code and historical test evidence from checks that have not been independently rerun against the latest commits. Do not treat a committed test report as proof that the current deployment is healthy.
+This document separates code and automated-test evidence from operational evidence. A green build does not prove provider availability, deployment health, cloud persistence, accessibility conformance, or that the product is useful to real users.
 
 ## 1. Implemented product capabilities
 
-- Location analysis through explicit user-submitted geocoding.
-- Real provider adapters for OpenStreetMap Nominatim, Overpass, and Open-Meteo weather/air quality.
+- Explicit user-submitted location geocoding through OpenStreetMap Nominatim.
+- Real provider adapters for Open-Meteo weather and air-quality model data.
+- OpenStreetMap/Overpass amenity adapter, but production amenity retrieval is deliberately unavailable unless a verified HTTPS endpoint is configured.
 - Evidence records with source URLs, retrieval/observation timestamps where supplied, geographic resolution, and limitations.
-- Deterministic proximity and completeness metrics, plus explicit unknowns when feeds fail.
-- Two-location comparison with preference profiles and incomparable states for missing metrics.
+- Deterministic proximity/completeness calculations and explicit unknowns when providers fail.
+- Two-location comparison with preference profiles and incomparable states when data is missing; unsupported preference values return a validation error.
 - Interactive map and location pin selection.
-- Location-specific due-diligence checklist and print styling.
-- Evidence-led decision brief that surfaces actual source availability, explicit unknowns, and highest-priority checklist actions without inventing a property verdict.
-- Local browser saved reports and JSON export.
-- Health endpoint that reports the web route response, not upstream health.
-- Supabase saved-report schema with RLS policies committed as a migration; this is not proof the migration has been applied or that cloud persistence is wired into the UI.
-- GitHub Actions workflow configured to run lint, typecheck, and production build on pushes and pull requests to `main`.
+- Due-diligence checklist, evidence-led decision brief, methodology/source details, and print styling.
+- Browser-local saved reports with export, reopen, and delete; the UI explicitly states these are stored on this device, not in the cloud.
+- Accessible saved-report dialog semantics, keyboard focus management, Escape-to-close behavior, storage error states, and malformed saved-record filtering.
+- Privacy page describing provider data flows, browser-local storage, and current operational limits.
+- Shared Redis-backed rate-limit counters, Nominatim request-slot reservation, and provider cache implementation. Production analysis/comparison fail closed when shared Redis is absent or unavailable.
+- Separate FastAPI backend source under `backend/`, with tests and CI. It is not deployed or connected to the active Next.js frontend; the Next.js route handlers remain the active API.
+- Supabase migration source exists, but it has not been verified as applied and does not constitute a working cloud-save flow.
 
-## 2. Security/reliability hardening committed on 28 October
+## 2. Current repository verification
 
-- `/api/analyze` validates JSON shape, query length, and coordinate range; bounds the size of its per-process rate-limit map and in-memory report cache; avoids caching analysis responses at HTTP/CDN level; and returns generic upstream failure messages. Provider-level Nominatim and Overpass caches are also size-bounded.
-- `/api/compare` validates JSON shape and both query lengths; validates supported preference profiles by normalizing unknown values to the balanced profile; distinguishes unresolved locations from upstream failures; disables HTTP caching; and now applies its previously defined bounded per-process request throttle.
-- Leaflet map popups escape provider-sourced location and amenity text before HTML insertion; dedicated unit tests cover HTML metacharacter escaping.
-- The report UI avoids the overstated “Live Audited Report” label and explains that source-linked findings are not independent ground-truth verification.
+The exact candidate `841a82884c66b2744e164ae80901fd25b7296f69` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40664710454) on 28 October 2026:
 
-These are defensive improvements, not a complete security review. Both endpoints still rely on in-process controls and public data providers. The analysis route's IP-based throttling is best-effort only: a shared, trusted rate limiter and provider-compliant production data strategy are required before high-volume public use.
+- Locked dependency installation succeeded.
+- Production and full npm audits each reported zero vulnerabilities.
+- **55 tests passed across 10 test files.**
+- ESLint passed.
+- TypeScript type-check passed.
+- Production build passed.
 
-## 3. Test evidence and current verification status
+The tests include route-level request validation and rate-limit responses, request-body size handling, geospatial calculations, evidence provenance, comparison behavior, provider response schema validation, local saved-report parsing, HTML escaping, and Redis-backed Nominatim slot command behavior.
 
-The repository contains Vitest suites for geospatial calculations, evidence provenance, and location comparison. Earlier project notes recorded 13 passing tests and a local live smoke test. Those historical notes are not a substitute for rerunning checks against the current HEAD after the latest API changes.
+These are repository checks. The Redis tests use mocked REST responses and do not establish true multi-instance concurrency or outage recovery. Provider schema tests do not establish live provider availability or location relevance.
 
-| Check | Current status |
-|---|---|
-| Unit tests on current HEAD | Not independently rerun in this session |
-| TypeScript typecheck on current HEAD | Not independently rerun in this session |
-| ESLint on current HEAD | Not independently rerun in this session |
-| Production build on current HEAD | Not independently rerun in this session |
-| GitHub Actions status for latest inspected commits | No status checks returned by GitHub connector at inspection time |
-| Live production URL and runtime smoke test | Not verified in this session |
-| Supabase migration applied to a real project | Not verified; do not assume applied |
-| Cloud authentication and server-side saved-report persistence | Not implemented/verified as a complete user workflow |
-| Shared production rate limiting and provider capacity | Not implemented/verified |
+## 3. Real provider pilot (28 October 2026)
 
-## 4. Data source caveats
+A bounded [20-location Delhi NCR live-provider pilot](https://github.com/kaustubhdua/infracis/actions/runs/40660404776) was run. Its measured results were:
 
-| Provider | Used for | Important caveat |
+- **Nominatim:** 18/20 valid-shaped geocoding responses (90%); two had no valid match. Some valid responses resolved to nearby POIs rather than the requested neighbourhood, so semantic relevance remains unverified.
+- **Open-Meteo forecast:** 11/18 valid responses (61.1%); seven failed in this run.
+- **Open-Meteo air quality:** 11/18 valid responses (61.1%); seven failed in this run.
+- **Overpass amenities:** 0/18 valid responses; requests timed out or returned HTTP 502.
+
+This was a single point-in-time probe, not an SLA or a claim about provider-wide availability. It demonstrates that real provider reliability is still a release blocker. The UI must continue to show failed/disabled sources as unavailable; do not impute values or turn a failed amenity request into a zero-amenities result. The temporary workflow artifact has limited retention, so the measured findings are also recorded in the production runbook.
+
+## 4. Provider and data caveats
+
+| Provider | Role | Remaining constraints |
 |---|---|---|
-| OpenStreetMap Nominatim | User-submitted location geocoding | Public service has a strict usage policy; no autocomplete or high-volume traffic. |
-| OpenStreetMap via Overpass | Mapped nearby amenities | Map coverage can be incomplete; amenities may be missing or outdated. |
-| Open-Meteo | Weather model output and air-quality estimates | Model/reanalysis data, not measurements from sensors at the property. Confirm current provider terms and quotas before commercial scale. |
+| OpenStreetMap Nominatim | Explicit text-query geocoding | Public endpoint is limited to one request/second app-wide, must be identified and attributed, and must not be used for autocomplete or systematic high-volume queries. Returned labels still need relevance verification. |
+| Open-Meteo | Weather and air-quality model outputs | These are model/grid products, not on-site sensor readings. The free API is non-commercial; commercial use needs a suitable subscription or a compliant alternative. |
+| OpenStreetMap via Overpass | Nearby mapped amenities | Production requests remain disabled until a verified HTTPS endpoint is configured. Public instances are best-effort; mapped features may be incomplete, stale, or missing. |
+| OpenStreetMap tiles | Interactive map | Use compliant tile hosting, visible attribution, and normal caching; public tile service has no production SLA. |
 
-Infracis does not currently verify legal title, structural condition, crime rates, flood safety, property valuation, or a guarantee of neighborhood safety. Never infer those claims from the available data.
+Infracis does **not** verify legal title, structural condition, crime rates, flood safety, property valuation, or guarantee neighborhood safety. Do not infer these claims from available data.
 
-## 5. Release gate
+## 5. Remaining release gates
 
-Before describing this as production-ready, complete and record all of the following:
+### P0 — operational reliability and security
 
-1. Run `npm ci`, `npm run test`, `npm run lint`, `npm run typecheck`, and `npm run build` on the exact commit to be released.
-2. Confirm GitHub Actions reports green checks for that commit.
-3. Perform a deployed smoke test of the home page, `/api/health`, valid and invalid `/api/analyze` requests, and valid/invalid `/api/compare` requests.
-4. Add a trusted shared rate limiter, bounded provider timeouts/retries, and monitoring appropriate to the chosen host and traffic.
-5. Choose a production-compliant geocoding/amenity strategy, review provider terms, attribution, quotas, and commercial-use conditions.
-6. If cloud accounts/saved reports are part of the promised product, apply the Supabase migration, wire authentication and database persistence, and test RLS with multiple users. Otherwise clearly market saves as browser-local only.
-7. Run accessibility and mobile browser QA, including keyboard navigation, map alternatives, loading/error/empty states, and export/print behavior.
-8. Verify deployment configuration and the actual production domain; a deployment config file alone is not proof of deployment.
+- Configure a dedicated Infracis Redis store in the eventual hosting environment.
+- Test aggregate Nominatim pacing against at least two independent running instances; verify outage, timeout, recovery, and cache behavior with real Redis.
+- Test deployed request limits under concurrent load and verify that client-IP identity comes only from trusted hosting infrastructure.
+- Complete secret scanning and review runtime logs for sensitive location-query retention.
+- Run live provider failure/recovery tests after selecting and verifying a suitable Overpass endpoint; re-run and review geocoder relevance.
 
-Until these gates are evidenced, describe Infracis as a functional MVP under verification—not a fully certified or production-proven service.
+### P0 — provider terms and capacity
+
+- Confirm the Open-Meteo plan is appropriate for the product's actual commercial/non-commercial use.
+- Confirm endpoint-specific terms, attribution, quotas, and operational expectations for geocoding, tiles, and amenities.
+- Do not enable a production provider just because it appears in a public endpoint list; test it with bounded queries and document its policy first.
+
+### P1 — product workflow and user experience
+
+- Perform real mobile-browser QA at 360px and wider, desktop QA, keyboard-only navigation, screen-reader review, contrast checks, reduced-motion checks, and an automated accessibility scan.
+- Exercise the complete journey: location search/map selection → source evidence → unknowns → compare → decision brief → local save/reopen/delete → JSON export/print.
+- Conduct the 5–8 user research sessions in [Product Validation](PRODUCT_VALIDATION.md). Do not claim user validation until sessions actually happen and anonymized results are recorded.
+- Independently spot-check location matches and record false/ambiguous results with clear recovery UI.
+
+### P1 — persistence and architecture
+
+- Keep local browser saving clearly labeled until a dedicated Infracis Supabase project is authorized, migration history/schema/RLS are verified, authenticated CRUD is implemented, and cross-user isolation tests pass.
+- Before integrating the separate FastAPI service, align its response contract with the frontend `LocationReport`, add contract tests, choose a single canonical provider path, and verify its authentication and hosting setup.
+- Add pinned/locked Python dependency resolution for the standalone backend before treating its build as reproducible.
+
+### Release / deployment
+
+- **No deployment was performed as part of this work.**
+- After the operational gates above are satisfied and deployment is authorized, deploy a specific green SHA, then smoke-test the real domain, health endpoint, valid/invalid analyze requests, compare requests, provider failure states, and rate limiting.
+- Record the deployed SHA, runtime configuration, provider plan/endpoint choices, test results, rollback procedure, and incident contact before calling the hosted service production-ready.
+
+Until these gates have evidence, describe Infracis as a functional, tested MVP under operational verification—not a production-proven service.
