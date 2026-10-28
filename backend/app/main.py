@@ -125,6 +125,49 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+class BodySizeLimitMiddleware:
+    """Bound request bodies even when Content-Length is missing or untrusted."""
+
+    def __init__(self, app: Any, max_bytes: int = 16 * 1024) -> None:
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+        if scope.get("type") != "http" or scope.get("path") != "/v1/analyze" or scope.get("method") != "POST":
+            await self.app(scope, receive, send)
+            return
+
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            message = await receive()
+            if message.get("type") == "http.disconnect":
+                return
+            chunk = message.get("body", b"")
+            total += len(chunk)
+            if total > self.max_bytes:
+                response = JSONResponse(status_code=413, content={"detail": "Request body exceeds the 16 KiB limit."})
+                await response(scope, receive, send)
+                return
+            chunks.append(chunk)
+            if not message.get("more_body", False):
+                break
+
+        body = b"".join(chunks)
+        sent = False
+
+        async def replay_receive() -> dict[str, Any]:
+            nonlocal sent
+            if not sent:
+                sent = True
+                return {"type": "http.request", "body": body, "more_body": False}
+            return {"type": "http.disconnect"}
+
+        await self.app(scope, replay_receive, send)
+
+
+app.add_middleware(BodySizeLimitMiddleware)
+
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
