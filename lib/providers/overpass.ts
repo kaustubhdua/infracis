@@ -137,6 +137,7 @@ out center tags 100;`;
     expires: Date.now() + 60 * 60 * 1000, // 1 hour cache
     value: summary
   });
+  await setSharedJson(cacheKey, summary, 60 * 60);
 
   return summary;
 }
