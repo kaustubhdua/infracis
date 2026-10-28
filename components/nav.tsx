@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Shield, Scale, Bookmark, ExternalLink, MapPin, Sprout } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Shield, Scale, Bookmark, ExternalLink, MapPin, Sprout, Sun, Moon, Palette } from "lucide-react";
 
 interface NavProps {
   activeTab: "analyze" | "compare" | "methodology";
@@ -10,6 +11,22 @@ interface NavProps {
 }
 
 export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) {
+  const [theme, setTheme] = useState<"original" | "ux4g-white" | "ux4g-dark">("original");
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("infracis-theme");
+    if (savedTheme === "original" || savedTheme === "ux4g-white" || savedTheme === "ux4g-dark") {
+      setTheme(savedTheme);
+      document.documentElement.dataset.theme = savedTheme;
+    }
+  }, []);
+
+  const changeTheme = (nextTheme: "original" | "ux4g-white" | "ux4g-dark") => {
+    setTheme(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
+    window.localStorage.setItem("infracis-theme", nextTheme);
+  };
+
   const navClass = (tab: NavProps["activeTab"]) =>
     `inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] focus-visible:ring-offset-2 ${
       activeTab === tab
@@ -57,6 +74,18 @@ export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) 
           >
             <Bookmark size={14} /> Saved
           </button>
+          <div className="flex items-center gap-0.5 rounded-xl border border-[#e2e8dd] bg-white/70 p-0.5" aria-label="Theme">
+            <Palette size={13} className="mx-1 text-[#627365]" aria-hidden="true" />
+            <button type="button" onClick={() => changeTheme("original")} aria-label="Use original Infracis theme" aria-pressed={theme === "original"} className={`rounded-lg p-2 transition ${theme === "original" ? "bg-[#174b38] text-white" : "text-[#53685a] hover:bg-[#eaf0e5]"}`}>
+              <Sprout size={13} />
+            </button>
+            <button type="button" onClick={() => changeTheme("ux4g-white")} aria-label="Use UX4G white theme" aria-pressed={theme === "ux4g-white"} className={`rounded-lg p-2 transition ${theme === "ux4g-white" ? "bg-[#0b5cab] text-white" : "text-[#53685a] hover:bg-[#eaf0e5]"}`}>
+              <Sun size={13} />
+            </button>
+            <button type="button" onClick={() => changeTheme("ux4g-dark")} aria-label="Use UX4G dark theme" aria-pressed={theme === "ux4g-dark"} className={`rounded-lg p-2 transition ${theme === "ux4g-dark" ? "bg-[#102a43] text-white" : "text-[#53685a] hover:bg-[#eaf0e5]"}`}>
+              <Moon size={13} />
+            </button>
+          </div>
           <a
             href="https://github.com/kaustubhdua/infracis"
             target="_blank"

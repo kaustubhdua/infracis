@@ -216,30 +216,30 @@ export default function AnalyzeClient() {
             {report && (
               <div className="space-y-6">
                 {/* Header Action Bar */}
-                <div className="flex flex-col justify-between gap-4 rounded-3xl border border-[#dce3da] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7">
+                <div className="flex flex-col justify-between gap-4 rounded-[1.75rem] border border-[#2d5366] bg-[#0f2d3d] p-5 shadow-[0_18px_45px_rgba(7,20,28,0.28)] sm:flex-row sm:items-center sm:p-7">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                      <span className="rounded-full border border-[#3a667d] bg-[#153c4d] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#dceef9]">
                         Evidence Report
                       </span>
-                      <span className="text-xs text-[#718275]">
+                      <span className="text-xs text-[#9eb3bf]">
                         Retrieved {new Date(report.generatedAt).toLocaleString()}
                       </span>
                     </div>
-                    <h3 className="mt-1.5 text-xl font-bold tracking-tight text-[#143023]">
+                    <h3 className="mt-1.5 text-xl font-bold tracking-tight text-[#edf7ff]">
                       {report.location.label}
                     </h3>
-                    <p className="mt-1 text-xs text-[#6b7b70]">
+                    <p className="mt-1 text-xs text-[#d5e0e7]">
                       Coordinates: {report.location.latitude.toFixed(5)},{" "}
                       {report.location.longitude.toFixed(5)} · Source coverage:{" "}
-                      <strong className="text-[#104c38]">
+                      <strong className="text-[#f4b28a]">
                         {report.scores.completenessScore}%
                       </strong>
                     </p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-[#718275]">
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#afc1cb]">
                       Source coverage reflects returned evidence only—not property quality, safety, legality, or value.
                     </p>
-                    <p className="mt-2 max-w-2xl rounded-xl border border-[#f0d7a8] bg-[#fff8e8] px-3 py-2 text-xs leading-relaxed text-[#76511a]">
+                    <p className="mt-2 max-w-2xl rounded-xl border border-[#3c657c] bg-[#143b4d] px-3 py-2 text-xs leading-relaxed text-[#e4edf2]">
                       Confirm this resolved place and pin match your intended locality before relying on distance metrics. Geocoding can resolve to a nearby mapped place or boundary; use &quot;Open OSM&quot; to inspect the location.
                     </p>
                   </div>
@@ -248,7 +248,7 @@ export default function AnalyzeClient() {
                     <button
                       type="button"
                       onClick={handleSave}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#dce3da] bg-[#fbfcf9] px-3.5 py-2 text-xs font-semibold text-[#104c38] transition hover:bg-[#eef3eb]"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#3b6277] bg-[#163d4d] px-3.5 py-2 text-xs font-semibold text-[#edf7ff] transition hover:bg-[#1c4960]"
                     >
                       <Bookmark size={14} />
                       {savedSuccess ? "Saved in This Browser" : "Save Locally"}
@@ -256,7 +256,7 @@ export default function AnalyzeClient() {
                     <button
                       type="button"
                       onClick={() => exportReportJson(report)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#dce3da] bg-[#fbfcf9] px-3.5 py-2 text-xs font-semibold text-[#104c38] transition hover:bg-[#eef3eb]"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#3b6277] bg-[#163d4d] px-3.5 py-2 text-xs font-semibold text-[#edf7ff] transition hover:bg-[#1c4960]"
                     >
                       <Download size={14} /> Export JSON
                     </button>
@@ -264,13 +264,13 @@ export default function AnalyzeClient() {
                       href={report.location.mapUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#104c38] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#0c3829]"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#f39a66] px-3.5 py-2 text-xs font-semibold text-[#142b39] transition hover:bg-[#f4ab7a]"
                     >
                       Open OSM <ExternalLink size={13} />
                     </a>
                   </div>
-                  <p className="mt-2 text-xs text-[#718276]">Reports are stored in this browser on this device only. Cloud sync is not available.</p>
-                  {saveError && <p role="alert" className="mt-2 text-xs text-rose-700">{saveError}</p>}
+                  <p className="mt-2 text-xs text-[#afc1cb]">Reports are stored in this browser on this device only. Cloud sync is not available.</p>
+                  {saveError && <p role="alert" className="mt-2 text-xs text-[#f6b6a4]">{saveError}</p>}
                 </div>
 
                 {/* Action-first decision summary, derived only from retrieved report data */}
