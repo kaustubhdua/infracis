@@ -64,6 +64,24 @@ describe("provider schema validation", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("excludes amenity records without valid coordinates from proximity and nearest-facility results", async () => {
+    vi.stubEnv("OVERPASS_API_URL", "https://overpass.example/interpreter");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      elements: [
+        { id: 11, type: "node", lat: 28.614, lon: 77.209, tags: { highway: "bus_stop", name: "Mapped Bus Stop" } },
+        { id: 12, type: "node", tags: { amenity: "hospital", name: "Hospital With Missing Coordinates" } },
+        { id: 13, type: "node", lat: 28.7, lon: 77.4, tags: { amenity: "hospital", name: "Hospital Outside Requested Radius" } }
+      ]
+    }), { status: 200 })));
+
+    const summary = await fetchNearbyAmenities(28.6139, 77.209, 1200);
+
+    expect(summary.totalCount).toBe(1);
+    expect(summary.nearest.transit?.name).toBe("Mapped Bus Stop");
+    expect(summary.nearest.healthcare).toBeUndefined();
+    expect(summary.items.every((item) => Number.isFinite(item.distanceMeters) && item.lat !== null && item.lon !== null)).toBe(true);
+  });
+
   it("uses a configured Overpass endpoint and a single lower-cost union query", async () => {
     vi.stubEnv("OVERPASS_API_URL", "https://overpass.example/interpreter");
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ elements: [] }), { status: 200 }));
