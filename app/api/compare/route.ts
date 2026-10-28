@@ -49,6 +49,17 @@ async function getOrFetchReport(query: string): Promise<LocationReport> {
 }
 
 export async function POST(request: NextRequest) {
+  // Best-effort per-process protection only. Production traffic still needs a
+  // trusted shared limiter; proxy headers must be set by the hosting platform.
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const clientIp = request.headers.get("x-real-ip") || forwarded || "unknown-client";
+  if (checkRateLimit(clientIp)) {
+    return NextResponse.json(
+      { error: "Too many comparison requests. Please wait a minute before trying again." },
+      { status: 429, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
