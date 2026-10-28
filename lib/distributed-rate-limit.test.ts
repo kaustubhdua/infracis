@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { enforceRateLimit, waitForNominatimSlot } from "./distributed-rate-limit";
+import { enforceRateLimit } from "./distributed-rate-limit";
+import { waitForNominatimSlot } from "./shared-provider-cache";
 
 const originalNodeEnv = process.env.NODE_ENV;
 const originalUrl = process.env.UPSTASH_REDIS_REST_URL;
