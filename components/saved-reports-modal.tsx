@@ -10,7 +10,7 @@ interface SavedReportsModalProps {
   onSelectReport: (report: LocationReport) => void;
 }
 
-export function saveReportToStorage(report: LocationReport) {
+export function saveReportToStorage(report: LocationReport): boolean {
   try {
     const raw = localStorage.getItem("infracis_saved_reports");
     const reports: LocationReport[] = raw ? JSON.parse(raw) : [];
@@ -19,8 +19,10 @@ export function saveReportToStorage(report: LocationReport) {
       reports.unshift(report);
       localStorage.setItem("infracis_saved_reports", JSON.stringify(reports.slice(0, 20)));
     }
+    return true;
   } catch (err) {
     console.error("Failed to save report to local storage", err);
+    return false;
   }
 }
 
