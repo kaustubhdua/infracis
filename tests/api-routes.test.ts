@@ -16,14 +16,16 @@ vi.mock("@/lib/providers/overpass", () => ({ fetchNearbyAmenities: vi.fn() }));
 import { POST as analyze } from "../app/api/analyze/route";
 import { POST as compare } from "../app/api/compare/route";
 import { fetchWeatherAndElevation, fetchAirQuality } from "../lib/providers/open-meteo";
+import { geocodeLocation } from "../lib/providers/nominatim";
 import { fetchNearbyAmenities } from "../lib/providers/overpass";
 
-function request(path: string, body: unknown): NextRequest {
+function request(path: string, body: unknown, realIp: string | null = "192.0.2.10", extraHeaders: Record<string, string> = {}): NextRequest {
   return new NextRequest(`http://localhost${path}`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-real-ip": "192.0.2.10"
+      ...(realIp ? { "x-real-ip": realIp } : {}),
+      ...extraHeaders
     },
     body: JSON.stringify(body)
   });
@@ -56,6 +58,34 @@ describe("API route input and availability contracts", () => {
     expect(second.status).toBe(200);
     expect((await first.json()).location.label).toBe("Home Entrance");
     expect((await second.json()).location.label).toBe("Office Entrance");
+  });
+
+
+  it("does not trust client-supplied X-Forwarded-For when the trusted proxy IP header is absent", async () => {
+    const response = await analyze(request(
+      "/api/analyze",
+      "{invalid",
+      null,
+      { "x-forwarded-for": "203.0.113.99" }
+    ));
+
+    expect(response.status).toBe(400);
+    expect(enforceRateLimit).toHaveBeenCalledWith("analyze:unknown-client", 15);
+  });
+
+  it("returns a generic provider error without exposing upstream details", async () => {
+    vi.mocked(geocodeLocation).mockRejectedValue(
+      new Error("Nominatim HTTP 503 internal upstream payload secret")
+    );
+
+    const response = await analyze(request("/api/analyze", {
+      query: "unique provider error test location"
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe("A location data provider failed. Please retry shortly.");
+    expect(JSON.stringify(body)).not.toContain("internal upstream payload secret");
   });
 
   it("rejects non-object analyze bodies without contacting providers", async () => {
