@@ -52,6 +52,8 @@ Existing products already offer real-estate analytics and location/risk layers. 
 - [Data provenance and scoring policy](docs/DATA_POLICY.md)
 - [Provider source registry and launch gates](docs/SOURCE_REGISTRY.md)
 - [MVP acceptance and test plan](docs/TEST_PLAN.md)
+- [Production release runbook](docs/PRODUCTION_RUNBOOK.md)
+- [Product validation protocol](docs/PRODUCT_VALIDATION.md)
 
 ## Proposed stack
 
