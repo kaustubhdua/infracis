@@ -91,6 +91,33 @@ This repository is a functional MVP, not yet verified as production-ready. Befor
 
 References: [Next.js support policy](https://nextjs.org/support-policy), [Next.js security advisories](https://github.com/vercel/next.js/security/advisories), [Open-Meteo terms](https://open-meteo.com/en/terms), [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
 
+## Run locally
+
+**Requirements:** Node.js 22 LTS and npm.
+
+```bash
+git clone https://github.com/kaustubhdua/infracis.git
+cd infracis
+npm ci
+cp .env.example .env.local
+npm run dev
+```
+
+Open the local URL printed by Next.js (normally `http://localhost:3000`). On Windows, copy `.env.example` to `.env.local` using File Explorer or `Copy-Item .env.example .env.local` in PowerShell.
+
+The app uses real public data providers during local development. Their availability, response quality, and rate limits can vary; failed sources should remain marked unavailable. Do not use the public Nominatim endpoint for autocomplete or high-volume traffic. Local development can use process-local fallback controls, but production analysis and comparison require a reachable shared Redis limiter. Production amenity retrieval also requires an operator-verified HTTPS `OVERPASS_API_URL`; do not copy an unverified endpoint into production.
+
+### Verify changes
+
+```bash
+npm run test
+npm run lint
+npm run typecheck
+npm run build
+```
+
+The separate FastAPI service has its own instructions in [backend/README.md](backend/README.md); it is not used by the current frontend.
+
 ## Development principles
 
 - Real data or clearly labeled demo fixtures only.
