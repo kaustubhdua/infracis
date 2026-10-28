@@ -3,6 +3,8 @@ export interface GeocodeCandidate {
   lon: string;
   display_name: string;
   type?: string;
+  class?: string;
+  addresstype?: string;
   boundingbox?: [string, string, string, string];
 }
 
@@ -14,6 +16,23 @@ export interface RankedGeocodeCandidate {
 }
 
 const GENERIC_TOKENS = new Set(["india", "district", "state", "province", "division", "region"]);
+const LOCALITY_ADDRESS_TYPES = new Set([
+  "city", "town", "village", "hamlet", "suburb", "neighbourhood", "quarter",
+  "borough", "municipality", "county", "state", "province", "district",
+  "administrative", "postcode", "residential", "locality", "region", "island",
+  "city_district", "municipal_district"
+]);
+const POINT_OF_INTEREST_CLASSES = new Set([
+  "amenity", "shop", "tourism", "office", "craft", "healthcare", "emergency",
+  "historic", "leisure", "man_made", "building", "railway", "aeroway"
+]);
+const EXPLICIT_POI_TERMS = new Set([
+  "school", "hospital", "clinic", "pharmacy", "restaurant", "cafe", "coffee",
+  "mall", "station", "metro", "airport", "university", "college", "temple",
+  "mosque", "church", "bank", "atm", "hotel", "office", "shop", "store",
+  "museum", "cinema", "theater", "theatre", "stadium", "library", "gym",
+  "petrol", "fuel", "company", "expo", "mart", "bazaar", "bazar"
+]);
 
 function normalize(value: string): string {
   return value.normalize("NFKD").toLocaleLowerCase("en").replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
@@ -42,7 +61,19 @@ export function rankGeocodeCandidates(query: string, candidates: GeocodeCandidat
       // Numbers in locality queries often identify a specific sector, phase,
       // building, or postcode. Never accept a candidate that drops/changes one.
       const missingNumericTokens = queryTokens.filter((token) => /\d/.test(token) && !labelTokens.has(token));
-      const score = missingNumericTokens.length > 0 ? 0 : matchedTokens.length / queryTokens.length;
+      const explicitPoiIntent = queryTokens.some((token) => EXPLICIT_POI_TERMS.has(token));
+      const queryPrefix = queryTokens.slice(0, Math.min(2, queryTokens.length)).join(" ");
+      const beginsWithQuery = label.startsWith(queryPrefix);
+      const isUnqualifiedPointOfInterest = !!candidate.class &&
+        POINT_OF_INTEREST_CLASSES.has(candidate.class) &&
+        !LOCALITY_ADDRESS_TYPES.has(candidate.addresstype ?? "") &&
+        !explicitPoiIntent &&
+        !beginsWithQuery;
+      // A POI whose name merely mentions the searched neighbourhood is not
+      // an acceptable substitute for the neighbourhood itself.
+      const score = missingNumericTokens.length > 0 || isUnqualifiedPointOfInterest
+        ? 0
+        : matchedTokens.length / queryTokens.length;
       return { candidate, score, matchedTokens, missingTokens };
     })
     .sort((a, b) => b.score - a.score);

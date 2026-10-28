@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { rankGeocodeCandidates, selectRelevantGeocodeCandidate, type GeocodeCandidate } from "./geocode-relevance";
 
-const candidate = (display_name: string): GeocodeCandidate => ({
+const candidate = (display_name: string, metadata: Partial<GeocodeCandidate> = {}): GeocodeCandidate => ({
   display_name,
   lat: "28.61",
-  lon: "77.23"
+  lon: "77.23",
+  ...metadata
 });
 
 describe("geocoder relevance guard", () => {
@@ -34,6 +35,20 @@ describe("geocoder relevance guard", () => {
     expect(selectRelevantGeocodeCandidate("Sector 150, Noida, Uttar Pradesh, India", [
       candidate("Sector 18, Noida, Uttar Pradesh, India")
     ])).toBeNull();
+  });
+
+  it("rejects a point of interest that only mentions a locality", () => {
+    const poi = candidate(
+      "Green Field School, Saket Road, Press Enclave, Saket, South Delhi, India",
+      { class: "amenity", type: "school", addresstype: "school" }
+    );
+    expect(selectRelevantGeocodeCandidate("Saket, New Delhi, India", [poi])).toBeNull();
+
+    const explicitPoi = candidate(
+      "Green Field School, Saket Road, Press Enclave, Saket, South Delhi, India",
+      { class: "amenity", type: "school", addresstype: "school" }
+    );
+    expect(selectRelevantGeocodeCandidate("Green Field School, Saket", [explicitPoi])).toEqual(explicitPoi);
   });
 
   it("rejects equally ranked distinct results instead of guessing", () => {
