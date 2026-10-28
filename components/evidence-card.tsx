@@ -15,6 +15,12 @@ export function getClassificationBadge(classification: EvidenceClassification) {
           <CheckCircle2 size={12} /> Observed Fact
         </span>
       );
+    case "provider_model":
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-indigo-800 border border-indigo-200 uppercase">
+          <Sparkles size={12} /> Provider Model Output
+        </span>
+      );
     case "calculated":
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-sky-800 border border-sky-200 uppercase">
