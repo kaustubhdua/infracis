@@ -5,8 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
 WORKDIR /srv/infracis
-COPY requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-lock.txt ./requirements-lock.txt
+RUN pip install --no-cache-dir -r requirements-lock.txt
 
 COPY app ./app
 USER 10001:10001
