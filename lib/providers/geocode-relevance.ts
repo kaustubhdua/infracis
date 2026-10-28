@@ -39,7 +39,10 @@ export function rankGeocodeCandidates(query: string, candidates: GeocodeCandidat
       const labelTokens = new Set(meaningfulTokens(candidate.display_name));
       const matchedTokens = queryTokens.filter((token) => labelTokens.has(token) || label.includes(token));
       const missingTokens = queryTokens.filter((token) => !matchedTokens.includes(token));
-      const score = matchedTokens.length / queryTokens.length;
+      // Numbers in locality queries often identify a specific sector, phase,
+      // building, or postcode. Never accept a candidate that drops/changes one.
+      const missingNumericTokens = queryTokens.filter((token) => /\d/.test(token) && !labelTokens.has(token));
+      const score = missingNumericTokens.length > 0 ? 0 : matchedTokens.length / queryTokens.length;
       return { candidate, score, matchedTokens, missingTokens };
     })
     .sort((a, b) => b.score - a.score);

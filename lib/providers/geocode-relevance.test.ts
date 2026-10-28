@@ -25,6 +25,17 @@ describe("geocoder relevance guard", () => {
     expect(selectRelevantGeocodeCandidate("Sector 150, Noida", results)).toBeNull();
   });
 
+  it("requires exact numeric sector and phase tokens", () => {
+    const results = [
+      candidate("Aap ka Bazar, Sector 23A, Dwarka, New Delhi, India"),
+      candidate("Dwarka, New Delhi, Delhi, India")
+    ];
+    expect(selectRelevantGeocodeCandidate("Dwarka Sector 21, New Delhi, India", results)).toBeNull();
+    expect(selectRelevantGeocodeCandidate("Sector 150, Noida, Uttar Pradesh, India", [
+      candidate("Sector 18, Noida, Uttar Pradesh, India")
+    ])).toBeNull();
+  });
+
   it("rejects equally ranked distinct results instead of guessing", () => {
     const results = [
       candidate("Sector 62, Noida, Uttar Pradesh, India"),
