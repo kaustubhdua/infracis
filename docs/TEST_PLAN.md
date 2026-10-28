@@ -48,7 +48,7 @@ npm run build
 
 ## 3. Test Results and Evidence Status
 
-**Verified repository candidate (2026-10-28):** commit `d8d5784d6fdf4be5bd646a2eb71e2c4afc039e1a` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40687905463). The run completed `npm ci`, production and full `npm audit` checks (zero reported vulnerabilities), unit tests, lint, type-check, and production build successfully. The suite passed 83 tests across 13 files. The geocoder now uses Nominatim result metadata to reject unqualified POIs for locality searches, with regression coverage; live semantic accuracy still requires a fresh pilot and manual spot-checks.
+**Verified repository candidate (2026-10-28):** commit `d8d5784d6fdf4be5bd646a2eb71e2c4afc039e1a` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40687905463). The run completed `npm ci`, production and full `npm audit` checks (zero reported vulnerabilities), unit tests, lint, type-check, and production build successfully. The suite passed 83 tests across 13 files. The geocoder uses Nominatim result metadata to reject unqualified POIs for locality searches, with regression coverage; live semantic accuracy still requires a fresh pilot and manual spot-checks.
 
 | Check | Evidence/status |
 |---|---|
@@ -57,14 +57,15 @@ npm run build
 | ESLint | Passed on the candidate above |
 | Production build | Passed on the candidate above |
 | Dependency audit | Both npm audit steps reported zero vulnerabilities; deprecated dev-tool warnings still need maintenance review |
-| GitHub Actions | [Green CI for exact candidate SHA](https://github.com/kaustubhdua/infracis/actions/runs/40670804839) |
+| GitHub Actions | [Green CI for exact candidate SHA](https://github.com/kaustubhdua/infracis/actions/runs/40687905463) |
 | Live-provider reliability | Not passed: see measured 20-location pilot and failures in the [production runbook](PRODUCTION_RUNBOOK.md) |
-
-**Pilot metric correction:** the original live pilot counted weather and air-quality responses as valid if at least one requested numeric field was finite. The script now requires every requested numeric field to be present and finite, with regression tests in `tests/provider-pilot-validation.test.ts`. The historical pilot figures above are not comparable to future runs under the stricter definition; rerun the bounded pilot before using provider pass rates for a release decision.
 | Deployed end-to-end smoke tests | Not run; no deployment performed |
 
-Backend source has a pinned Linux/container dependency file, checked by Backend CI with `pip check` and `pip-audit`; the latest backend run passed 21 tests and reported no known vulnerabilities. This lock pins versions but not artifact hashes.\n\nAutomated route tests now cover malformed request bodies, coordinate bounds, query lengths, missing comparison fields, unsupported comparison preferences, fail-closed 429/503 rate-limit behavior, untrusted forwarded-IP headers, and sanitized provider errors. Provider schema tests cover malformed weather, air-quality, Overpass, configured endpoint failover, and optional Nominatim bounding-box payloads. Cache tests cover Redis command construction, key namespacing, expiry, malformed cache entries, and production cache misses on outage.
+**Pilot metric correction:** the original live pilot counted weather and air-quality responses as valid if at least one requested numeric field was finite. The script now requires every requested numeric field to be present and finite, supports the same bounded configured Overpass endpoint list as the app, and records endpoint host/status/latency without writing endpoint paths or query credentials to artifacts. The historical pilot figures are not comparable to future runs under the stricter definition; rerun the bounded pilot before using provider pass rates for a release decision.
 
+**Backend verification:** the standalone backend uses a version-pinned Linux/container dependency file. [Backend CI](https://github.com/kaustubhdua/infracis/actions/runs/40687905494) installs the lockfile, verifies declared constraints, runs `pip check` and `pip-audit`, and passes 21 tests with no known vulnerabilities. The lock pins versions but not artifact hashes.
+
+Automated route tests now cover malformed request bodies, coordinate bounds, query lengths, missing comparison fields, unsupported comparison preferences, fail-closed 429/503 rate-limit behavior, untrusted forwarded-IP headers, and sanitized provider errors. Provider schema tests cover malformed weather, air-quality, Overpass, configured endpoint failover, and optional Nominatim bounding-box payloads. Cache tests cover Redis command construction, key namespacing, expiry, malformed cache entries, and production cache misses on outage.
 This is evidence for repository correctness only. It does not establish live provider reliability, cross-instance Redis behavior, real browser accessibility conformance, user validation, cloud persistence, or deployment health. Do not claim those gates are complete until their own evidence is recorded.
 
 
