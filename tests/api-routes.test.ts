@@ -15,6 +15,8 @@ vi.mock("@/lib/providers/overpass", () => ({ fetchNearbyAmenities: vi.fn() }));
 
 import { POST as analyze } from "../app/api/analyze/route";
 import { POST as compare } from "../app/api/compare/route";
+import { fetchWeatherAndElevation, fetchAirQuality } from "../lib/providers/open-meteo";
+import { fetchNearbyAmenities } from "../lib/providers/overpass";
 
 function request(path: string, body: unknown): NextRequest {
   return new NextRequest(`http://localhost${path}`, {
@@ -33,6 +35,28 @@ describe("API route input and availability contracts", () => {
     enforceRateLimit.mockResolvedValue({ allowed: true, remaining: 10, resetAt: Date.now() + 60_000 });
   });
   afterEach(() => vi.restoreAllMocks());
+
+  it("does not reuse a manual-coordinate report under a different user-supplied label", async () => {
+    vi.mocked(fetchWeatherAndElevation).mockResolvedValue(null as never);
+    vi.mocked(fetchAirQuality).mockResolvedValue(null as never);
+    vi.mocked(fetchNearbyAmenities).mockResolvedValue(null as never);
+
+    const first = await analyze(request("/api/analyze", {
+      query: "Home Entrance",
+      lat: 12.34561,
+      lon: 45.67891
+    }));
+    const second = await analyze(request("/api/analyze", {
+      query: "Office Entrance",
+      lat: 12.34561,
+      lon: 45.67891
+    }));
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect((await first.json()).location.label).toBe("Home Entrance");
+    expect((await second.json()).location.label).toBe("Office Entrance");
+  });
 
   it("rejects non-object analyze bodies without contacting providers", async () => {
     const response = await analyze(request("/api/analyze", ["Delhi"]));
