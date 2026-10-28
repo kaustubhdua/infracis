@@ -1,10 +1,14 @@
 import { WeatherData, AirQualityData } from "../types";
 import { interpretWeatherCode, interpretEuropeanAqi } from "../geo";
+import { getSharedJson, setSharedJson } from "../shared-provider-cache";
 
 export async function fetchWeatherAndElevation(
   lat: number,
   lon: number
 ): Promise<WeatherData> {
+  const cacheKey = `weather:${lat.toFixed(3)}:${lon.toFixed(3)}`;
+  const cached = await getSharedJson<WeatherData>(cacheKey);
+  if (cached) return cached;
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(lat));
   url.searchParams.set("longitude", String(lon));
@@ -48,7 +52,7 @@ export async function fetchWeatherAndElevation(
   const finiteOrNull = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null;
   const weatherCode = finiteOrNull(current.weather_code);
 
-  return {
+  const result: WeatherData = {
     temperature: finiteOrNull(current.temperature_2m),
     humidity: finiteOrNull(current.relative_humidity_2m),
     precipitation: finiteOrNull(current.precipitation),
@@ -59,12 +63,17 @@ export async function fetchWeatherAndElevation(
     elevationMeters: finiteOrNull(data.elevation),
     units: data.current_units ?? {}
   };
+  await setSharedJson(cacheKey, result, 5 * 60);
+  return result;
 }
 
 export async function fetchAirQuality(
   lat: number,
   lon: number
 ): Promise<AirQualityData> {
+  const cacheKey = `air-quality:${lat.toFixed(3)}:${lon.toFixed(3)}`;
+  const cached = await getSharedJson<AirQualityData>(cacheKey);
+  if (cached) return cached;
   const url = new URL("https://air-quality-api.open-meteo.com/v1/air-quality");
   url.searchParams.set("latitude", String(lat));
   url.searchParams.set("longitude", String(lon));
@@ -108,7 +117,7 @@ export async function fetchAirQuality(
   const aqi = finiteOrNull(current.european_aqi);
   const aqiInfo = interpretEuropeanAqi(aqi);
 
-  return {
+  const result: AirQualityData = {
     europeanAqi: aqi,
     aqiLabel: aqiInfo.label,
     pm25: finiteOrNull(current.pm2_5),
@@ -118,4 +127,6 @@ export async function fetchAirQuality(
     observedTime: current?.time ?? null,
     units: data.current_units ?? {}
   };
+  await setSharedJson(cacheKey, result, 10 * 60);
+  return result;
 }
