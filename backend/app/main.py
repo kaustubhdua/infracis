@@ -287,6 +287,21 @@ async def resolve_location(
         ), None
 
     assert payload.query is not None
+    normalized_query = " ".join(payload.query.casefold().split())
+    cache_key = "infracis:provider:nominatim:query:" + hashlib.sha256(normalized_query.encode("utf-8")).hexdigest()
+    try:
+        cached = await redis.get(cache_key)
+        if cached:
+            try:
+                cached_location = LocationSummary.model_validate_json(cached)
+                return cached_location, "https://nominatim.openstreetmap.org/"
+            except Exception:
+                # Discard malformed/stale cache entries; never return unvalidated cached data.
+                await redis.delete(cache_key)
+    except Exception as exc:
+        logger.warning("Nominatim cache read failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Geocoding is unavailable because shared provider caching is unavailable.") from exc
+
     await reserve_nominatim_slot(redis)
     url = f"{settings.nominatim_base_url.rstrip('/')}/search"
     try:
@@ -314,13 +329,19 @@ async def resolve_location(
     lon = safe_number(raw_lon, -180, 180)
     if lat is None or lon is None:
         raise HTTPException(status_code=502, detail="Geocoding provider returned invalid coordinates.")
-    return LocationSummary(
+    resolved = LocationSummary(
         label=item["display_name"],
         latitude=lat,
         longitude=lon,
         map_url=f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=16/{lat}/{lon}",
         resolved_by="nominatim",
-    ), "https://nominatim.openstreetmap.org/"
+    )
+    try:
+        await redis.set(cache_key, resolved.model_dump_json(), ex=24 * 60 * 60)
+    except Exception as exc:
+        logger.warning("Nominatim cache write failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Geocoding is unavailable because shared provider caching is unavailable.") from exc
+    return resolved, "https://nominatim.openstreetmap.org/"
 
 
 async def fetch_weather(client: httpx.AsyncClient, lat: float, lon: float) -> SourceStatus:
