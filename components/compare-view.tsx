@@ -58,11 +58,14 @@ export default function CompareView() {
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-xs font-semibold text-[#1a2e23] mb-1.5">
+            <label htmlFor="compare-location-a" className="mb-1.5 block text-xs font-semibold text-[#1a2e23]">
               Location A (Candidate 1)
             </label>
             <input
+              id="compare-location-a"
               type="text"
+              maxLength={180}
+              autoComplete="off"
               value={queryA}
               onChange={(e) => setQueryA(e.target.value)}
               placeholder="e.g. Koramangala, Bengaluru"
@@ -72,11 +75,14 @@ export default function CompareView() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#1a2e23] mb-1.5">
+            <label htmlFor="compare-location-b" className="mb-1.5 block text-xs font-semibold text-[#1a2e23]">
               Location B (Candidate 2)
             </label>
             <input
+              id="compare-location-b"
               type="text"
+              maxLength={180}
+              autoComplete="off"
               value={queryB}
               onChange={(e) => setQueryB(e.target.value)}
               placeholder="e.g. HSR Layout, Bengaluru"
@@ -94,6 +100,7 @@ export default function CompareView() {
                 <button
                   key={p}
                   type="button"
+                  aria-pressed={preference === p}
                   onClick={() => setPreference(p)}
                   className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${
                     preference === p
@@ -145,9 +152,15 @@ export default function CompareView() {
       </form>
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+        <div role="alert" aria-live="assertive" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
           {error}
         </div>
+      )}
+
+      {loading && (
+        <p className="text-sm text-[#526356]" role="status" aria-live="polite">
+          Retrieving both locations and comparing only the evidence returned by the providers…
+        </p>
       )}
 
       {data && (
