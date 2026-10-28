@@ -1,120 +1,94 @@
-# Architecture
+# Infracis architecture
 
-## Design goals
-- Evidence provenance is a first-class data model.
-- Deterministic calculations are separate from AI language generation.
-- Providers are isolated behind adapters so failures and licensing constraints are explicit.
-- Partial coverage is visible; the system does not imply national coverage.
-- User reports are private by default.
+## Product boundary
 
-## Proposed components
+Infracis is an evidence-first location due-diligence tool for people comparing residential locations. It reports sourced observations, deterministic calculations, model-derived values, and explicit unknowns. It is not a property valuation engine, legal-title service, engineering inspection, crime/flood predictor, or safety guarantee.
 
-### Web client
-Next.js + TypeScript + Tailwind CSS.
-Responsibilities: location search, map, preferences, evidence cards, comparison, report review, loading/error/empty states.
+## Active implementation
 
-### Server/API
+### Web application
+- Next.js App Router, TypeScript, Tailwind CSS, React, and Leaflet.
+- Main analysis workflow: `app/analyze-client.tsx`.
+- Evidence, comparison, methodology, map, checklist, decision brief, and saved-report UI live under `components/`.
+- Saved reports and JSON export are browser-local. There is no working cloud-sync workflow or user account system.
 
-**Active implementation:** the current Next.js server route handlers in `app/api/`. They are the API currently used by the frontend.
+### Active API
+The current frontend calls the Next.js route handlers:
+- `POST /api/analyze`
+- `POST /api/compare`
+- `GET /api/health`
 
-**Prepared for later hosting:** `backend/` contains a standalone FastAPI service with real provider adapters, validation, explicit provider-unavailable states, API-key authentication, Redis-backed rate limiting, and a Nominatim global pacing gate. This service is not deployed or wired into the frontend in the current branch. Keep it as a separate candidate until a dedicated integration change chooses one API as the source of truth and adds contract tests between the UI and backend.
+They validate request bodies and query/coordinate bounds, use bounded upstream requests, and preserve partial provider failures as unavailable/unknown. Analysis and comparison use a shared Redis-backed request limiter in production and fail closed with HTTP 503 if the shared limiter is missing or unreachable.
 
-Responsibilities: validate inputs, call provider adapters, normalize results, calculate metrics, orchestrate evidence-grounded explanations, and eventually persist reports after authentication and ownership checks are implemented.
+The separate `backend/` directory contains a FastAPI service prepared for later hosting. It is **not deployed and is not connected to the current frontend**. Its response schema differs from the frontend's `LocationReport`; do not switch traffic until a canonical contract and contract tests are agreed and the service has passed its own real-provider and operational checks.
 
-### Provider adapters
-Each adapter implements a common interface and returns normalized evidence plus source metadata. Adapters must not return unlabelled fabricated fallback data.
+## Provider adapters and evidence
 
-Suggested interface shape:
+| Source | Current use | Reliability and policy constraints |
+|---|---|---|
+| OpenStreetMap Nominatim | Explicit user-submitted text geocoding | Shared Redis slot reservation aims to enforce at most one uncached request/second app-wide. No autocomplete. Public endpoint is best-effort; returned labels still need relevance verification. |
+| Open-Meteo forecast | Weather model output at resolved coordinates | Model output, not a property-site sensor. Free API is non-commercial and requires attribution; confirm the appropriate plan before commercial use. |
+| Open-Meteo air quality | Grid/model-derived air-quality output | Not a street-level monitoring station. Some live pilot requests failed; failures remain unknown. |
+| OpenStreetMap/Overpass | Mapped amenities around the point | Production retrieval is disabled unless a verified HTTPS endpoint is configured. The 20-location pilot had no valid Overpass responses. Mapped features are incomplete and can be stale. |
+| OpenStreetMap raster tiles | Map background | Use visible attribution, compliant endpoint and caching; public tile hosting has no production SLA. |
 
-```ts
-type EvidenceStatus = "observed" | "calculated" | "model_interpretation" | "unknown";
+The provider adapters are in `lib/providers/`. Shared Redis cache and Nominatim request-slot reservation are in `lib/shared-provider-cache.ts`; API rate limiting is in `lib/distributed-rate-limit.ts`.
 
-type SourceMetadata = {
-  provider: string;
-  sourceUrl: string;
-  retrievedAt: string;
-  observedAt?: string;
-  license?: string;
-  coverageDescription?: string;
-  limitations: string[];
-};
+### Evidence contract
+Reports distinguish:
+- **Observed**: a source-returned record, with the source's own limitations.
+- **Provider model**: weather/air-quality model outputs and other gridded products.
+- **Calculated**: deterministic metrics derived from identified inputs and documented formulas.
+- **Model interpretation**: optional explanatory text grounded in evidence IDs.
+- **Unknown**: unavailable, malformed, stale, or unverified evidence.
 
-type EvidenceItem = {
-  id: string;
-  category: string;
-  title: string;
-  value: unknown;
-  unit?: string;
-  status: EvidenceStatus;
-  source: SourceMetadata;
-  geometry?: GeoJSON.Geometry;
-};
-```
-
-### Data providers
-Initial candidates (verify before implementation):
-- OpenStreetMap/Overpass or a suitable geocoding/POI provider for amenities and context.
-- Open-Meteo for selected weather/climate context.
-- Official NRSC/Bhuvan or other official hazard layers only if the pilot geography, access method, and reuse terms are verified.
-- data.gov.in for discovery of suitable official datasets.
-
-Provider adapters must support timeout, bounded retries, cache policy, schema validation, and a clear unavailable response.
-
-### Database
-Supabase PostgreSQL. Enable PostGIS if available and useful. Store report metadata and normalized evidence snapshots; avoid copying large datasets that the source license does not permit redistributing.
-
-Suggested entities:
-- profiles (only if authentication is required)
-- saved_reports
-- report_locations
-- evidence_items
-- source_registry
-- comparison_metrics
-- report_events
-
-Use RLS policies so users can only access their own saved reports. Public demo fixtures must be clearly identified and separated from user data.
+A missing amenity is not evidence that the service does not exist. A successful HTTP response is not proof that a geocoded label matches the intended neighbourhood. No synthetic substitute values are allowed for unavailable real providers.
 
 ## Request flow
 
-1. Client sends a location query and explicit analysis preferences.
-2. Server validates query and resolves coordinates through a chosen provider.
-3. Adapters fetch relevant evidence concurrently with timeouts.
-4. Normalizer validates and standardizes each result.
-5. Deterministic engine calculates proximity, coverage, and comparison metrics.
-6. Confidence/completeness logic evaluates source freshness and missing data; it does not claim statistical confidence unless calibrated.
-7. Optional AI explanation receives only the evidence bundle and calculation results.
-8. Output schema validation ensures every claim references known evidence IDs.
-9. Client renders evidence, assumptions, limitations, and next checks.
-10. If one provider fails, show partial results and name the unavailable source.
+1. User submits a location query or selects coordinates on the map.
+2. The API validates the payload and applies shared rate limiting.
+3. Nominatim resolves text queries; user-selected coordinates are labelled as user-supplied rather than provider-verified addresses.
+4. Weather, air quality, and configured amenity providers are queried with bounded timeouts.
+5. Provider responses are schema-checked and normalized.
+6. The evidence engine calculates transparent metrics and produces explicit unknowns for unavailable layers.
+7. The UI renders source, retrieval/observation timestamps when supplied, coverage, limitations, and next checks.
+8. The user can compare locations, print/export a report, or save a copy in the current browser.
 
-## Scoring policy
-Do not introduce one opaque “Livability Score” until metric definitions and weights are justified. Start with a transparent metric table and user-selected priorities. If a composite score is later added:
-- show each component and weight;
-- allow users to change weights;
-- distinguish missing from zero;
-- show coverage/completeness separately;
-- perform sensitivity analysis;
-- validate against user feedback and known examples.
+## Caching and privacy
 
-## Security
-- No secrets in NEXT_PUBLIC_* variables or client bundles.
-- Validate all input and enforce response-size limits.
-- Use server-side provider calls where credentials are required.
-- Apply Supabase RLS and test with multiple users.
-- Avoid storing precise home-search histories longer than necessary.
-- Sanitize uploaded content and avoid executing user-provided files.
-- Rate-limit expensive AI/provider routes.
-- Do not treat model output as trusted instructions or authoritative data.
+When configured, shared Redis temporarily stores:
+- normalized geocoding query/result data for up to 24 hours;
+- weather data for up to 5 minutes;
+- air-quality data for up to 10 minutes;
+- mapped amenities for up to 1 hour;
+- rate-limit counters and the global Nominatim request-slot timestamp.
 
-## Observability
-Log provider status, latency, cache outcome, and validation errors without storing unnecessary personal data. Surface operational status in the report so the user can tell the difference between “no risk found” and “source unavailable.”
+The privacy page documents these behaviors. The actual deployment operator must verify access controls, retention, deletion, and telemetry settings before public launch. Do not include names or personal details in location searches.
 
+## Persistence
 
-## Current implementation boundary
+A Supabase migration exists in the repository, but no dedicated Infracis project or successful migration application has been verified. Cloud persistence must remain disabled until a dedicated project is authorized, the migration and RLS policies are verified, authentication and owner-scoped CRUD are implemented, and cross-user isolation tests pass. Browser-local saves must continue to be labelled as local.
 
-The FastAPI service is source code only, prepared for the user's later upload/hosting step. It is not a second production backend yet. The Next.js API remains active and continues to use its existing TypeScript provider adapters. Avoid maintaining two divergent business-logic implementations indefinitely: before switching traffic, define a shared response contract, add contract tests against both implementations, verify provider-policy controls and run a real provider pilot. The standalone backend currently returns normalized location/source status, not the full Next.js `LocationReport` schema, so the frontend cannot be switched to it without a deliberate contract migration.
+## Security and operational controls
 
+Implemented in source:
+- request body size limits and JSON shape validation;
+- query length and coordinate range validation;
+- provider timeout and response-shape/range validation;
+- escaped provider-sourced text in map HTML;
+- shared Redis-backed request limiting and cache helpers;
+- production fail-closed behavior when shared rate limiting is unavailable;
+- explicit source-unavailable states instead of fabricated data.
 
-## Current implementation boundary
+Still requiring operational proof:
+- real Redis concurrency testing across independent instances;
+- outage and recovery testing;
+- trusted client-IP behavior on the eventual hosting platform;
+- real provider failure/recovery and semantic geocoding relevance tests;
+- review of logs, secrets, retention, and monitoring;
+- deployed browser, accessibility, and end-to-end smoke tests.
 
-The FastAPI service is source code only, prepared for the user's later upload/hosting step. It is not a second production backend yet. The Next.js API remains active and continues to use its existing TypeScript provider adapters. Avoid maintaining two divergent business-logic implementations indefinitely: before switching traffic, define a shared response contract, add contract tests against both implementations, verify provider-policy controls and run a real provider pilot. The standalone backend currently returns normalized location/source status, not the full Next.js `LocationReport` schema, so the frontend cannot be switched to it without a deliberate contract migration.
+## Release principle
+
+A code path or unit test is not proof of a live service. A green CI run verifies the repository candidate only. Production readiness requires a green exact SHA, verified provider terms/configuration, live-provider reliability, real Redis operational tests, accessibility/product validation, and a deployed smoke test after deployment is authorized.

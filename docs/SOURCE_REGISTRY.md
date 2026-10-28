@@ -36,15 +36,34 @@ Each returned report should make it possible to identify the provider, source UR
 These links are operational references; review the live text and preserve a dated decision record before launch.
 
 
-## Live provider pilot baseline (2026-10-28)
+## Live provider pilot runs (2026-10-28)
 
-The first automated 20-location Delhi NCR pilot completed successfully as a workflow, but the data results **did not pass the release gate**. [Workflow run and artifact](https://github.com/kaustubhdua/infracis/actions/runs/40658825432).
+Two bounded 20-location Delhi NCR pilots were run. Workflow completion means the probe script completed, not that providers passed the release gate.
 
-| Provider | Valid responses | Attempted | Pass rate | Interpretation |
-|---|---:|---:|---:|---|
-| Nominatim geocoding | 18 | 20 | 90.0% | Two queries returned no valid matching result. |
-| Open-Meteo weather | 14 | 18 | 77.8% | Four provider calls failed in this run. |
-| Open-Meteo air quality | 13 | 18 | 72.2% | Five provider calls failed in this run. |
-| Overpass amenities | 0 | 18 | 0.0% | The baseline used overpass-api.de; it returned timeouts, HTTP 502, and HTTP 429 responses. |
+### Initial baseline
 
-These are measured response-shape rates for one run, not geographic coverage or ground-truth accuracy. The Overpass adapter and pilot script were subsequently changed to use a lower-cost query and configurable endpoint. **A new 20-location pilot must be run and reviewed after the query change** before claiming amenity-provider reliability. Open-Meteo failures also need another measured run; do not treat transient failure as missing real-world data. The alternate-endpoint smoke test also failed (Private.coffee timed out after 15 seconds; maps.mail.ru returned HTTP 504), so production must remain blocked until an operator configures a verified HTTPS endpoint and a repeatable pilot succeeds.
+[Initial pilot run and artifact](https://github.com/kaustubhdua/infracis/actions/runs/40658825432)
+
+| Provider | Valid responses | Attempted | Pass rate |
+|---|---:|---:|---:|
+| Nominatim geocoding | 18 | 20 | 90.0% |
+| Open-Meteo weather | 14 | 18 | 77.8% |
+| Open-Meteo air quality | 13 | 18 | 72.2% |
+| Overpass amenities | 0 | 18 | 0.0% |
+
+The initial Overpass query received timeouts, HTTP 502, and HTTP 429 responses.
+
+### Follow-up after the Overpass query was changed
+
+[Follow-up pilot run and artifact](https://github.com/kaustubhdua/infracis/actions/runs/40660404776)
+
+| Provider | Valid responses | Attempted | Pass rate |
+|---|---:|---:|---:|
+| Nominatim geocoding | 18 | 20 | 90.0% |
+| Open-Meteo weather | 11 | 18 | 61.1% |
+| Open-Meteo air quality | 11 | 18 | 61.1% |
+| Overpass amenities | 0 | 18 | 0.0% |
+
+The follow-up did not improve the amenity result and recorded lower valid-response rates for the two Open-Meteo endpoints. These are response-shape pass rates for two individual runs, not geographic coverage, ground-truth accuracy, or an SLA. Some valid geocoding responses were nearby POIs rather than the requested neighbourhood, so semantic relevance remains unverified.
+
+An additional bounded endpoint smoke test also failed (Private.coffee timed out after 15 seconds; maps.mail.ru returned HTTP 504). No Overpass endpoint is currently verified as reliable for production. Keep production amenity retrieval disabled until an operator selects a compliant HTTPS endpoint and a repeatable bounded pilot passes. Investigate the Open-Meteo failures before launch; do not interpret provider failure as a missing real-world condition.

@@ -1,38 +1,82 @@
-# Prioritized Implementation Backlog
+# Infracis prioritized backlog
 
-## P0 — Core Release (Completed & Verified)
+**Status reviewed:** 28 October 2026  
+**Current classification:** Functional MVP; production readiness is blocked by measured provider reliability and unverified operational configuration.
 
-### Product and Data
-- [x] Pilot geography verified (tested with Bengaluru, Noida, and Mumbai pilot points).
-- [x] Source registry with provider, license, coverage, cadence, and limitations documented.
-- [x] OpenStreetMap Nominatim geocoding provider with polite spacing and bounding box support.
-- [x] OpenStreetMap Overpass amenity provider with 1.2km bounded radius and Haversine distance calculations.
-- [x] Open-Meteo Weather and Copernicus DEM Elevation integration with separate observation timestamps.
-- [x] Open-Meteo / Copernicus European AQI, PM2.5, and PM10 atmospheric reanalysis integration.
-- [x] Explicit unknown detection when data layers are unavailable.
+This backlog distinguishes code already present from operational work that requires real infrastructure, provider decisions, or human testing. A checkbox is only complete when the corresponding evidence exists.
 
-### Decision Workflow
-- [x] Interactive address search with pilot presets and click-to-pick map coordinate selection.
-- [x] Interactive Leaflet map with property pin, amenity color pins, and distance popups.
-- [x] Evidence cards with classification badges (`Observed`, `Calculated`, `Model Interpretation`, `Unknown`).
-- [x] Deterministic step-function proximity calculations and completeness scoring.
-- [x] Side-by-side two-location comparison engine with preference profiles (Balanced, Family, Transit, Healthcare, Quiet).
-- [x] Explicit detection of incomparable metrics when data is missing for one candidate location.
-- [x] Evidence-grounded findings with strict ID citations.
-- [x] On-ground due diligence checklist with priority badges, rationales, and printable styling.
-- [x] Auditable JSON export and client-side saved reports in LocalStorage.
+## P0 — Trust and core correctness
 
-### Quality & Verification
-- [x] Vitest automated test suite (13/13 passing tests for geospatial, comparison, and evidence integrity).
-- [x] TypeScript type checking (`tsc --noEmit` passing with 0 errors).
-- [x] ESLint validation passing with 0 errors and 0 warnings.
-- [x] Next.js production build passing with 0 errors.
-- [x] Runtime server smoke test against `/api/health` and `/api/analyze`.
+### Implemented and CI-verified
+- [x] Location analysis with user-submitted query or map-selected coordinates.
+- [x] Source-linked evidence records and explicit unknowns for provider failures.
+- [x] Deterministic proximity/completeness metrics with documented calculation formulas.
+- [x] Two-location comparison and preference profiles; missing metrics can be incomparable.
+- [x] Reject invalid comparison preference values rather than silently changing the user's selection.
+- [x] Interactive Leaflet map, evidence cards, methodology, decision brief, due-diligence checklist, and print styling.
+- [x] Browser-local saved reports, JSON export, reopen/delete, validation of persisted report structures, and replacement of stale copies for the same location.
+- [x] Shared Redis rate-limiter, cache and Nominatim request-slot code; production analysis/comparison fail closed if shared Redis is unavailable.
+- [x] Request body size, JSON shape, query length, and coordinate bounds validation.
+- [x] Provider response schema/range validation for malformed upstream payloads.
+- [x] Saved-report dialog keyboard behavior and storage-error feedback.
+- [x] Privacy disclosures for conditional provider availability and temporary shared-cache retention.
+- [x] Exact main candidate `841a82884c66b2744e164ae80901fd25b7296f69` passed [CI](https://github.com/kaustubhdua/infracis/actions/runs/40664710454): 55 tests across 10 files, lint, type-check, production build, and both npm audit checks (zero reported vulnerabilities).
+- [x] Added route regression coverage for invalid inputs and 429/503 fail-closed rate-limit responses.
+- [x] Added regression coverage for malformed Nominatim bounding-box data and Redis slot-reservation command construction.
 
----
+### Still open — do not claim production-ready
+- [ ] Configure a dedicated Infracis Upstash Redis store in the eventual hosting environment.
+- [ ] Run concurrent requests across at least two independent instances and prove aggregate Nominatim pacing remains within the public-service policy.
+- [ ] Exercise Redis timeout, outage, recovery, cache expiry, and cache-miss behavior with a real store.
+- [ ] Review the hosting platform's trusted client-IP behavior and test deployed abuse/rate-limit cases.
+- [ ] Complete secret scanning and review location-query retention in logs/telemetry.
+- [ ] Perform manual keyboard/screen-reader, contrast, reduced-motion, mobile, and automated accessibility testing.
 
-## P1 — Follow-up Enhancements
-- [ ] Connect Supabase Auth and execute the prepared migration (`supabase/migrations/202610280001_initial_reports.sql`) for multi-device sync.
-- [ ] Multi-radius amenity filters (500m vs 1000m vs 2000m).
-- [ ] PDF export with branded print header and map snapshot.
-- [ ] Historical seasonal waterlogging crowd-verification map overlay.
+## P0 — Real provider readiness
+
+### Measured 20-location Delhi NCR pilot (28 October 2026)
+- Nominatim: 18/20 valid-shaped responses (90%); two had no valid match. Some returned nearby POIs rather than the requested neighbourhood.
+- Open-Meteo forecast: 11/18 valid responses (61.1%); seven failed in that run.
+- Open-Meteo air quality: 11/18 valid responses (61.1%); seven failed in that run.
+- Overpass amenities: 0/18 valid responses; requests timed out or returned HTTP 502.
+
+These are one-time measurements, not an SLA. See [the production runbook](PRODUCTION_RUNBOOK.md) and [pilot workflow](https://github.com/kaustubhdua/infracis/actions/runs/40660404776).
+
+- [ ] Independently verify geocoder relevance for ambiguous/neighbourhood searches and provide a clear correction/retry path.
+- [ ] Select and verify an Overpass endpoint or compliant amenity provider. Production amenity requests must remain disabled until this is done.
+- [ ] Run a bounded pilot against the selected amenity endpoint and record actual results, latency, failure classes, and source timestamps.
+- [ ] Repeat the Open-Meteo pilot after configuration/query changes and investigate the observed failures.
+- [ ] Confirm Open-Meteo plan/terms match the intended non-commercial or commercial use; retain required attribution.
+- [ ] Verify all OSM/Nominatim/Overpass/tiles attribution and usage-policy requirements on the final UI/report.
+- [ ] Keep unavailable values explicitly unknown; never substitute synthetic values or convert a provider failure to zero amenities.
+
+## P1 — End-to-end product quality
+
+- [ ] Run the full user journey in a real browser: search/map selection → evidence/source links → unknowns → compare → decision brief → save/reopen/delete → export/print.
+- [ ] Test narrow mobile widths (including 360px), tablet, desktop, keyboard-only navigation, screen readers, and zoom/reflow.
+- [ ] Test loading, empty, partial-provider-failure, retry, malformed saved-data, and local-storage quota/privacy modes.
+- [ ] Independently verify source timestamps, coordinate labels, map attribution, distance calculations, and report export contents.
+- [ ] Conduct 5–8 user sessions using [the product validation protocol](PRODUCT_VALIDATION.md); record anonymized observations and do not claim validation before sessions occur.
+- [ ] Track user task completion and source/limitation comprehension only after actual user tests.
+
+## P1 — Persistence and backend architecture
+
+- [ ] Obtain authorization for a dedicated Infracis Supabase project; do not use an unrelated project.
+- [ ] Apply and verify the committed migration, schema, grants, indexes, RLS, and migration history.
+- [ ] Implement authenticated owner-scoped create/read/update/delete and cross-user isolation tests before enabling cloud save.
+- [ ] Keep current saved reports labelled browser-local until cloud persistence is actually working.
+- [ ] Decide whether the active Next.js API or standalone FastAPI service is the canonical backend.
+- [ ] Align the FastAPI response with the frontend `LocationReport` contract and add contract tests before any frontend switch.
+- [ ] Pin/lock Python dependency resolution for reproducible backend builds.
+- [ ] Run backend tests and a bounded live-provider pilot separately; mocked tests are not provider proof.
+
+## Release and deployment (not performed)
+
+- [ ] Confirm exact candidate SHA is green on CI after all changes.
+- [ ] Review dependency advisories and deprecated development-tool warnings before release.
+- [ ] Configure and verify environment variables and provider endpoints in the chosen host.
+- [ ] Deploy only after operational gates pass and deployment is authorized.
+- [ ] Run production smoke tests for the real domain, health endpoint, valid/invalid analyze requests, compare requests, rate limiting, and provider failure states.
+- [ ] Record deployed SHA, rollback steps, incident ownership, and operational monitoring.
+
+**Release rule:** Do not call Infracis production-ready until the live-provider, Redis, privacy/security, user-validation, accessibility, and deployment gates have their own recorded evidence.
