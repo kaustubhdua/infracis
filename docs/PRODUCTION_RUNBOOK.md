@@ -11,6 +11,15 @@ This file is the source of truth for release gates. A checkbox is complete only 
 
 Historical verification: [CI run #95](https://github.com/kaustubhdua/infracis/actions/runs/40641327347) and [dependency verification run #61](https://github.com/kaustubhdua/infracis/actions/runs/40641327299) succeeded for the candidate they tested. The latest main SHA at the 28 October 2026 audit did not have a completed status result visible from the GitHub status endpoint. Rerun and link checks for the exact release SHA.
 
+## P0 — current provider and framework policy review (reviewed 2026-10-28)
+
+- Next.js official security advisories: https://github.com/vercel/next.js/security/advisories
+- The repository pins Next.js 15.5.28, which is the patched Next.js 15 version named by the October 2026 advisories for the SVG image-optimization RCE and App Router Server Actions DoS. Re-check the advisory page and the installed lockfile version before every release; a patched version is not a substitute for reviewing all advisories and deployed artifacts.
+- Nominatim public-service policy: https://operations.osmfoundation.org/policies/nominatim/ . Maximum 1 request/second app-wide, valid application-identifying User-Agent or Referer, visible attribution, caching, no autocomplete, and the ability to switch providers. Do not use the public service for unrestricted or systematic geocoding.
+- Open-Meteo terms: https://open-meteo.com/en/terms and data licence/attribution: https://open-meteo.com/en/licence . The free API is non-commercial; subscriptions are required for commercial usage. The application owner must select a plan that matches the actual product use and traffic before public/commercial launch.
+- OpenStreetMap attribution guidance: https://osmfoundation.org/wiki/Attribution_Guidelines . Verify attribution remains visible on every map/report surface that uses OSM data.
+- Leaflet stylesheet is now bundled from the installed package rather than loaded dynamically from a third-party CDN at runtime. This removes a stylesheet CDN dependency; map tiles and external provider services still require network access.
+
 ## P0 — shared provider throttling and caching
 - [ ] Configure a dedicated Upstash Redis REST URL/token for the actual Infracis deployment; do not reuse another app's store.
 - [ ] Verify production requests fail closed with 503 when shared limiter credentials are absent or Redis is unavailable.
