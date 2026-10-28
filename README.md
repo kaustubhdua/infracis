@@ -97,3 +97,16 @@ References: [Next.js support policy](https://nextjs.org/support-policy), [Next.j
 - Keep secrets server-side and out of committed files.
 - Test failure paths and data freshness as first-class behavior.
 - Use accessible UI patterns and mobile-first responsive layouts.
+
+
+## Standalone backend source (prepared, not deployed)
+
+A separate FastAPI backend now lives in `backend/` for the later hosting step. The existing Next.js route handlers remain the active API; this standalone service is **not yet connected to the frontend and has not been deployed**.
+
+- [Backend README and local run instructions](backend/README.md)
+- [FastAPI service](backend/app/main.py)
+- [Backend configuration example](backend/.env.example)
+- [Backend tests](backend/tests/test_api.py)
+- [Backend CI workflow](.github/workflows/backend-ci.yml)
+
+The backend integrates real Nominatim, Open-Meteo, and Overpass endpoints. It validates inputs, requires server-to-server authentication when configured, uses Redis for shared request limiting and Nominatim request pacing, and reports provider failures explicitly rather than generating substitute data. It does not yet implement Supabase report persistence or user authentication. Do not expose backend secrets in browser variables. See the backend README for the local setup and verification commands.
