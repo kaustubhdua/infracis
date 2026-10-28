@@ -48,11 +48,11 @@ npm run build
 
 ## 3. Test Results and Evidence Status
 
-**Verified repository candidate (2026-10-28):** commit `2dd471802d37e3883d3d6779c250ed1fb95cb502` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40670804839). The run completed `npm ci`, production and full `npm audit` checks (zero reported vulnerabilities), unit tests, lint, type-check, and production build successfully. The suite passed 61 tests across 11 files. The geocoder now uses Nominatim result metadata to reject unqualified POIs for locality searches, with regression coverage; live semantic accuracy still requires a fresh pilot and manual spot-checks.
+**Verified repository candidate (2026-10-28):** commit `82586ab059f198c4fa8ff3276bb7509bc29bfe58` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40686191082). The run completed `npm ci`, production and full `npm audit` checks (zero reported vulnerabilities), unit tests, lint, type-check, and production build successfully. The suite passed 83 tests across 13 files. The geocoder now uses Nominatim result metadata to reject unqualified POIs for locality searches, with regression coverage; live semantic accuracy still requires a fresh pilot and manual spot-checks.
 
 | Check | Evidence/status |
 |---|---|
-| Vitest suite | 61 tests passed across 11 files on the candidate above |
+| Vitest suite | 83 tests passed across 13 files on the candidate above |
 | TypeScript typecheck | Passed on the candidate above |
 | ESLint | Passed on the candidate above |
 | Production build | Passed on the candidate above |
@@ -63,7 +63,7 @@ npm run build
 **Pilot metric correction:** the original live pilot counted weather and air-quality responses as valid if at least one requested numeric field was finite. The script now requires every requested numeric field to be present and finite, with regression tests in `tests/provider-pilot-validation.test.ts`. The historical pilot figures above are not comparable to future runs under the stricter definition; rerun the bounded pilot before using provider pass rates for a release decision.
 | Deployed end-to-end smoke tests | Not run; no deployment performed |
 
-Automated route tests now cover malformed request bodies, coordinate bounds, query lengths, missing comparison fields, unsupported comparison preferences, and fail-closed 429/503 rate-limit behavior. Provider schema tests cover malformed weather, air-quality, Overpass, and optional Nominatim bounding-box payloads.
+Automated route tests now cover malformed request bodies, coordinate bounds, query lengths, missing comparison fields, unsupported comparison preferences, fail-closed 429/503 rate-limit behavior, untrusted forwarded-IP headers, and sanitized provider errors. Provider schema tests cover malformed weather, air-quality, Overpass, configured endpoint failover, and optional Nominatim bounding-box payloads. Cache tests cover Redis command construction, key namespacing, expiry, malformed cache entries, and production cache misses on outage.
 
 This is evidence for repository correctness only. It does not establish live provider reliability, cross-instance Redis behavior, real browser accessibility conformance, user validation, cloud persistence, or deployment health. Do not claim those gates are complete until their own evidence is recorded.
 
