@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { LocationReport, EvidenceClassification } from "@/lib/types";
 import LocationMap from "@/components/location-map";
 import EvidenceCard from "@/components/evidence-card";
@@ -36,7 +36,7 @@ export default function AnalyzeClient() {
   const [savedModalOpen, setSavedModalOpen] = useState(false);
   const [evidenceFilter, setEvidenceFilter] = useState<EvidenceClassification | "all">("all");
 
-  const runAnalysis = async (searchQuery: string, lat?: number, lon?: number) => {
+  const runAnalysis = useCallback(async (searchQuery: string, lat?: number, lon?: number) => {
     setLoading(true);
     setError("");
     setSavedSuccess(false);
@@ -64,7 +64,7 @@ export default function AnalyzeClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,9 +72,9 @@ export default function AnalyzeClient() {
     runAnalysis(query.trim());
   };
 
-  const handleMapCoordinatePick = (lat: number, lon: number) => {
+  const handleMapCoordinatePick = useCallback((lat: number, lon: number) => {
     runAnalysis(`Coordinates ${lat.toFixed(5)}, ${lon.toFixed(5)}`, lat, lon);
-  };
+  }, [runAnalysis]);
 
   const handleSave = () => {
     if (!report) return;
