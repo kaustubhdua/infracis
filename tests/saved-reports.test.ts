@@ -44,6 +44,33 @@ describe("browser-local saved report parsing", () => {
     ])).toEqual([storedReport("valid")]);
   });
 
+  it("rejects executable URL schemes in persisted report links", () => {
+    const validEvidence = {
+      id: "evidence-1",
+      category: "location",
+      title: "Source link",
+      value: "verified",
+      classification: "observed",
+      provider: "Test provider",
+      sourceUrl: "javascript:alert(1)",
+      retrievedAt: "2026-10-28T00:00:00.000Z",
+      limitations: "Test fixture"
+    };
+    const validSource = {
+      name: "Test source",
+      url: "javascript:alert(1)",
+      retrievedAt: "2026-10-28T00:00:00.000Z",
+      status: "available",
+      license: "Test",
+      note: "Test fixture"
+    };
+    expect(parseStoredReports([
+      { ...storedReport("bad-map-link"), location: { ...storedReport("bad-map-link").location, mapUrl: "javascript:alert(1)" } },
+      { ...storedReport("bad-evidence-link"), evidence: [validEvidence] },
+      { ...storedReport("bad-source-link"), sources: [validSource] }
+    ])).toEqual([]);
+  });
+
   it("rejects invalid score ranges and malformed nested weather data", () => {
     expect(parseStoredReports([
       { ...storedReport("score"), scores: { ...storedReport("score").scores, transitAccessibilityScore: -1 } },

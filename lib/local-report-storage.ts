@@ -13,6 +13,16 @@ function isString(value: unknown): value is string {
   return typeof value === "string";
 }
 
+function isSafeHttpUrl(value: unknown): value is string {
+  if (!isString(value)) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 function isNullableFiniteNumber(value: unknown): value is number | null {
   return value === null || (typeof value === "number" && Number.isFinite(value));
 }
@@ -26,7 +36,7 @@ function isLocation(value: unknown): boolean {
   return isString(value.label) && value.label.trim().length > 0 &&
     typeof value.latitude === "number" && Number.isFinite(value.latitude) && value.latitude >= -90 && value.latitude <= 90 &&
     typeof value.longitude === "number" && Number.isFinite(value.longitude) && value.longitude >= -180 && value.longitude <= 180 &&
-    isString(value.mapUrl);
+    isSafeHttpUrl(value.mapUrl);
 }
 
 function isWeather(value: unknown): boolean {
@@ -77,7 +87,7 @@ function isEvidence(value: unknown): boolean {
   return isString(value.id) && isString(value.category) && isString(value.title) &&
     (isString(value.value) || typeof value.value === "number" || typeof value.value === "boolean" || value.value === null) &&
     classifications.has(String(value.classification)) && isString(value.provider) &&
-    isString(value.sourceUrl) && isString(value.retrievedAt) && isString(value.limitations) &&
+    isSafeHttpUrl(value.sourceUrl) && isString(value.retrievedAt) && isString(value.limitations) &&
     (value.unit === undefined || isString(value.unit)) &&
     (value.observedAt === undefined || isString(value.observedAt)) &&
     (value.geographicResolution === undefined || isString(value.geographicResolution)) &&
@@ -110,7 +120,7 @@ function isChecklistItem(value: unknown): boolean {
 
 function isSource(value: unknown): boolean {
   if (!isRecord(value)) return false;
-  return isString(value.name) && isString(value.url) && isString(value.retrievedAt) &&
+  return isString(value.name) && isSafeHttpUrl(value.url) && isString(value.retrievedAt) &&
     (value.status === "available" || value.status === "unavailable") &&
     isString(value.license) && isString(value.note);
 }
