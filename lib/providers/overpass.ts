@@ -116,6 +116,10 @@ out center tags 100;`;
     items: items.slice(0, 35) // keep top 35 closest
   };
 
+  if (!cache.has(cacheKey) && cache.size >= 1000) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) cache.delete(oldestKey);
+  }
   cache.set(cacheKey, {
     expires: Date.now() + 60 * 60 * 1000, // 1 hour cache
     value: summary
