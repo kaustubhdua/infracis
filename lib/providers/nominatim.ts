@@ -6,7 +6,7 @@ const cache = new Map<string, { expires: number; value: LocationData }>();
 
 export async function geocodeLocation(query: string): Promise<LocationData> {
   const normalizedKey = query.toLowerCase().trim();
-  const shared = await getSharedJson<LocationData>(`nominatim:${normalizedKey}`);
+  const shared = await getSharedJson<LocationData>(`nominatim:v2:${normalizedKey}`);
   if (shared) return shared;
   const cached = cache.get(normalizedKey);
   if (cached && cached.expires > Date.now()) {
@@ -86,7 +86,7 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
     expires: Date.now() + 24 * 60 * 60 * 1000,
     value: locationData
   });
-  await setSharedJson(`nominatim:${normalizedKey}`, locationData, 24 * 60 * 60);
+  await setSharedJson(`nominatim:v2:${normalizedKey}`, locationData, 24 * 60 * 60);
 
   return locationData;
 }
