@@ -48,16 +48,16 @@ npm run build
 
 ## 3. Test Results and Evidence Status
 
-**Verified repository candidate (2026-10-28):** commit `1a266b78782b4ef35c6ca1003b839cefe5ac7175` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40667585958). The run completed `npm ci`, production and full `npm audit` checks (zero reported vulnerabilities), unit tests, lint, type-check, and production build successfully. The implementation-status record for this candidate documents 55 tests across 10 files.
+**Verified repository candidate (2026-10-28):** commit `2dd471802d37e3883d3d6779c250ed1fb95cb502` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40670804839). The run completed `npm ci`, production and full `npm audit` checks (zero reported vulnerabilities), unit tests, lint, type-check, and production build successfully. The suite passed 61 tests across 11 files. The geocoder now uses Nominatim result metadata to reject unqualified POIs for locality searches, with regression coverage; live semantic accuracy still requires a fresh pilot and manual spot-checks.
 
 | Check | Evidence/status |
 |---|---|
-| Vitest suite | 53 tests passed across 10 files on the candidate above |
+| Vitest suite | 61 tests passed across 11 files on the candidate above |
 | TypeScript typecheck | Passed on the candidate above |
 | ESLint | Passed on the candidate above |
 | Production build | Passed on the candidate above |
 | Dependency audit | Both npm audit steps reported zero vulnerabilities; deprecated dev-tool warnings still need maintenance review |
-| GitHub Actions | [Green CI for exact candidate SHA](https://github.com/kaustubhdua/infracis/actions/runs/40664230275) |
+| GitHub Actions | [Green CI for exact candidate SHA](https://github.com/kaustubhdua/infracis/actions/runs/40670804839) |
 | Live-provider reliability | Not passed: see measured 20-location pilot and failures in the [production runbook](PRODUCTION_RUNBOOK.md) |
 | Deployed end-to-end smoke tests | Not run; no deployment performed |
 
