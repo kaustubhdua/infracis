@@ -39,6 +39,9 @@ export default function AnalyzeClient() {
   const runAnalysis = useCallback(async (searchQuery: string, lat?: number, lon?: number) => {
     setLoading(true);
     setError("");
+    // Hide the previous result while a new investigation is pending. If the
+    // request fails, an older location report must not look like the new result.
+    setReport(null);
     setSavedSuccess(false);
 
     try {
