@@ -75,6 +75,8 @@ export interface AirQualityData {
 export interface AmenitiesSummary {
   totalCount: number;
   radiusMeters: number;
+  /** True when the upstream query reached its configured output cap; counts/nearest results may be incomplete. */
+  resultLimitReached?: boolean;
   byGroup: {
     transit: number;
     education: number;

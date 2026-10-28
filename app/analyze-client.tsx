@@ -277,17 +277,21 @@ export default function AnalyzeClient() {
                       <span className="text-2xl font-bold text-[#143023]">
                         {!report.amenities
                           ? "Unavailable"
-                          : report.amenities.nearest.transit
-                            ? `~${report.amenities.nearest.transit.distanceMeters}m`
-                            : "Unmapped"}
+                          : report.amenities.resultLimitReached
+                            ? "Sample capped"
+                            : report.amenities.nearest.transit
+                              ? `~${report.amenities.nearest.transit.distanceMeters}m`
+                              : "Unmapped"}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-[#6e7e72]">
                       {!report.amenities
                         ? "Nearby amenity data could not be retrieved; transit distance is unknown."
-                        : report.amenities.nearest.transit
-                          ? report.amenities.nearest.transit.name
-                          : "No mapped transit stop returned within 1.2 km. Map coverage may be incomplete."}
+                        : report.amenities.resultLimitReached
+                          ? "The provider response was capped; nearest transit cannot be verified from this sample."
+                          : report.amenities.nearest.transit
+                            ? report.amenities.nearest.transit.name
+                            : "No mapped transit stop returned within 1.2 km. Map coverage may be incomplete."}
                     </p>
                   </div>
 
@@ -300,17 +304,21 @@ export default function AnalyzeClient() {
                       <span className="text-2xl font-bold text-[#143023]">
                         {!report.amenities
                           ? "Unavailable"
-                          : report.amenities.nearest.healthcare
-                            ? `~${report.amenities.nearest.healthcare.distanceMeters}m`
-                            : "Unmapped"}
+                          : report.amenities.resultLimitReached
+                            ? "Sample capped"
+                            : report.amenities.nearest.healthcare
+                              ? `~${report.amenities.nearest.healthcare.distanceMeters}m`
+                              : "Unmapped"}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-[#6e7e72]">
                       {!report.amenities
                         ? "Nearby amenity data could not be retrieved; healthcare distance is unknown."
-                        : report.amenities.nearest.healthcare
-                          ? report.amenities.nearest.healthcare.name
-                          : "No mapped clinic or hospital returned within 1.2 km. Map coverage may be incomplete."}
+                        : report.amenities.resultLimitReached
+                          ? "The provider response was capped; nearest healthcare cannot be verified from this sample."
+                          : report.amenities.nearest.healthcare
+                            ? report.amenities.nearest.healthcare.name
+                            : "No mapped clinic or hospital returned within 1.2 km. Map coverage may be incomplete."}
                     </p>
                   </div>
 

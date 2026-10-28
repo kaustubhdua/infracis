@@ -138,9 +138,11 @@ export function assembleLocationReport(
     evidence.push({
       id: "ev-amenity-total",
       category: "civic",
-      title: `Mapped Amenities within ~${amenities.radiusMeters}m`,
+      title: amenities.resultLimitReached
+        ? `Mapped Amenity Sample (response cap reached) within ~${amenities.radiusMeters}m`
+        : `Mapped Amenities within ~${amenities.radiusMeters}m`,
       value: amenities.totalCount,
-      unit: "features",
+      unit: amenities.resultLimitReached ? "valid-coordinate features in capped response" : "features",
       classification: "observed",
       provider: "OpenStreetMap via Overpass API",
       sourceUrl: "https://overpass-api.de/",
@@ -148,8 +150,14 @@ export function assembleLocationReport(
       geographicResolution: "Coordinate radius search",
       coverage: "Crowdsourced OpenStreetMap database",
       license: "ODbL",
-      limitations: "Crowdsourced map completeness varies by locality. Absence of a mapped amenity does not prove it does not exist."
+      limitations: amenities.resultLimitReached
+        ? "The upstream response reached its 100-element cap. This is a partial sample: total/category counts and nearest-facility results may be incomplete. Absence from this sample does not prove a facility is absent."
+        : "Crowdsourced map completeness varies by locality. Absence of a mapped amenity does not prove it does not exist."
     });
+
+    if (amenities.resultLimitReached) {
+      unknowns.push("The Overpass response reached its 100-element output cap; category counts and nearest-facility distances are unverified for this partial sample.");
+    }
 
     // Closest Transit
     if (amenities.nearest.transit) {
@@ -166,7 +174,9 @@ export function assembleLocationReport(
         limitations: "Great-circle straight-line distance; actual pedestrian walking path may be longer depending on barriers/enclosures."
       });
     } else {
-      unknowns.push("No public transit stops (bus, metro, rail) are mapped within 1.2 km in OpenStreetMap.");
+      unknowns.push(amenities.resultLimitReached
+        ? "Nearest public transit could not be verified because the mapped amenity response was capped."
+        : "No public transit stops (bus, metro, rail) are mapped within 1.2 km in OpenStreetMap.");
     }
 
     // Closest Healthcare
@@ -184,7 +194,9 @@ export function assembleLocationReport(
         limitations: "Straight-line distance. Does not verify whether clinic is currently open, staffing levels, or ICU capability."
       });
     } else {
-      unknowns.push("No hospitals or clinics are recorded within 1.2 km in OpenStreetMap.");
+      unknowns.push(amenities.resultLimitReached
+        ? "Nearest healthcare facility could not be verified because the mapped amenity response was capped."
+        : "No hospitals or clinics are recorded within 1.2 km in OpenStreetMap.");
     }
 
     // Closest Education
@@ -202,7 +214,9 @@ export function assembleLocationReport(
         limitations: "Straight-line distance. Does not evaluate school board accreditation, admissions, or quality."
       });
     } else {
-      unknowns.push("No schools or education facilities are mapped within 1.2 km.");
+      unknowns.push(amenities.resultLimitReached
+        ? "Nearest education facility could not be verified because the mapped amenity response was capped."
+        : "No schools or education facilities are mapped within 1.2 km.");
     }
 
     // Closest Essentials
@@ -270,7 +284,7 @@ export function assembleLocationReport(
       retrievedAt: generatedAt,
       status: amenities ? "available" : "unavailable",
       license: "ODbL",
-      note: `Bounded amenity and transit point search within ~${amenities?.radiusMeters || 1200}m.`
+      note: `Bounded amenity and transit point search within ~${amenities?.radiusMeters || 1200}m${amenities?.resultLimitReached ? "; response cap reached, sample incomplete" : ""}.`
     },
     {
       name: "Open-Meteo Weather Model",

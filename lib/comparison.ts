@@ -1,9 +1,9 @@
 import { LocationReport, ComparisonReport, PreferenceProfile } from "./types";
 
 function missingAmenityLabel(report: LocationReport, category: string): string {
-  return report.amenities
-    ? `No mapped ${category} result`
-    : "Amenity provider unavailable";
+  if (!report.amenities) return "Amenity provider unavailable";
+  if (report.amenities.resultLimitReached) return `Sample capped; nearest ${category} unknown`;
+  return `No mapped ${category} result`;
 }
 
 export function compareLocations(
@@ -59,9 +59,11 @@ export function compareLocations(
       valueB: transitB !== null ? `${transitB}m` : missingAmenityLabel(reportB, "transit"),
       differenceSummary: "Cannot compare fairly: one or both locations lack verified mapped transit data.",
       favoredSide: "incomparable",
-      incomparableReason: reportA.amenities && reportB.amenities
-        ? "Transit mapping is missing for at least one location within the search radius."
-        : "Amenity provider data is unavailable for at least one location; absence cannot be inferred."
+      incomparableReason: reportA.amenities?.resultLimitReached || reportB.amenities?.resultLimitReached
+        ? "At least one amenity response reached its output cap; nearest transit cannot be verified from the partial sample."
+        : reportA.amenities && reportB.amenities
+          ? "Transit mapping is missing for at least one location within the search radius."
+          : "Amenity provider data is unavailable for at least one location; absence cannot be inferred."
     });
   }
 
@@ -93,9 +95,11 @@ export function compareLocations(
       valueB: healthB !== null ? `${healthB}m` : missingAmenityLabel(reportB, "healthcare facility"),
       differenceSummary: "One of the locations has no mapped hospitals/clinics within 1.2 km.",
       favoredSide: "incomparable",
-      incomparableReason: reportA.amenities && reportB.amenities
-        ? "No mapped healthcare result was available for at least one location."
-        : "Amenity provider data is unavailable for at least one location; absence cannot be inferred."
+      incomparableReason: reportA.amenities?.resultLimitReached || reportB.amenities?.resultLimitReached
+        ? "At least one amenity response reached its output cap; nearest healthcare cannot be verified from the partial sample."
+        : reportA.amenities && reportB.amenities
+          ? "No mapped healthcare result was available for at least one location."
+          : "Amenity provider data is unavailable for at least one location; absence cannot be inferred."
     });
   }
 
@@ -131,8 +135,8 @@ export function compareLocations(
   }
 
   // 5. Daily Essentials & Retail Count
-  const essA = reportA.amenities?.byGroup.essentials ?? null;
-  const essB = reportB.amenities?.byGroup.essentials ?? null;
+  const essA = reportA.amenities && !reportA.amenities.resultLimitReached ? reportA.amenities.byGroup.essentials : null;
+  const essB = reportB.amenities && !reportB.amenities.resultLimitReached ? reportB.amenities.byGroup.essentials : null;
   if (essA !== null && essB !== null) {
     deltas.push({
       metric: "Mapped Daily Essentials Count (~1.2km)",
@@ -151,11 +155,11 @@ export function compareLocations(
     deltas.push({
       metric: "Mapped Daily Essentials Count (~1.2km)",
       category: "Convenience",
-      valueA: essA !== null ? `${essA} retail points` : "Unavailable",
-      valueB: essB !== null ? `${essB} retail points` : "Unavailable",
+      valueA: essA !== null ? `${essA} retail points` : reportA.amenities?.resultLimitReached ? "Capped sample" : "Unavailable",
+      valueB: essB !== null ? `${essB} retail points` : reportB.amenities?.resultLimitReached ? "Capped sample" : "Unavailable",
       differenceSummary: "Cannot compare mapped daily essentials because amenity data is unavailable for at least one location.",
       favoredSide: "incomparable",
-      incomparableReason: "Missing provider data must not be interpreted as zero mapped retail points."
+      incomparableReason: "Missing provider data or a capped sample must not be interpreted as zero mapped retail points."
     });
   }
 

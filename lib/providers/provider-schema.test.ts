@@ -82,6 +82,24 @@ describe("provider schema validation", () => {
     expect(summary.items.every((item) => Number.isFinite(item.distanceMeters) && item.lat !== null && item.lon !== null)).toBe(true);
   });
 
+  it("marks capped Overpass responses and withholds nearest-facility claims", async () => {
+    vi.stubEnv("OVERPASS_API_URL", "https://overpass.example/interpreter");
+    const elements = Array.from({ length: 100 }, (_, index) => ({
+      id: index + 1,
+      type: "node",
+      lat: 40.1234,
+      lon: 50.1234,
+      tags: { highway: "bus_stop", name: `Mapped Stop ${index + 1}` }
+    }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ elements }), { status: 200 })));
+
+    const summary = await fetchNearbyAmenities(40.1234, 50.1234, 1200);
+
+    expect(summary.resultLimitReached).toBe(true);
+    expect(summary.totalCount).toBe(100);
+    expect(summary.nearest.transit).toBeUndefined();
+  });
+
   it("uses a configured Overpass endpoint and a single lower-cost union query", async () => {
     vi.stubEnv("OVERPASS_API_URL", "https://overpass.example/interpreter");
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ elements: [] }), { status: 200 }));

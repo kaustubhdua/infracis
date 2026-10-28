@@ -116,6 +116,19 @@ describe("Evidence Engine & Provenance Integrity", () => {
     expect(modeled.every((item) => item.classification === "provider_model")).toBe(true);
   });
 
+  it("labels air-quality and elevation findings as provider-model output", () => {
+    const report = assembleLocationReport(
+      "Indiranagar",
+      mockLocation,
+      mockWeather,
+      mockAirQuality,
+      mockAmenities,
+      "2026-10-28T01:00:00Z"
+    );
+    expect(report.findings.find((finding) => finding.id === "fnd-air-quality")?.classification).toBe("provider_model");
+    expect(report.findings.find((finding) => finding.id === "fnd-topography")?.classification).toBe("provider_model");
+  });
+
   it("strictly validates that every finding references valid evidence IDs in the report", () => {
     const report = assembleLocationReport(
       "Indiranagar",
@@ -134,6 +147,30 @@ describe("Evidence Engine & Provenance Integrity", () => {
         expect(validIds.has(id)).toBe(true);
       }
     }
+  });
+
+  it("does not treat a capped amenity sample as proof of nearest-facility absence", () => {
+    const cappedAmenities: AmenitiesSummary = {
+      ...mockAmenities,
+      totalCount: 100,
+      resultLimitReached: true,
+      nearest: {},
+      items: []
+    };
+    const report = assembleLocationReport(
+      "Dense Urban Locality",
+      mockLocation,
+      null,
+      null,
+      cappedAmenities,
+      "2026-10-28T01:00:00Z"
+    );
+
+    expect(report.scores.transitAccessibilityScore).toBeNull();
+    expect(report.scores.healthcareAccessScore).toBeNull();
+    expect(report.unknowns.some((item) => item.includes("100-element output cap"))).toBe(true);
+    expect(report.findings.some((finding) => finding.headline.includes("Public Transit Access Unverified in Open Feeds"))).toBe(false);
+    expect(report.evidence.find((item) => item.id === "ev-amenity-total")?.limitations).toContain("partial sample");
   });
 
   it("reports explicit unknowns when optional data layers are null", () => {

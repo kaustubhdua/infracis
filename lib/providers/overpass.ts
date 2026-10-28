@@ -71,6 +71,9 @@ out center tags 100;`;
     }>;
   };
 
+  // Overpass output is capped at 100 elements. Reaching the cap means the result is a sample,
+  // so do not present category counts or a sampled feature as a verified nearest facility.
+  const resultLimitReached = (data.elements ?? []).length >= 100;
   const elements = (data.elements ?? []).filter((elem) =>
     elem && typeof elem === "object" && Number.isInteger(elem.id) &&
     (elem.type === "node" || elem.type === "way" || elem.type === "relation") &&
@@ -127,7 +130,7 @@ out center tags 100;`;
     civic: items.filter((i) => i.group === "civic").length
   };
 
-  const nearest = {
+  const nearest = resultLimitReached ? {} : {
     transit: items.find((i) => i.group === "transit"),
     education: items.find((i) => i.group === "education"),
     healthcare: items.find((i) => i.group === "healthcare"),
@@ -138,6 +141,7 @@ out center tags 100;`;
   const summary: AmenitiesSummary = {
     totalCount: items.length,
     radiusMeters,
+    resultLimitReached,
     byGroup,
     nearest,
     items: items.slice(0, 35) // keep top 35 closest

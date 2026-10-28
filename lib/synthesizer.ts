@@ -46,8 +46,8 @@ export function generateGroundedFindings(
       ),
       riskLevel: isClose ? "favorable" : "neutral"
     });
-  } else if (amenities) {
-    // A valid provider response with no mapped transit is different from an outage.
+  } else if (amenities && !amenities.resultLimitReached) {
+    // A valid, uncapped provider response with no mapped transit is different from an outage.
     findings.push({
       id: "fnd-transit-gap",
       headline: "Public Transit Access Unverified in Open Feeds",
@@ -80,7 +80,7 @@ export function generateGroundedFindings(
       id: "fnd-air-quality",
       headline: `Atmospheric Air Quality: ${airQuality.aqiLabel}`,
       explanation: `Copernicus atmospheric reanalysis models report European AQI of ${aqi} (PM2.5: ${airQuality.pm25 ?? "N/A"} µg/m³). Note that regional models do not reflect hyper-local pollution from diesel power generators or immediate arterial road exhaust.`,
-      classification: "observed",
+      classification: "provider_model",
       supportingEvidenceIds: ["ev-aqi-eu", "ev-aqi-pm25"].filter((id) => evidenceMap.has(id)),
       riskLevel: isUnhealthy ? "caution" : "favorable"
     });
@@ -105,7 +105,7 @@ export function generateGroundedFindings(
       id: "fnd-topography",
       headline: `Terrain Elevation: ${weather.elevationMeters}m Above Sea Level`,
       explanation: `Copernicus DEM topography records ground elevation of ~${weather.elevationMeters}m. Check if the access road sits lower than connecting arterial roads to determine stormwater ponding risk during heavy rainfall.`,
-      classification: "observed",
+      classification: "provider_model",
       supportingEvidenceIds: ["ev-topography-elevation"].filter((id) => evidenceMap.has(id)),
       riskLevel: "neutral"
     });

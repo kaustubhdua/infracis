@@ -136,6 +136,23 @@ describe("Location Comparison Engine", () => {
     expect(aqiDelta?.favoredSide).toBe("A"); // 35 vs 65 (lower is better)
   });
 
+  it("does not compare capped amenity samples as complete proximity or retail data", () => {
+    const cappedAmenities: AmenitiesSummary = {
+      ...amenitiesA,
+      resultLimitReached: true,
+      nearest: {}
+    };
+    const cappedReport = assembleLocationReport("Dense locality", locA, weatherA, airA, cappedAmenities, "2026-10-28T01:00:00Z");
+    const comp = compareLocations(cappedReport, reportB, "balanced");
+    const transitDelta = comp.deltas.find((delta) => delta.category === "Mobility");
+    const essentialsDelta = comp.deltas.find((delta) => delta.metric === "Mapped Daily Essentials Count (~1.2km)");
+
+    expect(transitDelta?.favoredSide).toBe("incomparable");
+    expect(transitDelta?.valueA).toBe("Sample capped; nearest transit unknown");
+    expect(essentialsDelta?.favoredSide).toBe("incomparable");
+    expect(essentialsDelta?.valueA).toBe("Capped sample");
+  });
+
   it("correctly identifies incomparable metrics when a location has missing data", () => {
     const reportWithoutAmenities = assembleLocationReport("Rural", locA, weatherA, airA, null, "2026-10-28T01:00:00Z");
     const comp = compareLocations(reportWithoutAmenities, reportB, "balanced");
