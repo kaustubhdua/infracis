@@ -9,7 +9,7 @@ This table separates implementation visible in the repository from live-service 
 | Area | Current implementation | Verified status | Remaining release work |
 |---|---|---|---|
 | Interactive map | Leaflet map is dynamically imported client-side; location pin, amenity markers, coordinate picking, retry/error states, tile fallback for configured custom tile URL, and visible OpenStreetMap attribution are implemented. | Code and automated build/CI; public tile/service uptime not guaranteed. | Manual mobile/desktop pan/zoom/pick tests and tile attribution/security review on the deployed origin. |
-| Location analysis | Next.js API calls Nominatim, Open-Meteo weather/air-quality, and Overpass through bounded adapters; source provenance, timestamps, missing-data states, input limits, and request rate limits are implemented. | Unit/route tests pass; the historical pilot found unstable upstream availability and geocoder matches needing semantic review. | Re-run the live provider pilot on current main, spot-check locality relevance, configure/verify a reliable approved Overpass endpoint, and measure timeout/outage recovery. |
+| Location analysis | Next.js API calls Nominatim, Open-Meteo weather/air-quality, and Overpass through bounded adapters; source provenance, timestamps, missing-data states, input limits, and request rate limits are implemented. | Unit/route tests pass; the post-failover live pilot still measured 0/18 valid amenity responses and only 10/18 valid weather and air-quality responses. | Select a terms-appropriate hosted/self-hosted Overpass source, then repeat a controlled live pilot; independently spot-check locality relevance and measure timeout/outage recovery. |
 | UI and navigation | Responsive forest/cream/saffron UI, accessible focus states, investigation flow, evidence, comparison, methodology, decision brief, and report views. | Production build, lint, type-check and unit tests run in CI. | Complete the release-runbook manual responsive and assistive-technology QA on real browsers. |
 | Lazy loading | Interactive map is client-only dynamically loaded; heavy report sections and saved-report modal use dynamic imports and loading placeholders. | Source inspection and production build. | Confirm real-browser bundle/loading behavior and no layout regressions in the manual QA pass. |
 | Map theme and preferences | Street tiles plus NASA GIBS imagery overlay; selected style is remembered in a small SameSite=Lax cookie. A hydration-order bug that could overwrite a saved satellite choice was fixed. | Feature branch CI passed; main-branch CI for the merge is tracked separately. | Test preference persistence with cookies enabled/blocked, across reloads, and when NASA tiles fail. |
@@ -21,7 +21,7 @@ This table separates implementation visible in the repository from live-service 
 
 Current main candidate `92b52378ea835d8f25c8cbec8d5ab856be9ca632` passed [main-branch CI](https://github.com/kaustubhdua/infracis/actions/runs/40812805296): 16 test files passed, lint, type-check, production build, and production/full dependency audits each completed successfully with zero reported vulnerabilities. The latest merge adds bounded best-effort Overpass failover for low-volume evaluation, stops retries after HTTP 429/406, and explicitly documents the no-SLA boundary. This is repository evidence only, not proof of live provider or deployed-host behavior.
 
-The current repository is a tested MVP, not yet production-proven. Live provider reliability, cross-instance Redis behavior, a rerun of the provider pilot, deployed-domain checks, browser QA, and any cloud persistence remain explicit release gates below. No deployment was performed.
+The current repository is a tested MVP, not yet production-proven. Live provider reliability (the latest pilot still fails), cross-instance Redis behavior, deployed-domain checks, browser QA, and any cloud persistence remain explicit release gates below. No deployment was performed.
 
 ## P0 — dependency/security verification
 - [x] Record release candidate SHA and GitHub Actions run URL.
@@ -51,7 +51,7 @@ The current repository is a tested MVP, not yet production-proven. Live provider
 
 The code for a shared Redis limiter, provider cache, and Nominatim slot reservation is present, and automated tests cover command construction and fail-closed behavior. The cache tests also cover namespacing, expiry commands, malformed cached JSON, and production cache misses on Redis outage. These tests use mocked REST responses and are not operational proof. Cross-instance concurrency and real Redis outage/recovery tests remain open.
 
-Overpass responses are now explicitly marked as partial when the 100-element cap is reached; nearest-facility claims are withheld and comparisons treat capped amenity metrics as incomparable. The current adapter tries a bounded list of two public endpoints by default for low-volume evaluation and stops failover after HTTP 429/406 to respect backoff. These endpoints remain best-effort, with no product SLA; this is not proof of availability. The rerun against the new main candidate is underway at [provider pilot run 40812600499](https://github.com/kaustubhdua/infracis/actions/runs/40812600499); keep production amenity claims gated until its measured results and an appropriate provider/usage plan have been reviewed.
+Overpass responses are now explicitly marked as partial when the 100-element cap is reached; nearest-facility claims are withheld and comparisons treat capped amenity metrics as incomparable. The current adapter tries a bounded list of two public endpoints by default for low-volume evaluation and stops failover after HTTP 429/406 to respect backoff. These endpoints remain best-effort, with no product SLA; this is not proof of availability. The post-failover rerun completed at [provider pilot run 40812600499](https://github.com/kaustubhdua/infracis/actions/runs/40812600499). It still returned 0/18 valid amenity responses: Private.coffee timed out on sampled requests, while FOSSGIS returned HTTP 502 or timed out. This fallback did not resolve amenity availability; keep amenity-dependent claims disabled when both sources fail.
 
 ## P0 — API security
 - [x] Route code uses `x-real-ip` and deliberately ignores arbitrary client-supplied `X-Forwarded-For`; regression test proves the fallback is `unknown-client` when the trusted header is absent. This is code/test evidence only; the deployed host must be verified before launch.
@@ -75,19 +75,29 @@ Overpass responses are now explicitly marked as partial when the 100-element cap
 
 ## P1 — real-data pilot
 - [x] Run a bounded [Delhi NCR live-provider pilot](https://github.com/kaustubhdua/infracis/actions/runs/40810236672) against 20 varied location queries on the current provider-pilot code and retain the measured [workflow artifact](https://github.com/kaustubhdua/infracis/actions/runs/40810236672).
-- [ ] Review the in-progress rerun [40812600499](https://github.com/kaustubhdua/infracis/actions/runs/40812600499) against main commit `92b52378ea835d8f25c8cbec8d5ab856be9ca632`, then update this section with the actual artifact results. The workflow checks out `main` explicitly.
+- [x] Re-run the bounded pilot after the Overpass failover change; [run 40812600499 and its artifact](https://github.com/kaustubhdua/infracis/actions/runs/40812600499) checked out `main` at code commit `8e87f8b9ea8cb2f36424b14e4950c3381c981153`.
 - [ ] Independently spot-check geocoder relevance against source pages/maps; a valid response shape does not prove the resolved label matches the requested neighbourhood.
-- [ ] If the current rerun still shows public endpoint timeouts/HTTP errors, do not repeat identical probes; select a terms-appropriate, capacity-matched provider or self-hosted Overpass before relying on amenity data.
+- [ ] Select a terms-appropriate, capacity-matched hosted provider or managed self-hosted Overpass instance, verify its policy and availability, then rerun a controlled pilot before relying on amenity data.
 - [ ] Report coverage only as measured counts/rates with denominators; do not invent a completeness percentage.
 - [ ] Document failed, ambiguous, stale, and partial results, and confirm provider terms/attribution.
 
-**Measured pilot, 2026-10-29 (20 requested locations; artifact from run [40810236672](https://github.com/kaustubhdua/infracis/actions/runs/40810236672), SHA `97f8272f4e4720aad854c27d2e7f3cd05cffe2af`):**
+**Measured pilot A, 2026-10-29 (20 requested locations; artifact from run [40810236672](https://github.com/kaustubhdua/infracis/actions/runs/40810236672), SHA `97f8272f4e4720aad854c27d2e7f3cd05cffe2af`):**
 - Nominatim: 18/20 valid-shaped geocoding responses (90%); two returned no valid match. Shape validation is not semantic locality verification.
 - Open-Meteo forecast: 12/18 field-complete responses (66.7%) for successfully geocoded locations.
 - Open-Meteo air quality: 13/18 field-complete responses (72.2%) for successfully geocoded locations.
 - Overpass amenities: 0/18 valid responses; requests timed out or returned HTTP 502.
 
 The pilot workflow uses an isolated trigger branch but checks out `main` explicitly for the actual script. The figures above are a single point-in-time probe, not an SLA or a claim about provider-wide availability. The validator requires every requested numeric field to be present and finite, supports the same bounded sequential endpoint list as the app, and records per-endpoint host/status/latency without endpoint paths or query parameters. Weather and air-quality provider flakiness remains visible and must not be hidden with imputation. The Overpass adapter now has bounded best-effort public failover for low-volume evaluation; the prior 0/18 result remains a warning until the post-change pilot shows otherwise. Open-Meteo failures must stay unknown rather than be imputed. The run artifact expires 2026-11-27; retain its findings in this runbook and avoid relying on the temporary artifact link alone.
+
+**Measured pilot B — after bounded Overpass failover, 2026-10-29 (20 requested locations; [run and artifact 40812600499](https://github.com/kaustubhdua/infracis/actions/runs/40812600499), trigger SHA `8467e2f046e55517a16f6434311f31412e549684`; workflow checked out main code commit `8e87f8b9ea8cb2f36424b14e4950c3381c981153`):**
+- Geocoding: 18/20 valid responses (90.0%); Anand Vihar and Mayur Vihar Phase 1 did not resolve to valid matches.
+- Weather: 10/18 valid responses (55.6%).
+- Air quality: 10/18 valid responses (55.6%).
+- Overpass amenities: 0/18 valid responses (0.0%). Private.coffee timed out on sampled requests; FOSSGIS returned HTTP 502 or timed out. Sequential fallback increased latency but produced no valid amenity response in this sample.
+- The artifact was uploaded at 2026-10-29T03:38:22Z; digest: `sha256:41bf24e8d7b28285d520ab9cad7a309cc1c2047f844ad2ab7a4452762abe9fa8`.
+
+**Decision:** public Overpass endpoints are not validated as a dependable source for this app. Do not present empty amenity results as zero amenities or enable claims that depend on nearby amenities. Next, configure and test a terms-appropriate, capacity-matched hosted provider or managed self-hosted instance; simply adding more public endpoints is not evidence of reliability. Weather and air-quality responses also showed significant transient fetch failures and need a controlled repeat after network/provider diagnosis.
+
 
 ## P1 — full user journey and accessibility
 - [ ] Mobile (at least 360px wide) and desktop: search, map pick, evidence detail/source links, comparison, export, local save/reopen/delete, provider failure.
