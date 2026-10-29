@@ -78,7 +78,7 @@ out center tags 100;`;
           "User-Agent": "InfracisLocationDueDiligence/1.0 (https://github.com/kaustubhdua/infracis)"
         },
         body,
-        signal: AbortSignal.timeout(9000),
+        signal: AbortSignal.timeout(7000),
         cache: "no-store"
       });
       if (!response.ok) {
