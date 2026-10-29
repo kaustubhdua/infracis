@@ -16,6 +16,9 @@ describe("provider schema validation", () => {
       lat: "28.6139",
       lon: "77.2090",
       display_name: "New Delhi, India",
+      category: "place",
+      type: "city",
+      addresstype: "city",
       boundingbox: "not-an-array"
     }]), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
