@@ -9,6 +9,15 @@ const candidate = (display_name: string, metadata: Partial<GeocodeCandidate> = {
 });
 
 describe("geocoder relevance guard", () => {
+  it("treats New Delhi and Delhi locality labels as equivalent city context", () => {
+    const saket = candidate("Saket, South Delhi, Delhi, India", {
+      category: "place",
+      type: "suburb",
+      addresstype: "suburb"
+    });
+    expect(selectRelevantGeocodeCandidate("Saket, New Delhi, India", [saket])).toEqual(saket);
+  });
+
   it("prefers a candidate that covers the requested locality and city", () => {
     const results = [
       candidate("Mall Road, New Delhi, Delhi, India"),
