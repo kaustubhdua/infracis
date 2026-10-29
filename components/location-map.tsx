@@ -25,6 +25,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
   const pickHandlerRef = useRef(onPickCoordinates);
   const [mapStyle, setMapStyle] = useState<"street" | "satellite">("street");
   const [mapReady, setMapReady] = useState(false);
+  const [mapRetry, setMapRetry] = useState(0);
   const [mapError, setMapError] = useState("");
   const [tileError, setTileError] = useState(false);
 
@@ -155,7 +156,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
       streetLayerRef.current = null;
       nasaLayerRef.current = null;
     };
-  }, [location.latitude, location.longitude, location.label]);
+  }, [location.latitude, location.longitude, location.label, mapRetry]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -205,7 +206,11 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
     setMapError("");
     setTileError(false);
     const map = mapInstanceRef.current;
-    map?.invalidateSize({ pan: false });
+    if (!map) {
+      setMapRetry((value) => value + 1);
+      return;
+    }
+    map.invalidateSize({ pan: false });
     streetLayerRef.current?.redraw();
     nasaLayerRef.current?.redraw();
   }, []);
