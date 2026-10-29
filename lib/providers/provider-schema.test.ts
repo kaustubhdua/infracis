@@ -24,11 +24,30 @@ describe("provider schema validation", () => {
     expect(location.latitude).toBe(28.6139);
     expect(location.longitude).toBe(77.209);
     expect(location.boundingbox).toBeUndefined();
-    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("layer")).toBe("address,poi");
+    const requestedUrl = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(requestedUrl.searchParams.get("featureType")).toBe("settlement");
+    expect(requestedUrl.searchParams.get("layer")).toBe("address");
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("nominatim.openstreetmap.org/search"),
       expect.objectContaining({ headers: expect.objectContaining({ "User-Agent": expect.stringContaining("Infracis") }) })
     );
+  });
+
+  it("uses address and POI layers for explicit street queries", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{
+      lat: "28.4",
+      lon: "77.0",
+      display_name: "Sohna Road, Badshahpur, Gurugram, Haryana, India",
+      category: "highway",
+      type: "trunk",
+      addresstype: "trunk"
+    }]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await geocodeLocation("Sohna Road, Gurugram, Haryana, India");
+    const requestedUrl = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(requestedUrl.searchParams.get("featureType")).toBeNull();
+    expect(requestedUrl.searchParams.get("layer")).toBe("address,poi");
   });
 
   it("rejects weather data without valid current observation time", async () => {
