@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   // A user-supplied label is part of a manual-coordinate report. Include it in
   // the report cache key so the same pin cannot inherit another label.
   const cacheKey = hasCoordinates
-    ? `coord:${manualLat!.toFixed(5)}:${manualLon!.toFixed(5)}:${query.toLowerCase()}`
+    ? `coord:${manualLat!.toFixed(5)}:${manualLon!.toFixed(5)}:${query.toLowerCase()}:reverse-${input.reverseGeocode === true}`
     : `query:${query.toLowerCase()}`;
 
   const cached = memoryCache.get(cacheKey);
