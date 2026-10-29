@@ -63,6 +63,15 @@ describe("geocoder relevance guard", () => {
     ])).toBeNull();
   });
 
+  it("rejects a POI whose name starts with the locality when the user did not ask for a POI", () => {
+    const station = candidate("Saket Metro Station, Saket, South Delhi, Delhi, India", {
+      category: "railway",
+      type: "station",
+      addresstype: "railway"
+    });
+    expect(selectRelevantGeocodeCandidate("Saket, New Delhi, India", [station])).toBeNull();
+  });
+
   it("rejects a point of interest that only mentions a locality", () => {
     const poi = candidate(
       "Green Field School, Saket Road, Press Enclave, Saket, South Delhi, India",
