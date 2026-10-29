@@ -182,7 +182,7 @@ export default function CompareView() {
           {/* Overview Banner */}
           <section className="overflow-hidden rounded-3xl border border-[#cbdcc7] bg-gradient-to-br from-[#f2f7ee] via-white to-[#fbf3e5] p-5 shadow-[0_14px_36px_rgba(23,75,56,0.08)] sm:p-7" aria-labelledby="comparison-result-title">
             <div className="flex items-start gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#174b38] text-white"><CheckCircle size={21} aria-hidden="true" /></span>
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#174b38] text-white"><Scale size={21} aria-hidden="true" /></span>
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#8b641e]">Evidence-based result</p>
                 <h3 id="comparison-result-title" className="mt-1 text-xl font-bold text-[#153a2b]">Your comparison result</h3>
