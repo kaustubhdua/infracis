@@ -240,7 +240,7 @@ export function compareLocations(
   };
   let summary = "";
   if (preference === "quiet") {
-    summary = "Quietness result: not scored. Current providers do not measure ambient noise, and regional air quality is not a substitute. Visit both locations at different times and independently check traffic, construction, and nearby commercial activity.";
+    summary = "No defensible quietness winner can be calculated: current providers do not measure ambient noise, and regional air quality is not a substitute for noise measurements. Visit both locations at different times and independently check traffic, construction, and nearby commercial activity.";
   } else {
     const relevantWeights = profileWeights[preference];
     const relevant = deltas.filter((delta) => Object.hasOwn(relevantWeights, delta.metric));
@@ -272,10 +272,10 @@ export function compareLocations(
     if (comparable.length === 0 || aShare === null || bShare === null) {
       summary = `${profileLabel} result: insufficient comparable evidence. No winner is assigned because the selected profile's relevant metrics are missing or unavailable.`;
     } else if (aShare === bShare) {
-      summary = `${profileLabel} result: no clear winner. The profile-weighted evidence split is tied at A ${aShare}% / B ${bShare}% across ${comparable.length} comparable metric(s). Metric record: A leads ${aWins}, B leads ${bWins}, ties ${ties}; ${unavailable} relevant metric(s) could not be compared.`;
+      summary = `${profileLabel} result: no clear winner. The profile-weighted evidence split is tied at A ${aShare}% / B ${bShare}% across ${comparable.length} comparable metric(s). Metric record: A leads ${aWins}, B leads ${bWins}, ties ${ties} (A: ${aWins}, B: ${bWins}); ${unavailable} relevant metric(s) could not be compared.`;
     } else {
       const winner = aShare > bShare ? "A" : "B";
-      summary = `${profileLabel} result: Location ${winner} is better supported by the comparable evidence under this profile (weighted evidence split A ${aShare}% / B ${bShare}%). Across ${comparable.length} comparable metric(s), A leads ${aWins}, B leads ${bWins}, and ${ties} are tied; ${unavailable} relevant metric(s) could not be compared. The split is a transparent weighted comparison of available indicators, not a property-quality or purchase recommendation.`;
+      summary = `${profileLabel} result: Location ${winner} is better supported by the comparable evidence under this profile (weighted evidence split A ${aShare}% / B ${bShare}%). Across ${comparable.length} comparable metric(s), A leads ${aWins}, B leads ${bWins}, and ${ties} are tied (A: ${aWins}, B: ${bWins}); ${unavailable} relevant metric(s) could not be compared. The split is a transparent weighted comparison of available indicators, not a property-quality or purchase recommendation.`;
     }
   }
 
