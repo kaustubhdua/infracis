@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { hasFiniteFields } from "./provider-pilot-validation.mjs";
 import { selectRelevantGeocodeCandidate } from "../lib/providers/geocode-relevance.ts";
+import { geocodeWithPhoton } from "../lib/providers/nominatim.ts";
 
 const locations = [
   "Connaught Place, New Delhi, India",
@@ -86,10 +87,17 @@ for (const query of locations) {
   // Use the same conservative relevance selector as the live app. A syntactically
   // valid first Nominatim result is not enough: it may be a shop or other nearby POI.
   const selected = selectRelevantGeocodeCandidate(query, candidates);
-  const lat = Number(selected?.lat);
-  const lon = Number(selected?.lon);
-  const validGeo = !!selected && typeof selected.display_name === "string" &&
-    Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
+  let photonFallback = null;
+  let photonElapsedMs = 0;
+  if (!selected) {
+    const photonStarted = Date.now();
+    photonFallback = await geocodeWithPhoton(query);
+    photonElapsedMs = Date.now() - photonStarted;
+  }
+  const lat = photonFallback?.latitude ?? Number(selected?.lat);
+  const lon = photonFallback?.longitude ?? Number(selected?.lon);
+  const resolvedLabel = photonFallback?.label ?? selected?.display_name ?? null;
+  const validGeo = !!resolvedLabel && Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
     Number.isFinite(lon) && lon >= -180 && lon <= 180;
 
   const result = {
@@ -97,11 +105,12 @@ for (const query of locations) {
     geocoding: {
       ok: validGeo,
       status: geo.status ?? null,
-      elapsedMs: geo.elapsedMs,
-      resolvedLabel: validGeo ? selected.display_name : null,
-      resolvedClass: validGeo && typeof (selected.category ?? selected.class) === "string" ? (selected.category ?? selected.class) : null,
-      resolvedType: validGeo && typeof selected.type === "string" ? selected.type : null,
-      resolvedAddressType: validGeo && typeof selected.addresstype === "string" ? selected.addresstype : null,
+      elapsedMs: (geo.elapsedMs ?? 0) + photonElapsedMs,
+      resolvedLabel: validGeo ? resolvedLabel : null,
+      resolvedClass: selected && typeof (selected.category ?? selected.class) === "string" ? (selected.category ?? selected.class) : photonFallback ? "place" : null,
+      resolvedType: selected && typeof selected.type === "string" ? selected.type : photonFallback ? "Photon fallback" : null,
+      resolvedAddressType: selected && typeof selected.addresstype === "string" ? selected.addresstype : null,
+      fallbackUsed: !!photonFallback,
       candidateDiagnostics: validGeo ? undefined : candidates.slice(0, 5).map((candidate) => ({
         label: typeof candidate.display_name === "string" ? candidate.display_name.slice(0, 220) : null,
         category: typeof (candidate.category ?? candidate.class) === "string" ? (candidate.category ?? candidate.class) : null,
@@ -112,7 +121,7 @@ for (const query of locations) {
       latitude: validGeo ? lat : null,
       longitude: validGeo ? lon : null,
       error: validGeo ? null : geo.error ?? (geo.ok ? "No valid matching result" : "Geocoding request failed"),
-      source: "OpenStreetMap Nominatim"
+      source: photonFallback ? "Photon geocoder (OpenStreetMap data)" : "OpenStreetMap Nominatim"
     },
     weather: null,
     airQuality: null,
