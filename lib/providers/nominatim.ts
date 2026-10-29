@@ -4,7 +4,7 @@ import { getNominatimSearchOptions, selectRelevantGeocodeCandidate, GeocodeCandi
 
 const cache = new Map<string, { expires: number; value: LocationData }>();
 
-function toLocationData(item: GeocodeCandidate): LocationData | null {
+function toLocationData(item: GeocodeCandidate, geocodingProvider: "nominatim" | "photon"): LocationData | null {
   if (!item || typeof item.display_name !== "string" || !item.display_name.trim()) return null;
   const lat = Number(item.lat);
   const lon = Number(item.lon);
@@ -22,6 +22,7 @@ function toLocationData(item: GeocodeCandidate): LocationData | null {
     latitude: lat,
     longitude: lon,
     osmType: item.type,
+    geocodingProvider,
     boundingbox,
     mapUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`
   };
@@ -86,7 +87,7 @@ export async function geocodeWithPhoton(query: string): Promise<LocationData | n
     const candidates = (payload as { features: unknown[] }).features.map(photonFeatureToCandidate)
       .filter((candidate): candidate is GeocodeCandidate => candidate !== null);
     const selected = selectRelevantGeocodeCandidate(query, candidates);
-    return selected ? toLocationData(selected) : null;
+    return selected ? toLocationData(selected, "photon") : null;
   } catch {
     return null;
   }
@@ -130,7 +131,7 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
     const payload: unknown = await response.json();
     if (!Array.isArray(payload)) throw new Error("Nominatim returned an invalid response shape.");
     const item = selectRelevantGeocodeCandidate(query, payload as GeocodeCandidate[]);
-    if (item) locationData = toLocationData(item);
+    if (item) locationData = toLocationData(item, "nominatim");
   } catch {
     // Continue to the alternate OSM-backed geocoder only after a failed or
     // non-confident Nominatim result; both providers must pass the same selector.
