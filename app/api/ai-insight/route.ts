@@ -4,6 +4,7 @@ import { readJsonWithLimit } from "@/lib/request-body";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const MAX_TEXT = 1800;
 const ALLOWED_KINDS = new Set(["location", "comparison"]);

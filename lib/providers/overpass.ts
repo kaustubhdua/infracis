@@ -19,7 +19,7 @@ export async function fetchNearbyAmenities(
 
   // Bounded query for essential due-diligence categories
   // Use one union with nwr selectors to reduce query overhead on shared public infrastructure.
-  const query = `[out:json][timeout:10];
+  const query = `[out:json][timeout:6];
 (
   nwr(around:${radiusMeters},${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];
   nwr(around:${radiusMeters},${lat},${lon})[highway="bus_stop"];
@@ -78,7 +78,7 @@ out center tags 100;`;
           "User-Agent": "InfracisLocationDueDiligence/1.0 (https://github.com/kaustubhdua/infracis)"
         },
         body,
-        signal: AbortSignal.timeout(9000),
+        signal: AbortSignal.timeout(7000),
         cache: "no-store"
       });
       if (!response.ok) {
