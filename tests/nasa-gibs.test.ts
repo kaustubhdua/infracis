@@ -11,6 +11,7 @@ describe("NASA GIBS map layer", () => {
   it("rejects malformed dates before requesting satellite tiles", () => {
     expect(() => nasaGibsTileUrl("yesterday")).toThrow("YYYY-MM-DD");
     expect(() => nasaGibsTileUrl("2026-13-42")).toThrow("YYYY-MM-DD");
+    expect(() => nasaGibsTileUrl("2026-02-31")).toThrow("calendar date");
   });
 
   it("falls back only after repeated failures with no successful NASA tiles", () => {
