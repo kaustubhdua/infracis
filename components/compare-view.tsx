@@ -14,6 +14,20 @@ export default function CompareView() {
   const [data, setData] = useState<ComparisonReport | null>(null);
   const requestIdRef = useRef(0);
 
+  const profileMetrics: Record<PreferenceProfile, string[]> = {
+    balanced: ["Distance to Nearest Public Transit", "Distance to Nearest Healthcare", "Distance to Nearest School", "Mapped Daily Essentials Count (~1.2km)", "European Air Quality Index"],
+    family: ["Distance to Nearest Healthcare", "Distance to Nearest School", "Mapped Daily Essentials Count (~1.2km)", "Distance to Nearest Public Transit"],
+    transit: ["Distance to Nearest Public Transit", "Mapped Daily Essentials Count (~1.2km)", "Distance to Nearest Healthcare", "Distance to Nearest School"],
+    healthcare: ["Distance to Nearest Healthcare", "Distance to Nearest Public Transit", "Mapped Daily Essentials Count (~1.2km)", "Distance to Nearest School"],
+    quiet: []
+  };
+  const resultMetrics = data ? data.deltas.filter((delta) => profileMetrics[preference].includes(delta.metric)) : [];
+  const comparableMetrics = resultMetrics.filter((delta) => ["A", "B", "neutral"].includes(delta.favoredSide));
+  const aLeads = comparableMetrics.filter((delta) => delta.favoredSide === "A").length;
+  const bLeads = comparableMetrics.filter((delta) => delta.favoredSide === "B").length;
+  const tiedMetrics = comparableMetrics.filter((delta) => delta.favoredSide === "neutral").length;
+  const unavailableMetrics = resultMetrics.length - comparableMetrics.length;
+
   const invalidateComparison = () => {
     requestIdRef.current += 1;
     setLoading(false);
@@ -192,6 +206,30 @@ export default function CompareView() {
             <p className="mt-4 rounded-xl border border-[#e0e8db] bg-white/80 px-3.5 py-3 text-xs leading-relaxed text-[#647468]">
               The result compares only the selected profile’s available, comparable indicators. Missing or capped provider data is not treated as zero, and the result is not a property-quality, legal, safety, or purchase recommendation.
             </p>
+
+            {preference !== "quiet" && (
+              <div className="mt-5 rounded-2xl border border-[#dfe8dc] bg-white/90 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="text-sm font-semibold text-[#1a2e23]">Comparable metric snapshot</h4>
+                  <span className="text-[11px] text-[#66776b]">{comparableMetrics.length} comparable · {unavailableMetrics} unavailable</span>
+                </div>
+                <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-[#edf1eb]" role="img" aria-label={`Among comparable metrics, Location A leads ${aLeads}, Location B leads ${bLeads}, and ${tiedMetrics} are tied.`}>
+                  {comparableMetrics.length > 0 && (
+                    <>
+                      <span className="bg-[#1d6a4a] transition-all" style={{ width: `${(aLeads / comparableMetrics.length) * 100}%` }} />
+                      <span className="bg-[#b6c6b7] transition-all" style={{ width: `${(tiedMetrics / comparableMetrics.length) * 100}%` }} />
+                      <span className="bg-[#d99a35] transition-all" style={{ width: `${(bLeads / comparableMetrics.length) * 100}%` }} />
+                    </>
+                  )}
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-xl bg-[#edf6ef] p-2.5"><span className="block text-[#4b6c55]">A leads</span><strong className="mt-0.5 block text-lg text-[#174b38]">{aLeads}</strong></div>
+                  <div className="rounded-xl bg-[#f1f4ef] p-2.5"><span className="block text-[#66776b]">Tied</span><strong className="mt-0.5 block text-lg text-[#35463a]">{tiedMetrics}</strong></div>
+                  <div className="rounded-xl bg-[#fbf2e4] p-2.5"><span className="block text-[#8c672b]">B leads</span><strong className="mt-0.5 block text-lg text-[#7a5014]">{bLeads}</strong></div>
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-[#66776b]">This count view is separate from the profile-weighted split above. Unavailable indicators are excluded rather than scored as zero.</p>
+              </div>
+            )}
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-[#e2e9df] bg-[#f9fbf8] p-4">
