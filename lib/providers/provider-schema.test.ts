@@ -31,7 +31,42 @@ describe("provider schema validation", () => {
     );
   });
 
-  it("rejects weather data without valid current observation time", async () => {
+
+  it("uses the OSM-backed Photon fallback only when Nominatim has no relevant locality", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify([{
+        lat: "28.5200",
+        lon: "77.2100",
+        display_name: "Green Field School, Saket Road, Saket, New Delhi, India",
+        category: "amenity",
+        class: "amenity",
+        type: "school",
+        addresstype: "amenity",
+        address: { school: "Green Field School", suburb: "Saket", city: "New Delhi", country: "India" }
+      }]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        features: [{
+          geometry: { coordinates: [77.201, 28.524] },
+          properties: {
+            name: "Saket", osm_key: "place", osm_value: "suburb", type: "suburb",
+            city: "New Delhi", state: "Delhi", country: "India",
+            extent: [77.18, 28.50, 77.23, 28.55]
+          }
+        }]
+      }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const location = await geocodeLocation("Saket, New Delhi, India");
+
+    expect(location.label).toContain("Saket");
+    expect(location.latitude).toBe(28.524);
+    expect(location.longitude).toBe(77.201);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(new URL(String(fetchMock.mock.calls[1][0])).hostname).toBe("photon.komoot.io");
+    expect(location.boundingbox).toEqual([28.5, 28.55, 77.18, 77.23]);
+  });
+
+    it("rejects weather data without valid current observation time", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ current: { temperature_2m: 32 } }), { status: 200 })));
     await expect(fetchWeatherAndElevation(28.6139, 77.209)).rejects.toThrow(/missing or invalid current observations/i);
   });
