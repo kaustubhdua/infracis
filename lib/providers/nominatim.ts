@@ -90,3 +90,50 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
 
   return locationData;
 }
+
+
+const reverseCache = new Map<string, { expires: number; value: string }>();
+
+/** Reverse-geocode only on an explicit user action (e.g. "Use my location"). */
+export async function reverseGeocodeLabel(latitude: number, longitude: number): Promise<string | null> {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+      latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+  const key = `${latitude.toFixed(4)}:${longitude.toFixed(4)}`;
+  const shared = await getSharedJson<string>(`nominatim:reverse:v1:${key}`);
+  if (shared && shared.trim()) return shared;
+  const cached = reverseCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.value;
+  try {
+    const slotReserved = await waitForNominatimSlot();
+    if (!slotReserved) return null;
+    const url = new URL("https://nominatim.openstreetmap.org/reverse");
+    url.searchParams.set("lat", String(latitude));
+    url.searchParams.set("lon", String(longitude));
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("zoom", "16");
+    url.searchParams.set("addressdetails", "1");
+    const response = await fetch(url.toString(), {
+      headers: {
+        "User-Agent": "InfracisLocationDueDiligence/1.0 (contact: github.com/kaustubhdua/infracis)",
+        Accept: "application/json"
+      },
+      signal: AbortSignal.timeout(9000),
+      cache: "no-store"
+    });
+    if (!response.ok) return null;
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+    const label = (payload as { display_name?: unknown }).display_name;
+    if (typeof label !== "string" || !label.trim()) return null;
+    const value = label.trim().slice(0, 240);
+    if (reverseCache.size >= 500) {
+      const oldestKey = reverseCache.keys().next().value;
+      if (oldestKey !== undefined) reverseCache.delete(oldestKey);
+    }
+    reverseCache.set(key, { expires: Date.now() + 24 * 60 * 60 * 1000, value });
+    await setSharedJson(`nominatim:reverse:v1:${key}`, value, 24 * 60 * 60);
+    return value;
+  } catch {
+    return null;
+  }
+}
