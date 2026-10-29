@@ -74,9 +74,9 @@ for (const query of locations) {
   geocodeUrl.searchParams.set("q", query);
   geocodeUrl.searchParams.set("format", "jsonv2");
   geocodeUrl.searchParams.set("addressdetails", "1");
-  // Mirror production: investigate localities/addresses rather than POIs
-  // that merely contain a locality name.
-  geocodeUrl.searchParams.set("layer", "address");
+  // Mirror production: request locality/address and explicit POI candidates, then
+  // rely on the same strict relevance guard to reject unrelated nearby POIs.
+  geocodeUrl.searchParams.set("layer", "address,poi");
   geocodeUrl.searchParams.set("limit", "10");
   const geo = await checkJson(geocodeUrl.toString(), {
     headers: { "User-Agent": "InfracisProviderPilot/1.0 (https://github.com/kaustubhdua/infracis)", Accept: "application/json" }
@@ -102,6 +102,13 @@ for (const query of locations) {
       resolvedClass: validGeo && typeof (selected.category ?? selected.class) === "string" ? (selected.category ?? selected.class) : null,
       resolvedType: validGeo && typeof selected.type === "string" ? selected.type : null,
       resolvedAddressType: validGeo && typeof selected.addresstype === "string" ? selected.addresstype : null,
+      candidateDiagnostics: validGeo ? undefined : candidates.slice(0, 5).map((candidate) => ({
+        label: typeof candidate.display_name === "string" ? candidate.display_name.slice(0, 220) : null,
+        category: typeof (candidate.category ?? candidate.class) === "string" ? (candidate.category ?? candidate.class) : null,
+        type: typeof candidate.type === "string" ? candidate.type : null,
+        addressType: typeof candidate.addresstype === "string" ? candidate.addresstype : null,
+        importance: typeof candidate.importance === "number" ? candidate.importance : null
+      })),
       latitude: validGeo ? lat : null,
       longitude: validGeo ? lon : null,
       error: validGeo ? null : geo.error ?? (geo.ok ? "No valid matching result" : "Geocoding request failed"),
