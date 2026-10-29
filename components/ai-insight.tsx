@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ComparisonReport, LocationReport } from "@/lib/types";
 import { BrainCircuit, LoaderCircle, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type InsightKind = "location" | "comparison";
 type InsightData = LocationReport | ComparisonReport;
@@ -103,7 +105,13 @@ export default function AiInsight({ kind, data }: { kind: InsightKind; data: Ins
       <div className="px-5 py-5 sm:px-6">
         {loading && <p role="status" className="flex items-center gap-2 text-sm text-[#53675a]"><LoaderCircle size={16} className="animate-spin" /> Preparing a cautious interpretation from available evidence…</p>}
         {error && <div role="status" className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><TriangleAlert size={17} className="mt-0.5 shrink-0" /><p>{error}</p></div>}
-        {insight && <div className="space-y-2 text-sm leading-7 text-[#2b4032]">{insight.split("\n").map((line, index) => line.trim() ? <p key={index}>{line}</p> : null)}</div>}
+        {insight && (
+          <div className="ai-insight-markdown text-sm leading-7 text-[#2b4032]">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {insight}
+            </ReactMarkdown>
+          </div>
+        )}
         <p className="mt-4 flex items-center gap-1.5 border-t border-[#e5ede1] pt-3 text-[11px] text-[#748376]"><Sparkles size={12} /> AI-generated from this report. Check each material claim against the linked source records; unknowns remain unknown.</p>
       </div>
     </section>
