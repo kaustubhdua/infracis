@@ -47,6 +47,8 @@ export interface LocationData {
   boundingbox?: [number, number, number, number];
   mapUrl: string;
   osmType?: string;
+  /** Actual text geocoder used; persisted so evidence provenance stays accurate. */
+  geocodingProvider?: "nominatim" | "photon";
 }
 
 export interface WeatherData {
