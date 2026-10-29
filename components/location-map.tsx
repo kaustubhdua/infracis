@@ -115,7 +115,24 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
           subdomains: "abcd", maxZoom: 20, crossOrigin: true
         });
         light.on("tileload", () => setTileError(false));
-        light.on("tileerror", () => setTileError(true));
+        let lightFallbackAttempted = false;
+        light.on("tileerror", () => {
+          setTileError(true);
+          // Keep the default basemap usable if the CARTO theme is unavailable.
+          if (lightFallbackAttempted || !map?.hasLayer(light)) return;
+          lightFallbackAttempted = true;
+          map.removeLayer(light);
+          const fallback = leaflet.tileLayer(OSM_TILES, {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+            maxNativeZoom: 19,
+            crossOrigin: true
+          });
+          fallback.on("tileload", () => setTileError(false));
+          fallback.on("tileerror", () => setTileError(true));
+          fallback.addTo(map);
+          lightLayerRef.current = fallback;
+        });
         lightLayerRef.current = light;
 
         const nasa = leaflet.tileLayer(
