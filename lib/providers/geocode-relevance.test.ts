@@ -17,6 +17,7 @@ describe("Nominatim query intent", () => {
   it("keeps street/address queries on the address layer", () => {
     expect(getNominatimSearchOptions("Sohna Road, Gurugram, Haryana, India")).toEqual({ layer: "address" });
     expect(getNominatimSearchOptions("123 MG Road, Bengaluru")).toEqual({ layer: "address" });
+    expect(getNominatimSearchOptions("12 Green Park, New Delhi, India")).toEqual({ layer: "address" });
   });
 
   it("includes POI candidates only when the query explicitly asks for one", () => {
