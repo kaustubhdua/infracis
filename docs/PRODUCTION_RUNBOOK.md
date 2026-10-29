@@ -33,12 +33,12 @@ The code for a shared Redis limiter, provider cache, and Nominatim slot reservat
 Overpass responses are now explicitly marked as partial when the 100-element cap is reached; nearest-facility claims are withheld and comparisons treat capped amenity metrics as incomparable. This is a data-integrity mitigation, not a fix for the public Overpass endpoint's measured timeouts/HTTP 502 responses. The live pilot must be repeated against the current code, and an approved provider endpoint must be configured before production amenity results can be available.
 
 ## P0 — API security
-- [ ] Only trust hosting-platform-supplied client IP headers; do not use arbitrary client-supplied X-Forwarded-For as identity.
-- [x] Automated request validation covers malformed JSON, oversized declared/streamed bodies, non-object payloads, missing comparison fields, unsupported preferences, out-of-range coordinates, and overlong queries; see [current CI run](https://github.com/kaustubhdua/infracis/actions/runs/40664230275).
+- [x] Route code uses `x-real-ip` and deliberately ignores arbitrary client-supplied `X-Forwarded-For`; regression test proves the fallback is `unknown-client` when the trusted header is absent. This is code/test evidence only; the deployed host must be verified before launch.
+- [x] Automated request validation covers malformed JSON, oversized declared/streamed bodies, non-object payloads, missing comparison fields, unsupported preferences, out-of-range coordinates, and overlong queries; see [current CI run](https://github.com/kaustubhdua/infracis/actions/runs/40803085520).
 - [ ] Run concurrent-flood and deployed rate-limit tests; automated unit/route tests do not establish behavior under real multi-instance load.
 - [x] Provider adapters validate upstream response envelopes and relevant numeric/array fields; regression tests cover malformed weather, air-quality, Overpass, and Nominatim bounding-box responses.
 - [ ] Add live integration checks for provider timeout, malformed payload, partial outage, and recovery.
-- [ ] Ensure client errors do not leak upstream response bodies, secrets, or stack traces.
+- [x] API route regression tests verify upstream exception details are replaced with a generic client error. Deployed log and response review remains required.
 - [ ] Confirm no credentials or private environment values are committed or exposed in NEXT_PUBLIC_* variables.
 - [x] Configure baseline response headers in `next.config.mjs`: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, DNS prefetch control, and production-only HSTS.
 - [ ] Verify the actual deployed domain returns the intended headers and review a CSP/security-header scan; source configuration alone is not runtime proof.
