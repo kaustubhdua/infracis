@@ -130,7 +130,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         light.on("tileerror", () => {
           setTileError(true);
           // Keep the default basemap usable if the CARTO theme is unavailable.
-          if (lightFallbackAttempted || !map?.hasLayer(light)) return;
+          if (lightFallbackAttempted || !map?.hasLayer(light) || !CARTO_LIGHT_TILES) return;
           lightFallbackAttempted = true;
           setLightFallbackActive(true);
           map.removeLayer(light);
