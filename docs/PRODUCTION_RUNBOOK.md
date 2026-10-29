@@ -2,6 +2,27 @@
 
 This file is the source of truth for release gates. A checkbox is complete only when a run, output, URL, or reproducible evidence is linked here. Never mark a gate green based on code presence alone.
 
+## Requested website feature audit — 2026-10-29
+
+This table separates implementation visible in the repository from live-service verification. A green CI run does not prove third-party services are currently available.
+
+| Area | Current implementation | Verified status | Remaining release work |
+|---|---|---|---|
+| Interactive map | Leaflet map is dynamically imported client-side; location pin, amenity markers, coordinate picking, retry/error states, tile fallback for configured custom tile URL, and visible OpenStreetMap attribution are implemented. | Code and automated build/CI; public tile/service uptime not guaranteed. | Manual mobile/desktop pan/zoom/pick tests and tile attribution/security review on the deployed origin. |
+| Location analysis | Next.js API calls Nominatim, Open-Meteo weather/air-quality, and Overpass through bounded adapters; source provenance, timestamps, missing-data states, input limits, and request rate limits are implemented. | Unit/route tests pass; the historical pilot found unstable upstream availability and geocoder matches needing semantic review. | Re-run the live provider pilot on current main, spot-check locality relevance, configure/verify a reliable approved Overpass endpoint, and measure timeout/outage recovery. |
+| UI and navigation | Responsive forest/cream/saffron UI, accessible focus states, investigation flow, evidence, comparison, methodology, decision brief, and report views. | Production build, lint, type-check and unit tests run in CI. | Complete the release-runbook manual responsive and assistive-technology QA on real browsers. |
+| Lazy loading | Interactive map is client-only dynamically loaded; heavy report sections and saved-report modal use dynamic imports and loading placeholders. | Source inspection and production build. | Confirm real-browser bundle/loading behavior and no layout regressions in the manual QA pass. |
+| Map theme and preferences | Street tiles plus NASA GIBS imagery overlay; selected style is remembered in a small SameSite=Lax cookie. A hydration-order bug that could overwrite a saved satellite choice was fixed. | Feature branch CI passed; main-branch CI for the merge is tracked separately. | Test preference persistence with cookies enabled/blocked, across reloads, and when NASA tiles fail. |
+| Save and export | Reports are saved/reopened/deleted in browser localStorage, export to JSON, and gracefully handle storage errors. Small preferences use cookies. | Parser/storage tests and CI; storage is device/browser-local. | Cloud sync is intentionally unavailable until dedicated Supabase, Auth, migration and RLS isolation tests exist. Never describe browser-local saves as cloud backup. |
+| User-based locality analysis | User-selected Balanced, Family, Transit-first, Healthcare-first and Quietness profiles; weighted score uses only documented available access metrics, with missing data excluded and quietness unscored without verified noise evidence. Preference is saved on-device. | Calculation and component tests are included in CI. | Usability-test profile labels/weights; do not imply this is a property safety, legal, structural or investment assessment. |
+| Reviews and ratings | Overall 1–5 star rating plus walkability, public transport, noise comfort, lighting and cleanliness dimensions, with optional note, explicit opt-in and delete. | Input validation/migration tests; records are private to the current browser/device. | This is not a public review platform and produces no aggregate neighbourhood rating. Public/user-shared reviews require authenticated identity, moderation/abuse controls, privacy rules, persistence and RLS tests before being built or advertised. |
+
+### Release boundary
+
+Current main code has green CI on prior candidate 413ae462129eed4ad52ebde68db7a4895c9178bb ([run](https://github.com/kaustubhdua/infracis/actions/runs/40808447621)). The map-preference fix is now merged as 388289b56b42de6ae74b99008b85cb4fc8963af2; its own branch CI passed, and the main-branch CI is running. Do not mark the merged SHA verified until that run completes.
+
+The current repository is a tested MVP, not yet production-proven. Live provider reliability, cross-instance Redis behavior, a rerun of the provider pilot, deployed-domain checks, browser QA, and any cloud persistence remain explicit release gates below. No deployment was performed.
+
 ## P0 — dependency/security verification
 - [x] Record release candidate SHA and GitHub Actions run URL.
 - [x] Green on the exact candidate SHA: `npm ci`, production and full dependency audits, tests, lint, typecheck, production build.
