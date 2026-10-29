@@ -28,7 +28,7 @@ Existing products already offer real-estate analytics and location/risk layers. 
 
 ## MVP scope
 
-1. Search for a real location or choose a point on a map.
+1. Search for a real location, choose a point on the map, or explicitly opt in to browser geolocation for a current-position investigation.
 2. Collect evidence from a small, documented set of real data sources.
 3. Display source, observation time, retrieval time, coverage, and limitations.
 4. Calculate simple, deterministic proximity/amenity metrics.
@@ -74,7 +74,7 @@ The repository includes an interactive location-analysis flow wired to real publ
 - Open-Meteo for weather-model and air-quality grid output at the resolved coordinate.
 - OpenStreetMap via Overpass for mapped amenities, but **production amenity retrieval is deliberately disabled until a verified HTTPS endpoint is configured**.
 
-The UI shows source URLs, retrieval time, source availability, and limitations. Provider failures remain unavailable rather than being replaced with synthetic values. The map is dynamically loaded and offers OpenStreetMap street tiles plus an optional NASA GIBS satellite-imagery layer; GIBS imagery is a visual Earth-observation layer, not evidence of property-level hazards. Optional Groq interpretation is available only when `GROQ_API_KEY` is configured server-side. Private locality ratings/notes are stored on the current device only; they are not public reviews or an aggregate community rating. A live pilot on Delhi NCR queries is recorded in the [production runbook](docs/PRODUCTION_RUNBOOK.md). The product remains **not production-ready** until provider reliability, shared Redis operations, dedicated cloud persistence, product validation, accessibility QA, and deployment verification pass their release gates.
+The UI shows source URLs, retrieval time, source availability, and limitations. Users can explicitly request browser geolocation; the app reverse-geocodes that point through Nominatim when available while retaining the exact selected coordinates for analysis. Location permission is requested only after the user clicks the control. Provider failures remain unavailable rather than being replaced with synthetic values. The map is dynamically loaded and offers OpenStreetMap street tiles plus an optional NASA GIBS satellite-imagery layer; GIBS imagery is a visual Earth-observation layer, not evidence of property-level hazards. Optional Groq interpretation is available only when `GROQ_API_KEY` is configured server-side. Private locality ratings/notes are stored on the current device only; they are not public reviews or an aggregate community rating. A live pilot on Delhi NCR queries is recorded in the [production runbook](docs/PRODUCTION_RUNBOOK.md). The product remains **not production-ready** until provider reliability, shared Redis operations, dedicated cloud persistence, product validation, accessibility QA, and deployment verification pass their release gates.
 
 The public Nominatim service is rate-limited and must not be used for autocomplete or high-volume traffic. Production API requests now require a configured shared Redis limiter; geocoding slot reservations and provider caches use the same dedicated Redis service. The implementation remains unverified until Redis-backed concurrent and multi-instance tests pass.
 
