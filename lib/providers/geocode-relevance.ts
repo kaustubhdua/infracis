@@ -63,7 +63,8 @@ export function isLikelySettlementQuery(query: string): boolean {
   if (tokens.length === 0) return false;
   const hasExplicitPoiIntent = tokens.some((token) => EXPLICIT_POI_TERMS.has(token));
   const hasAddressDetails = ADDRESS_DETAIL_TERMS.test(normalize(query));
-  return !hasExplicitPoiIntent && !hasAddressDetails;
+  const hasAddressNumber = /\\d/.test(query) && !/\\b(?:sector|phase)\\s+\\d+\\b/i.test(query);
+  return !hasExplicitPoiIntent && !hasAddressDetails && !hasAddressNumber;
 }
 
 function candidateTokens(candidate: GeocodeCandidate): Set<string> {
