@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { hasFiniteFields } from "./provider-pilot-validation.mjs";
-import { selectRelevantGeocodeCandidate } from "../lib/providers/geocode-relevance.ts";
+import { getNominatimSearchOptions, selectRelevantGeocodeCandidate } from "../lib/providers/geocode-relevance.ts";
 
 
 const locations = [
@@ -117,9 +117,11 @@ for (const query of locations) {
   geocodeUrl.searchParams.set("q", query);
   geocodeUrl.searchParams.set("format", "jsonv2");
   geocodeUrl.searchParams.set("addressdetails", "1");
-  // Mirror production: request locality/address and explicit POI candidates, then
-  // rely on the same strict relevance guard to reject unrelated nearby POIs.
-  geocodeUrl.searchParams.set("layer", "address,poi");
+  // Mirror production intent filtering: settlement-only for locality queries,
+  // address-only for streets, and address+POI for explicit POI queries.
+  const searchOptions = getNominatimSearchOptions(query);
+  geocodeUrl.searchParams.set("layer", searchOptions.layer);
+  if (searchOptions.featureType) geocodeUrl.searchParams.set("featureType", searchOptions.featureType);
   geocodeUrl.searchParams.set("limit", "10");
   const geo = await checkJson(geocodeUrl.toString(), {
     headers: { "User-Agent": "InfracisProviderPilot/1.0 (https://github.com/kaustubhdua/infracis)", Accept: "application/json" }
