@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { hasFiniteFields } from "./provider-pilot-validation.mjs";
-import { selectRelevantGeocodeCandidate } from "../lib/providers/geocode-relevance.ts";
+import { getNominatimSearchOptions, selectRelevantGeocodeCandidate } from "../lib/providers/geocode-relevance.ts";
+
 
 const locations = [
   "Connaught Place, New Delhi, India",
@@ -41,7 +42,8 @@ const overpassEndpoints = (configuredOverpassEndpoints.length
   ? configuredOverpassEndpoints
   : [
       "https://overpass.private.coffee/api/interpreter",
-      "https://overpass-api.de/api/interpreter"
+      "https://overpass-api.de/api/interpreter",
+      "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
     ]).map((endpoint) => {
     let parsedEndpoint;
     try {
@@ -66,6 +68,48 @@ async function checkJson(url, options = {}, timeoutMs = 12_000) {
   }
 }
 
+function photonCandidate(feature) {
+  if (!feature || typeof feature !== "object" || !Array.isArray(feature.geometry?.coordinates) || !feature.properties) return null;
+  const [rawLon, rawLat] = feature.geometry.coordinates;
+  const lon = Number(rawLon);
+  const lat = Number(rawLat);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  const props = feature.properties;
+  const address = {};
+  for (const key of ["name", "housenumber", "street", "district", "suburb", "locality", "city", "county", "state", "postcode", "country"]) {
+    if (typeof props[key] === "string" && props[key].trim()) address[key] = props[key].trim();
+  }
+  const label = [...new Set(["name", "street", "district", "suburb", "locality", "city", "county", "state", "postcode", "country"].map((key) => address[key]).filter(Boolean))].join(", ");
+  if (!label) return null;
+  const category = typeof props.osm_key === "string" ? props.osm_key : "place";
+  const type = typeof props.type === "string" ? props.type : typeof props.osm_value === "string" ? props.osm_value : "locality";
+  return { lat: String(lat), lon: String(lon), display_name: label, category, class: category, type, addresstype: type, address };
+}
+
+async function fetchPhotonFallback(query) {
+  const started = Date.now();
+  try {
+    const url = new URL(process.env.PHOTON_API_URL?.trim() || "https://photon.komoot.io/api/");
+    if (url.protocol !== "https:") return { location: null, elapsedMs: Date.now() - started };
+    url.searchParams.set("q", query);
+    url.searchParams.set("limit", "10");
+    url.searchParams.set("lang", "en");
+    const result = await checkJson(url.toString(), {
+      headers: { Accept: "application/geo+json, application/json", "User-Agent": "InfracisLocationDueDiligence/1.0 (https://github.com/kaustubhdua/infracis)" }
+    }, 6000);
+    if (!result.ok || !result.body || !Array.isArray(result.body.features)) return { location: null, elapsedMs: Date.now() - started };
+    const candidates = result.body.features.map(photonCandidate).filter(Boolean);
+    const selected = selectRelevantGeocodeCandidate(query, candidates);
+    if (!selected) return { location: null, elapsedMs: Date.now() - started };
+    const lat = Number(selected.lat);
+    const lon = Number(selected.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return { location: null, elapsedMs: Date.now() - started };
+    return { location: { label: selected.display_name, latitude: lat, longitude: lon }, elapsedMs: Date.now() - started };
+  } catch {
+    return { location: null, elapsedMs: Date.now() - started };
+  }
+}
+
 for (const query of locations) {
   const wait = Math.max(0, 1100 - (Date.now() - lastNominatimAt));
   if (wait) await sleep(wait);
@@ -73,7 +117,12 @@ for (const query of locations) {
   geocodeUrl.searchParams.set("q", query);
   geocodeUrl.searchParams.set("format", "jsonv2");
   geocodeUrl.searchParams.set("addressdetails", "1");
-  geocodeUrl.searchParams.set("limit", "5");
+  // Mirror production intent filtering: settlement-only for locality queries,
+  // address-only for streets, and address+POI for explicit POI queries.
+  const searchOptions = getNominatimSearchOptions(query);
+  geocodeUrl.searchParams.set("layer", searchOptions.layer);
+  if (searchOptions.featureType) geocodeUrl.searchParams.set("featureType", searchOptions.featureType);
+  geocodeUrl.searchParams.set("limit", "10");
   const geo = await checkJson(geocodeUrl.toString(), {
     headers: { "User-Agent": "InfracisProviderPilot/1.0 (https://github.com/kaustubhdua/infracis)", Accept: "application/json" }
   });
@@ -82,10 +131,18 @@ for (const query of locations) {
   // Use the same conservative relevance selector as the live app. A syntactically
   // valid first Nominatim result is not enough: it may be a shop or other nearby POI.
   const selected = selectRelevantGeocodeCandidate(query, candidates);
-  const lat = Number(selected?.lat);
-  const lon = Number(selected?.lon);
-  const validGeo = !!selected && typeof selected.display_name === "string" &&
-    Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
+  let photonFallback = null;
+  let photonElapsedMs = 0;
+  if (!selected) {
+    const photonStarted = Date.now();
+    const photonResult = await fetchPhotonFallback(query);
+    photonFallback = photonResult.location;
+    photonElapsedMs = Math.max(Date.now() - photonStarted, photonResult.elapsedMs);
+  }
+  const lat = photonFallback?.latitude ?? Number(selected?.lat);
+  const lon = photonFallback?.longitude ?? Number(selected?.lon);
+  const resolvedLabel = photonFallback?.label ?? selected?.display_name ?? null;
+  const validGeo = !!resolvedLabel && Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
     Number.isFinite(lon) && lon >= -180 && lon <= 180;
 
   const result = {
@@ -93,15 +150,23 @@ for (const query of locations) {
     geocoding: {
       ok: validGeo,
       status: geo.status ?? null,
-      elapsedMs: geo.elapsedMs,
-      resolvedLabel: validGeo ? selected.display_name : null,
-      resolvedClass: validGeo && typeof (selected.category ?? selected.class) === "string" ? (selected.category ?? selected.class) : null,
-      resolvedType: validGeo && typeof selected.type === "string" ? selected.type : null,
-      resolvedAddressType: validGeo && typeof selected.addresstype === "string" ? selected.addresstype : null,
+      elapsedMs: (geo.elapsedMs ?? 0) + photonElapsedMs,
+      resolvedLabel: validGeo ? resolvedLabel : null,
+      resolvedClass: selected && typeof (selected.category ?? selected.class) === "string" ? (selected.category ?? selected.class) : photonFallback ? "place" : null,
+      resolvedType: selected && typeof selected.type === "string" ? selected.type : photonFallback ? "Photon fallback" : null,
+      resolvedAddressType: selected && typeof selected.addresstype === "string" ? selected.addresstype : null,
+      fallbackUsed: !!photonFallback,
+      candidateDiagnostics: validGeo ? undefined : candidates.slice(0, 5).map((candidate) => ({
+        label: typeof candidate.display_name === "string" ? candidate.display_name.slice(0, 220) : null,
+        category: typeof (candidate.category ?? candidate.class) === "string" ? (candidate.category ?? candidate.class) : null,
+        type: typeof candidate.type === "string" ? candidate.type : null,
+        addressType: typeof candidate.addresstype === "string" ? candidate.addresstype : null,
+        importance: typeof candidate.importance === "number" ? candidate.importance : null
+      })),
       latitude: validGeo ? lat : null,
       longitude: validGeo ? lon : null,
       error: validGeo ? null : geo.error ?? (geo.ok ? "No valid matching result" : "Geocoding request failed"),
-      source: "OpenStreetMap Nominatim"
+      source: photonFallback ? "Photon geocoder (OpenStreetMap data)" : "OpenStreetMap Nominatim"
     },
     weather: null,
     airQuality: null,
@@ -143,7 +208,7 @@ for (const query of locations) {
       source: "Open-Meteo Air Quality API"
     };
 
-    const overpassQuery = `[out:json][timeout:10];(nwr(around:1200,${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];nwr(around:1200,${lat},${lon})[highway="bus_stop"];nwr(around:1200,${lat},${lon})[railway~"^(station|subway_entrance|tram_stop)$"];nwr(around:1200,${lat},${lon})[leisure~"^(park|playground)$"];);out center tags 100;`;
+    const overpassQuery = `[out:json][timeout:6];(nwr(around:1200,${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];nwr(around:1200,${lat},${lon})[highway="bus_stop"];nwr(around:1200,${lat},${lon})[railway~"^(station|subway_entrance|tram_stop)$"];nwr(around:1200,${lat},${lon})[leisure~"^(park|playground)$"];);out center tags 100;`;
     let overpass = null;
     const overpassAttempts = [];
     for (const endpointConfig of overpassEndpoints) {
@@ -201,7 +266,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   pilotGeography: "Delhi NCR, India",
   sampleCount: locations.length,
-  method: "Live provider calls; Nominatim queries are spaced at least 1.1 seconds apart. A pass requires the provider response envelope and every requested field for that provider to be present and valid. A pass does not prove geographic completeness or ground truth. Overpass failover is sequential and bounded to at most three explicitly configured HTTPS endpoints.",
+  method: "Live provider calls; Nominatim queries are spaced at least 1.1 seconds apart and request up to ten candidates. Geocoding passes only when the same conservative token-relevance selector used by production accepts a candidate; provider-data passes require the response envelope and every requested field to be present and valid. Neither proves geographic completeness or ground truth. Overpass failover is sequential and bounded to at most three explicitly configured HTTPS endpoints.",
   attribution: [
     "© OpenStreetMap contributors (ODbL) — https://www.openstreetmap.org/copyright",
     "Weather and air-quality data from Open-Meteo (CC BY 4.0) — https://open-meteo.com/en/terms"
@@ -227,7 +292,7 @@ const lines = [
   "|---|---:|---:|---:|",
   ...Object.entries(counts).map(([name, stats]) => `|${name}|${stats.passed}|${stats.failed}|${stats.passRate === null ? "n/a" : (stats.passRate * 100).toFixed(1) + "%"}|`),
   "",
-  "A pass validates response shape and expected fields only; it does not prove geographic completeness or ground truth.",
+  "Geocoding passes only when the production relevance guard accepts one of up to ten candidates. Other provider passes require response shape and all expected fields. Neither proves geographic completeness or ground truth.",
   "",
   "## Failed samples",
   ...checks.flatMap((sample) => ["geocoding", "weather", "airQuality", "amenities"].filter((field) => sample[field] && !sample[field].ok).map((field) => `- ${sample.query} — ${field}: ${sample[field].error}`)),

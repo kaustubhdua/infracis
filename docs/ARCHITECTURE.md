@@ -30,16 +30,18 @@ The separate `backend/` directory contains a FastAPI service prepared for later 
 | Open-Meteo forecast | Weather model output at resolved coordinates | Model output, not a property-site sensor. Free API is non-commercial and requires attribution; confirm the appropriate plan before commercial use. |
 | Open-Meteo air quality | Grid/model-derived air-quality output | Not a street-level monitoring station. Some live pilot requests failed; failures remain unknown. |
 | OpenStreetMap/Overpass | Mapped amenities around the point | Production retrieval is disabled unless a verified HTTPS endpoint is configured. The 20-location pilot had no valid Overpass responses. Mapped features are incomplete and can be stale. |
-| OpenStreetMap raster tiles | Map background | Use visible attribution, compliant endpoint and caching; public tile hosting has no production SLA. |
+| OpenStreetMap raster tiles | Street map background | Use visible attribution, compliant endpoint and caching; public tile hosting has no production SLA. |
+| NASA GIBS | Optional VIIRS true-colour satellite overlay in the interactive map | Uses public Earthdata GIBS tiles; this map layer does not read `NASA_API_KEY`. The imagery date is deliberately lagged to reduce missing-tile errors and can still be unavailable. NASA imagery is contextual imagery, not a property-level hazard classification. |
 
-The provider adapters are in `lib/providers/`. Shared Redis cache and Nominatim request-slot reservation are in `lib/shared-provider-cache.ts`; API rate limiting is in `lib/distributed-rate-limit.ts`.
+The provider adapters are in `lib/providers/`. Shared Redis cache and Nominatim request-slot reservation are in `lib/shared-provider-cache.ts`; API rate limiting is in `lib/distributed-rate-limit.ts`. The Overpass adapter supports up to three configured HTTPS endpoints with bounded sequential failover, but the default public endpoints did not produce valid amenity responses in the latest Delhi NCR pilot. Treat mapped amenities as unavailable until a terms-appropriate endpoint is configured and passes the pilot.
 
 ### Evidence contract
 Reports distinguish:
 - **Observed**: a source-returned record, with the source's own limitations.
 - **Provider model**: weather/air-quality model outputs and other gridded products.
 - **Calculated**: deterministic metrics derived from identified inputs and documented formulas.
-- **Rule-based interpretation**: deterministic explanatory text assembled by `lib/synthesizer.ts` from evidence IDs. The current build does not call an LLM; any future AI adapter must be implemented and tested separately.
+- **Rule-based interpretation**: deterministic explanatory text assembled by `lib/synthesizer.ts` from evidence IDs.
+- **AI interpretation**: optional Groq narrative via `POST /api/ai-insight`, with the `GROQ_API_KEY` read only on the server. The route sends a bounded, sanitized summary of the report to Groq; the narrative does not replace source records or supply new facts. Missing configuration or provider failure leaves the deterministic report available.
 - **Unknown**: unavailable, malformed, stale, or unverified evidence.
 
 A missing amenity is not evidence that the service does not exist. A successful HTTP response is not proof that a geocoded label matches the intended neighbourhood. No synthetic substitute values are allowed for unavailable real providers.
@@ -64,7 +66,7 @@ When configured, shared Redis temporarily stores:
 - mapped amenities for up to 1 hour;
 - rate-limit counters and the global Nominatim request-slot timestamp.
 
-The privacy page documents these behaviors. The actual deployment operator must verify access controls, retention, deletion, and telemetry settings before public launch. Do not include names or personal details in location searches.
+The privacy page documents these behaviors. The actual deployment operator must verify access controls, retention, deletion, and telemetry settings before public launch. Do not include names or personal details in location searches. Locality ratings and notes are private browser/device records after explicit opt-in; they are not sent to a server and do not create a public aggregate or community rating.
 
 ## Persistence
 

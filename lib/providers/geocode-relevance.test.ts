@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rankGeocodeCandidates, selectRelevantGeocodeCandidate, type GeocodeCandidate } from "./geocode-relevance";
+import { getNominatimSearchOptions, rankGeocodeCandidates, selectRelevantGeocodeCandidate, type GeocodeCandidate } from "./geocode-relevance";
 
 const candidate = (display_name: string, metadata: Partial<GeocodeCandidate> = {}): GeocodeCandidate => ({
   display_name,
@@ -8,11 +8,40 @@ const candidate = (display_name: string, metadata: Partial<GeocodeCandidate> = {
   ...metadata
 });
 
+describe("Nominatim query intent", () => {
+  it("restricts locality queries to settlements", () => {
+    expect(getNominatimSearchOptions("Saket, New Delhi, India")).toEqual({ layer: "address", featureType: "settlement" });
+    expect(getNominatimSearchOptions("Sector 150, Noida, Uttar Pradesh, India")).toEqual({ layer: "address", featureType: "settlement" });
+  });
+
+  it("keeps street/address queries on the address layer", () => {
+    expect(getNominatimSearchOptions("Sohna Road, Gurugram, Haryana, India")).toEqual({ layer: "address" });
+    expect(getNominatimSearchOptions("123 MG Road, Bengaluru")).toEqual({ layer: "address" });
+    expect(getNominatimSearchOptions("12 Green Park, New Delhi, India")).toEqual({ layer: "address" });
+  });
+
+  it("includes POI candidates only when the query explicitly asks for one", () => {
+    expect(getNominatimSearchOptions("Green Field School, Saket")).toEqual({ layer: "address,poi" });
+    expect(getNominatimSearchOptions("Apollo Hospital, Delhi")).toEqual({ layer: "address,poi" });
+  });
+});
+
 describe("geocoder relevance guard", () => {
+  it("treats New Delhi and Delhi locality labels as equivalent city context", () => {
+    const saket = candidate("Saket, South Delhi, Delhi, India", {
+      category: "place",
+      type: "suburb",
+      addresstype: "suburb"
+    });
+    expect(selectRelevantGeocodeCandidate("Saket, New Delhi, India", [saket])).toEqual(saket);
+  });
+
   it("prefers a candidate that covers the requested locality and city", () => {
     const results = [
       candidate("Mall Road, New Delhi, Delhi, India"),
-      candidate("Sector 62, Noida, Gautam Buddha Nagar, Uttar Pradesh, India")
+      candidate("Sector 62, Noida, Gautam Buddha Nagar, Uttar Pradesh, India", {
+        category: "place", type: "suburb", addresstype: "suburb"
+      })
     ];
     expect(selectRelevantGeocodeCandidate("Sector 62, Noida", results)?.display_name)
       .toBe("Sector 62, Noida, Gautam Buddha Nagar, Uttar Pradesh, India");
@@ -35,6 +64,15 @@ describe("geocoder relevance guard", () => {
     expect(selectRelevantGeocodeCandidate("Sector 150, Noida, Uttar Pradesh, India", [
       candidate("Sector 18, Noida, Uttar Pradesh, India")
     ])).toBeNull();
+  });
+
+  it("rejects a POI whose name starts with the locality when the user did not ask for a POI", () => {
+    const station = candidate("Saket Metro Station, Saket, South Delhi, Delhi, India", {
+      category: "railway",
+      type: "station",
+      addresstype: "railway"
+    });
+    expect(selectRelevantGeocodeCandidate("Saket, New Delhi, India", [station])).toBeNull();
   });
 
   it("rejects a point of interest that only mentions a locality", () => {
@@ -65,7 +103,37 @@ describe("geocoder relevance guard", () => {
     expect(selectRelevantGeocodeCandidate("Green Field School, Saket", [explicitPoi])).toEqual(explicitPoi);
   });
 
-  it("rejects equally ranked distinct results instead of guessing", () => {
+
+  it("does not satisfy numeric locality tokens from hidden address metadata", () => {
+    const wrongSector = candidate("Mayank Apartments, Sector 6 Road, Dwarka, New Delhi, India", {
+      category: "place",
+      type: "suburb",
+      addresstype: "suburb",
+      address: { suburb: "Dwarka Sector 21", city: "New Delhi" }
+    });
+    expect(selectRelevantGeocodeCandidate("Dwarka Sector 21, New Delhi, India", [wrongSector])).toBeNull();
+  });
+
+  it("rejects a POI-like label even when its address metadata contains the locality", () => {
+    const poi = candidate("Electricity Office, Sector 150, Noida, Uttar Pradesh, India", {
+      category: "place",
+      type: "locality",
+      addresstype: "locality",
+      address: { suburb: "Sector 150", city: "Noida", state: "Uttar Pradesh" }
+    });
+    expect(selectRelevantGeocodeCandidate("Sector 150, Noida, Uttar Pradesh, India", [poi])).toBeNull();
+  });
+
+  it("allows a valid locality label when a numbered sector is ordered before the city", () => {
+    const sector = candidate("Sector 15, Faridabad, Haryana, India", {
+      category: "place",
+      type: "suburb",
+      addresstype: "suburb"
+    });
+    expect(selectRelevantGeocodeCandidate("Faridabad Sector 15, Haryana, India", [sector])).toEqual(sector);
+  });
+
+    it("rejects equally ranked distinct results instead of guessing", () => {
     const results = [
       candidate("Sector 62, Noida, Uttar Pradesh, India"),
       candidate("Sector 62, Noida, Gautam Buddha Nagar, Uttar Pradesh, India")
