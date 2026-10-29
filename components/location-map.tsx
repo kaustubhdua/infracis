@@ -8,7 +8,7 @@ import { escapeHtml } from "@/lib/escape-html";
 
 const EMPTY_AMENITIES: AmenityItem[] = [];
 const OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const LIGHT_TILES = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+// CARTO Voyager adds legible roads, neighbourhood labels and restrained colour without overwhelming the evidence markers.\nconst VOYAGER_TILES = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 const NASA_LAYER = "VIIRS_SNPP_CorrectedReflectance_TrueColor";
 // Near-real-time satellite products can lag ingestion by a day or more.
 const NASA_TILE_DATE = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -110,7 +110,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
 
         // NASA GIBS provides regional Earth-observation imagery, not parcel-level aerial photos.
         // Its VIIRS layer has native zoom 9; switch to regional scale rather than upscaling at street level.
-        const light = leaflet.tileLayer(LIGHT_TILES, {
+        const light = leaflet.tileLayer(VOYAGER_TILES, {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
           subdomains: "abcd", maxZoom: 20, crossOrigin: true
         });
@@ -253,7 +253,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         </div>
         <div className="flex flex-wrap items-center gap-1 rounded-xl border border-[#dce5d9] bg-white p-1" aria-label="Map basemap">
           <button type="button" aria-pressed={mapStyle === "light"} onClick={() => setMapStyle("light")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] ${mapStyle === "light" ? "bg-[#174b38] text-white shadow-sm" : "text-[#53675a] hover:bg-[#f0f5ed]"}`}>
-            <Sun size={14} /> Clean
+            <Sun size={14} /> Explore
           </button>
           <button type="button" aria-pressed={mapStyle === "street"} onClick={() => setMapStyle("street")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] ${mapStyle === "street" ? "bg-[#174b38] text-white shadow-sm" : "text-[#53675a] hover:bg-[#f0f5ed]"}`}>
             <MapIcon size={14} /> Street
