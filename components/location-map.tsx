@@ -123,6 +123,8 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
           subdomains: CARTO_LIGHT_TILES ? "abcd" : undefined, maxZoom: 20, crossOrigin: true
         });
         light.on("tileload", () => {
+          // Ignore late tile events from a CARTO layer after it has been removed.
+          if (!map?.hasLayer(light)) return;
           setTileError(false);
           if (CARTO_LIGHT_TILES) setLightFallbackActive(false);
         });
