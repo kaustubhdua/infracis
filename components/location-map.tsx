@@ -29,11 +29,26 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
 
   useEffect(() => { pickHandlerRef.current = onPickCoordinates; }, [onPickCoordinates]);
 
+  // A small, non-sensitive cookie remembers the preferred map style. The report itself stays in browser storage, not in a size-limited cookie.
+  useEffect(() => {
+    try {
+      const savedStyle = document.cookie.split("; ").find((entry) => entry.startsWith("infracis_map_style="))?.split("=")[1];
+      if (savedStyle === "street" || savedStyle === "satellite") setMapStyle(savedStyle);
+    } catch { /* cookies may be disabled; the default style still works */ }
+  }, []);
+
+  useEffect(() => {
+    try {
+      document.cookie = `infracis_map_style=${mapStyle}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
+    } catch { /* map style preference is optional */ }
+  }, [mapStyle]);
+
   useEffect(() => {
     let cancelled = false;
     let map: L.Map | null = null;
     let resizeObserver: ResizeObserver | null = null;
     let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+    let windowResizeHandler: (() => void) | undefined;
 
     async function initialize() {
       if (!mapContainerRef.current) return;
@@ -97,7 +112,8 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
           resizeTimer = setTimeout(() => map?.invalidateSize({ pan: false }), 80);
         });
         resizeObserver.observe(mapContainerRef.current);
-        window.addEventListener("resize", () => map?.invalidateSize({ pan: false }), { passive: true });
+        windowResizeHandler = () => map?.invalidateSize({ pan: false });
+        window.addEventListener("resize", windowResizeHandler, { passive: true });
         setMapError("");
         requestAnimationFrame(() => map?.invalidateSize({ pan: false }));
       } catch {
@@ -109,6 +125,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
     return () => {
       cancelled = true;
       resizeObserver?.disconnect();
+      if (windowResizeHandler) window.removeEventListener("resize", windowResizeHandler);
       if (resizeTimer) clearTimeout(resizeTimer);
       if (map) map.remove();
       mapInstanceRef.current = null;
