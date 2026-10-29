@@ -142,6 +142,39 @@ export interface LocationReport {
 
 export type PreferenceProfile = "balanced" | "family" | "transit" | "healthcare" | "quiet";
 
+export type VerdictDimensionKey = "transit" | "daily" | "healthcare" | "education" | "air";
+
+export interface VerdictDimension {
+  key: VerdictDimensionKey;
+  label: string;
+  /** 0-100 score for each side, or null when the evidence is missing. */
+  scoreA: number | null;
+  scoreB: number | null;
+  /** Normalised weight actually used in the overall score (0 when excluded). */
+  weight: number;
+  comparable: boolean;
+  leader: "A" | "B" | "tie" | null;
+  note: string;
+}
+
+export interface ComparisonVerdict {
+  profile: PreferenceProfile;
+  /** Profile actually used for weighting (quiet falls back to balanced). */
+  profileUsed: PreferenceProfile;
+  profileNote?: string;
+  leader: "A" | "B" | "tie" | "inconclusive";
+  scoreA: number | null;
+  scoreB: number | null;
+  margin: number;
+  confidence: "high" | "medium" | "low";
+  headline: string;
+  summary: string;
+  dimensions: VerdictDimension[];
+  strengthsA: string[];
+  strengthsB: string[];
+  caveats: string[];
+}
+
 export interface ComparisonReport {
   generatedAt: string;
   preferenceProfile: PreferenceProfile;
@@ -159,4 +192,6 @@ export interface ComparisonReport {
   }>;
   preferenceSummary: string;
   nextSteps: string[];
+  /** Deterministic, evidence-weighted result for the selected priority profile. */
+  verdict?: ComparisonVerdict;
 }

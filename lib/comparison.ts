@@ -1,4 +1,5 @@
 import { LocationReport, ComparisonReport, PreferenceProfile } from "./types";
+import { buildComparisonVerdict, shortLabel } from "./comparison-verdict";
 
 function missingAmenityLabel(report: LocationReport, category: string): string {
   if (!report.amenities) return "Amenity provider unavailable";
@@ -205,35 +206,33 @@ export function compareLocations(
     });
   }
 
-  // Preference-Weighted Summary
-  let summary = "";
-  if (preference === "transit") {
-    summary =
-      transitA !== null && transitB !== null
-        ? transitA < transitB
-          ? `Under your Transit-First preference, Location A is favored due to shorter distance to public transit (${transitA}m vs ${transitB}m).`
-          : `Under your Transit-First preference, Location B is favored due to shorter distance to public transit (${transitB}m vs ${transitA}m).`
-        : "Transit comparison is inconclusive due to missing map records for one location.";
-  } else if (preference === "family") {
-    summary =
-      "Under your Family & School preference, compare school distance, healthcare proximity, and park availability side by side. Verify school bus routing directly with housing society.";
-  } else if (preference === "healthcare") {
-    summary =
-      healthA !== null && healthB !== null
-        ? healthA < healthB
-          ? `Under your Healthcare-First preference, Location A provides closer access to a medical facility (${healthA}m vs ${healthB}m).`
-          : `Under your Healthcare-First preference, Location B provides closer access to a medical facility (${healthB}m vs ${healthA}m).`
-        : "Healthcare comparison is limited by available open map entries.";
-  } else {
-    summary =
-      "Under a Balanced Due Diligence review, neither location is universally superior. Review the specific tradeoffs in transit walking distance versus nearby retail density and local waterlogging history.";
-  }
+  // Evidence-weighted result for the selected priority profile.
+  const verdict = buildComparisonVerdict(reportA, reportB, preference);
+  const summary = verdict.leader === "inconclusive"
+    ? verdict.summary
+    : `${verdict.headline}. ${verdict.summary}`;
 
-  const nextSteps = [
-    `Perform a physical commute test from both locations at peak rush hour (8:30 AM).`,
-    `Check municipal water supply schedules and underground sump storage capacity for both properties.`,
-    `Speak with immediate neighbors at both locations specifically regarding monsoon storm drain overflow.`
-  ];
+  const nameA = shortLabel(reportA.location.label);
+  const nameB = shortLabel(reportB.location.label);
+  const nextSteps: string[] = [];
+  for (const dimension of verdict.dimensions) {
+    if (!dimension.comparable || dimension.scoreA === null || dimension.scoreB === null) continue;
+    const gap = dimension.scoreA - dimension.scoreB;
+    if (Math.abs(gap) >= 20) {
+      const weaker = gap > 0 ? nameB : nameA;
+      nextSteps.push(`${dimension.label} is clearly weaker at ${weaker}: check it on foot and ask residents before relying on the mapped data.`);
+    }
+  }
+  for (const dimension of verdict.dimensions) {
+    if (!dimension.comparable) {
+      nextSteps.push(`${dimension.label} could not be compared fairly — gather it yourself for both locations.`);
+    }
+  }
+  nextSteps.push(
+    "Perform a physical commute test from both locations at peak rush hour (8:30 AM).",
+    "Check municipal water supply schedules and underground sump storage capacity for both properties.",
+    "Speak with immediate neighbors at both locations specifically regarding monsoon storm drain overflow."
+  );
 
   return {
     generatedAt,
@@ -242,6 +241,7 @@ export function compareLocations(
     locationB: reportB,
     deltas,
     preferenceSummary: summary,
-    nextSteps
+    nextSteps: nextSteps.slice(0, 8),
+    verdict
   };
 }
