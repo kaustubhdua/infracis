@@ -39,7 +39,9 @@ describe("geocoder relevance guard", () => {
   it("prefers a candidate that covers the requested locality and city", () => {
     const results = [
       candidate("Mall Road, New Delhi, Delhi, India"),
-      candidate("Sector 62, Noida, Gautam Buddha Nagar, Uttar Pradesh, India")
+      candidate("Sector 62, Noida, Gautam Buddha Nagar, Uttar Pradesh, India", {
+        category: "place", type: "suburb", addresstype: "suburb"
+      })
     ];
     expect(selectRelevantGeocodeCandidate("Sector 62, Noida", results)?.display_name)
       .toBe("Sector 62, Noida, Gautam Buddha Nagar, Uttar Pradesh, India");
