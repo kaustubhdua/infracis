@@ -51,6 +51,20 @@ describe("geocoder relevance guard", () => {
     expect(selectRelevantGeocodeCandidate("Green Field School, Saket", [explicitPoi])).toEqual(explicitPoi);
   });
 
+  it("rejects a jsonv2 category-tagged POI that only mentions a locality", () => {
+    const poi = candidate(
+      "Green Field School, Saket Road, Press Enclave, Saket, South Delhi, India",
+      { category: "amenity", type: "school", addresstype: "amenity" }
+    );
+    expect(selectRelevantGeocodeCandidate("Saket, New Delhi, India", [poi])).toBeNull();
+
+    const explicitPoi = candidate(
+      "Green Field School, Saket Road, Press Enclave, Saket, South Delhi, India",
+      { category: "amenity", type: "school", addresstype: "amenity" }
+    );
+    expect(selectRelevantGeocodeCandidate("Green Field School, Saket", [explicitPoi])).toEqual(explicitPoi);
+  });
+
   it("rejects equally ranked distinct results instead of guessing", () => {
     const results = [
       candidate("Sector 62, Noida, Uttar Pradesh, India"),
