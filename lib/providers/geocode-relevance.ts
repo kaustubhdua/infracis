@@ -95,21 +95,33 @@ export function rankGeocodeCandidates(query: string, candidates: GeocodeCandidat
     .filter((candidate) => candidate && typeof candidate.display_name === "string" && candidate.display_name.trim())
     .map((candidate) => {
       const label = normalize(candidate.display_name);
+      const labelWords = label.split(" ");
+      const displayTokens = new Set(meaningfulTokens(candidate.display_name));
       const labelTokens = candidateTokens(candidate);
       const matchedTokens = queryTokens.filter((token) => labelTokens.has(token) || label.includes(token));
       const missingTokens = queryTokens.filter((token) => !matchedTokens.includes(token));
-      // Numbers in locality queries often identify a specific sector, phase,
-      // building, or postcode. Never accept a candidate that drops/changes one.
-      const missingNumericTokens = queryTokens.filter((token) => /\d/.test(token) && !labelTokens.has(token));
+      // Numeric sector/phase/address tokens must appear as whole tokens in the
+      // displayed result itself, not only in hidden address metadata.
+      const missingNumericTokens = queryTokens.filter((token) => /\d/.test(token) && !displayTokens.has(token));
       const explicitPoiIntent = queryTokens.some((token) => EXPLICIT_POI_TERMS.has(token));
       const candidateClass = candidate.category ?? candidate.class;
+      const candidateType = candidate.addresstype ?? candidate.type ?? "";
+      const localityIntent = getNominatimSearchOptions(query).featureType === "settlement";
+      const hasLocalityType = LOCALITY_ADDRESS_TYPES.has(candidateType) ||
+        LOCALITY_ADDRESS_TYPES.has(candidate.type ?? "");
+      const localityLeadTokens = new Set(queryTokens.slice(0, Math.min(3, queryTokens.length)));
+      const startsWithRequestedLocality = localityLeadTokens.has(labelWords[0] ?? "");
       const isUnqualifiedPointOfInterest = !!candidateClass &&
         POINT_OF_INTEREST_CLASSES.has(candidateClass) &&
-        !LOCALITY_ADDRESS_TYPES.has(candidate.addresstype ?? "") &&
         !explicitPoiIntent;
-      // A POI whose name merely mentions the searched neighbourhood is not
-      // an acceptable substitute for the neighbourhood itself.
-      const score = missingNumericTokens.length > 0 || isUnqualifiedPointOfInterest
+      // Settlement searches must return a locality-like feature whose visible
+      // label starts with the requested locality (allowing common word order
+      // differences such as "Faridabad Sector 15" -> "Sector 15, Faridabad").
+      // A POI or mismatched sector that only appears in address metadata is not
+      // a defensible substitute for the requested locality.
+      const isMisleadingLocalityCandidate = localityIntent &&
+        (!hasLocalityType || !startsWithRequestedLocality);
+      const score = missingNumericTokens.length > 0 || isUnqualifiedPointOfInterest || isMisleadingLocalityCandidate
         ? 0
         : matchedTokens.length / queryTokens.length;
       return { candidate, score, matchedTokens, missingTokens };
