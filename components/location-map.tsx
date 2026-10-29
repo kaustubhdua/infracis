@@ -39,6 +39,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
   const [mapRetry, setMapRetry] = useState(0);
   const [mapError, setMapError] = useState("");
   const [tileError, setTileError] = useState(false);
+  const [lightFallbackActive, setLightFallbackActive] = useState(!CARTO_LIGHT_TILES);
 
   useEffect(() => { pickHandlerRef.current = onPickCoordinates; }, [onPickCoordinates]);
 
@@ -121,13 +122,17 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
             : '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
           subdomains: CARTO_LIGHT_TILES ? "abcd" : undefined, maxZoom: 20, crossOrigin: true
         });
-        light.on("tileload", () => setTileError(false));
+        light.on("tileload", () => {
+          setTileError(false);
+          setLightFallbackActive(false);
+        });
         let lightFallbackAttempted = false;
         light.on("tileerror", () => {
           setTileError(true);
           // Keep the default basemap usable if the CARTO theme is unavailable.
           if (lightFallbackAttempted || !map?.hasLayer(light)) return;
           lightFallbackAttempted = true;
+          setLightFallbackActive(true);
           map.removeLayer(light);
           const fallback = leaflet.tileLayer(OSM_TILES, {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
@@ -291,7 +296,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         </div>
         <div className="flex flex-wrap items-center gap-1 rounded-xl border border-[#dce5d9] bg-white p-1" aria-label="Map basemap">
           <button type="button" aria-pressed={mapStyle === "light"} onClick={() => setMapStyle("light")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] ${mapStyle === "light" ? "bg-[#174b38] text-white shadow-sm" : "text-[#53675a] hover:bg-[#f0f5ed]"}`}>
-            <Sun size={14} /> Voyager
+            <Sun size={14} /> {lightFallbackActive ? "OpenStreetMap" : "Voyager"}
           </button>
           <button type="button" aria-pressed={mapStyle === "street"} onClick={() => setMapStyle("street")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] ${mapStyle === "street" ? "bg-[#174b38] text-white shadow-sm" : "text-[#53675a] hover:bg-[#f0f5ed]"}`}>
             <MapIcon size={14} /> Street
@@ -303,7 +308,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
       </div>
       {mapError && <div role="alert" className="flex items-start gap-2 border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><AlertTriangle size={17} className="mt-0.5 shrink-0" /><span>{mapError}</span><button type="button" className="ml-auto underline" onClick={retryMap}>Retry</button></div>}
       {tileError && !mapError && <div role="status" className="px-4 py-2 text-xs text-amber-800 bg-amber-50">Some map tiles did not load. Other map features remain available. <button type="button" onClick={retryMap} className="ml-1 underline">Retry tiles</button></div>}
-      {mapStyle === "nasa" && <p className="border-t border-[#e7ede4] bg-[#f8faf7] px-4 py-2 text-[11px] leading-relaxed text-[#647468]">NASA VIIRS imagery is a regional Earth-observation layer with native zoom up to level 9; it is not parcel-level satellite photography. Return to Clean or Street for nearby amenity inspection.</p>}
+      {mapStyle === "nasa" && <p className="border-t border-[#e7ede4] bg-[#f8faf7] px-4 py-2 text-[11px] leading-relaxed text-[#647468]">NASA VIIRS imagery is a regional Earth-observation layer with native zoom up to level 9; it is not parcel-level satellite photography. Return to the basemap or Street for nearby amenity inspection.</p>}
       <div ref={mapContainerRef} className="infracis-map-canvas h-[360px] w-full sm:h-[440px]" />
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e7ede4] px-4 py-3 text-[11px] text-[#718275] sm:px-5">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
