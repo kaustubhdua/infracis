@@ -5,11 +5,11 @@ import type L from "leaflet";
 import { MapPin, Satellite, Map as MapIcon, AlertTriangle, Sun } from "lucide-react";
 import type { LocationData, AmenityItem } from "@/lib/types";
 import { escapeHtml } from "@/lib/escape-html";
+import { nasaGibsTileUrl, shouldFallbackFromNasaTiles } from "@/lib/nasa-gibs";
 
 const EMPTY_AMENITIES: AmenityItem[] = [];
 const OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const LIGHT_TILES = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
-const NASA_LAYER = "VIIRS_SNPP_CorrectedReflectance_TrueColor";
 // Near-real-time satellite products can lag ingestion by a day or more.
 const NASA_TILE_DATE = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
@@ -127,7 +127,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         nasaTileLoadCountRef.current = 0;
         nasaFallbackTriggeredRef.current = false;
         const nasa = leaflet.tileLayer(
-          `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${NASA_LAYER}/default/${NASA_TILE_DATE}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`,
+          nasaGibsTileUrl(NASA_TILE_DATE),
           {
             attribution: '<a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA GIBS / Earthdata</a>',
             maxZoom: 9, maxNativeZoom: 9, opacity: 1, crossOrigin: true
@@ -142,7 +142,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
           setTileError(true);
           // If every initial imagery tile fails, fall back to the clean basemap.
           // A few isolated missing tiles should not force a basemap switch.
-          if (!nasaFallbackTriggeredRef.current && nasaTileLoadCountRef.current === 0 && nasaTileErrorCountRef.current >= 4) {
+          if (!nasaFallbackTriggeredRef.current && shouldFallbackFromNasaTiles(nasaTileLoadCountRef.current, nasaTileErrorCountRef.current)) {
             nasaFallbackTriggeredRef.current = true;
             setMapStyle("light");
             setMapError("NASA imagery is unavailable for this date or connection. Switched back to the clean map; you can retry the satellite layer later.");
