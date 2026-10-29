@@ -2,6 +2,9 @@ name: Live provider pilot
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - pilot/provider-validation-2026-10-29
 
 permissions:
   contents: read
