@@ -1,15 +1,23 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { LocationReport, EvidenceClassification } from "@/lib/types";
-import LocationMap from "@/components/location-map";
-import EvidenceCard from "@/components/evidence-card";
-import ChecklistSection from "@/components/checklist-section";
-import CompareView from "@/components/compare-view";
-import MethodologyView from "@/components/methodology-view";
+const LocationMap = dynamic(() => import("@/components/location-map"), {
+  ssr: false,
+  loading: () => <div className="grid h-[360px] place-items-center rounded-3xl border border-[#d7e1d5] bg-[#edf3e8] text-sm text-[#53675a] sm:h-[440px]">Loading interactive map…</div>
+});
 import SavedReportsModal, { saveReportToStorage, exportReportJson } from "@/components/saved-reports-modal";
 import Nav from "@/components/nav";
-import DecisionBrief from "@/components/decision-brief";
+
+const sectionFallback = () => <div className="animate-pulse rounded-2xl border border-[#dce5d8] bg-white/80 p-5 text-sm text-[#718275]">Loading section…</div>;
+const EvidenceCard = dynamic(() => import("@/components/evidence-card"), { loading: sectionFallback });
+const ChecklistSection = dynamic(() => import("@/components/checklist-section"), { loading: sectionFallback });
+const CompareView = dynamic(() => import("@/components/compare-view"), { loading: sectionFallback });
+const MethodologyView = dynamic(() => import("@/components/methodology-view"), { loading: sectionFallback });
+const DecisionBrief = dynamic(() => import("@/components/decision-brief"), { loading: sectionFallback });
+const AiInsight = dynamic(() => import("@/components/ai-insight"), { loading: sectionFallback });
+const LocalityReview = dynamic(() => import("@/components/locality-review"), { loading: sectionFallback });
 import {
   MapPin,
   ArrowRight,
@@ -275,6 +283,7 @@ export default function AnalyzeClient() {
 
                 {/* Action-first decision summary, derived only from retrieved report data */}
                 <DecisionBrief report={report} onCompare={() => setActiveTab("compare")} />
+                <AiInsight kind="location" data={report} />
 
                 {/* Interactive Map */}
                 <section>
@@ -284,6 +293,7 @@ export default function AnalyzeClient() {
                     onPickCoordinates={handleMapCoordinatePick}
                   />
                 </section>
+                <LocalityReview locationLabel={report.location.label} />
 
                 {/* Score & Dimension Cards */}
                 <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
