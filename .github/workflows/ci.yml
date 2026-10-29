@@ -39,6 +39,13 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      - name: Verify pilot can load production geocoder selector
+        run: >-
+          node --experimental-strip-types --input-type=module -e
+          "import { selectRelevantGeocodeCandidate } from './lib/providers/geocode-relevance.ts';
+          const poi = {display_name:'Green Field School, Saket Road, Saket, Delhi, India',lat:'28.52',lon:'77.20',category:'amenity',type:'school',addresstype:'amenity'};
+          if (selectRelevantGeocodeCandidate('Saket, New Delhi, India',[poi]) !== null) process.exit(1);"
+      
       - name: Lint
         run: npm run lint
 
