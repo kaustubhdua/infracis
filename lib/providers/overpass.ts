@@ -37,10 +37,19 @@ out center tags 100;`;
   if (configuredEndpoints.length > 3) {
     throw new Error("Configure at most three OVERPASS_API_URLS endpoints to keep provider retries bounded.");
   }
-  // For evaluation and low-volume, non-commercial use, try a documented public
-  // instance first and a second instance as bounded failover. Public instances
-  // are best-effort and have no SLA; commercial/high-volume deployments must
-  // configure an appropriately licensed, capacity-matched provider.
+  // Production must not silently depend on unverified shared public instances:
+  // a previous bounded pilot recorded 0/18 valid amenity responses. Operators
+  // must configure a verified HTTPS endpoint, or explicitly opt in to best-effort
+  // public fallback for low-volume evaluation with OVERPASS_ALLOW_PUBLIC_FALLBACK=true.
+  if (
+    configuredEndpoints.length === 0 &&
+    process.env.NODE_ENV === "production" &&
+    process.env.OVERPASS_ALLOW_PUBLIC_FALLBACK !== "true"
+  ) {
+    throw new Error(
+      "No verified Overpass endpoint is configured. Set OVERPASS_API_URL or OVERPASS_API_URLS; public fallback requires explicit OVERPASS_ALLOW_PUBLIC_FALLBACK=true."
+    );
+  }
   const endpointValues = configuredEndpoints.length > 0
     ? configuredEndpoints
     : [
