@@ -51,6 +51,34 @@ function meaningfulTokens(value: string): string[] {
   return [...new Set(normalize(value).split(" ").filter((token) => token.length > 1 && !GENERIC_TOKENS.has(token)))];
 }
 
+const STREET_ADDRESS_TERMS = new Set([
+  "road", "rd", "street", "st", "lane", "marg", "avenue", "highway",
+  "expressway", "route", "cross", "bypass", "drive", "dr", "circle",
+  "plot", "flat", "house", "building", "block", "apartment", "apt",
+  "unit", "floor", "door", "postcode", "postal"
+]);
+
+export interface NominatimSearchOptions {
+  layer: "address" | "address,poi";
+  featureType?: "settlement";
+}
+
+/**
+ * Choose Nominatim layers based on intent. Locality-only queries use the
+ * settlement filter to stop nearby shops/amenities crowding out neighbourhoods;
+ * street/address queries keep the address layer; explicit POI searches include POIs.
+ */
+export function getNominatimSearchOptions(query: string): NominatimSearchOptions {
+  const tokens = meaningfulTokens(query);
+  if (tokens.some((token) => EXPLICIT_POI_TERMS.has(token))) {
+    return { layer: "address,poi" };
+  }
+  if (tokens.some((token) => STREET_ADDRESS_TERMS.has(token))) {
+    return { layer: "address" };
+  }
+  return { layer: "address", featureType: "settlement" };
+}
+
 function candidateTokens(candidate: GeocodeCandidate): Set<string> {
   const addressValues = candidate.address ? Object.values(candidate.address).filter(
     (value): value is string => typeof value === "string"
