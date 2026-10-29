@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { hasFiniteFields } from "./provider-pilot-validation.mjs";
-import { selectRelevantGeocodeCandidate } from "../lib/providers/geocode-relevance.ts";
+import { getNominatimSearchOptions, selectRelevantGeocodeCandidate } from "../lib/providers/geocode-relevance.ts";
 import { geocodeWithPhoton } from "../lib/providers/nominatim.ts";
 
 const locations = [
@@ -75,9 +75,11 @@ for (const query of locations) {
   geocodeUrl.searchParams.set("q", query);
   geocodeUrl.searchParams.set("format", "jsonv2");
   geocodeUrl.searchParams.set("addressdetails", "1");
-  // Mirror production: request locality/address and explicit POI candidates, then
-  // rely on the same strict relevance guard to reject unrelated nearby POIs.
-  geocodeUrl.searchParams.set("layer", "address,poi");
+  // Mirror production intent filtering: settlement-only for locality queries,
+  // address-only for streets, and address+POI for explicit POI queries.
+  const searchOptions = getNominatimSearchOptions(query);
+  geocodeUrl.searchParams.set("layer", searchOptions.layer);
+  if (searchOptions.featureType) geocodeUrl.searchParams.set("featureType", searchOptions.featureType);
   geocodeUrl.searchParams.set("limit", "10");
   const geo = await checkJson(geocodeUrl.toString(), {
     headers: { "User-Agent": "InfracisProviderPilot/1.0 (https://github.com/kaustubhdua/infracis)", Accept: "application/json" }
@@ -221,7 +223,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   pilotGeography: "Delhi NCR, India",
   sampleCount: locations.length,
-  method: "Live provider calls; Nominatim queries are spaced at least 1.1 seconds apart and request up to five candidates. Geocoding passes only when the same conservative token-relevance selector used by production accepts a candidate; provider-data passes require the response envelope and every requested field to be present and valid. Neither proves geographic completeness or ground truth. Overpass failover is sequential and bounded to at most three explicitly configured HTTPS endpoints.",
+  method: "Live provider calls; Nominatim queries are spaced at least 1.1 seconds apart and request up to ten candidates. Geocoding passes only when the same conservative token-relevance selector used by production accepts a candidate; provider-data passes require the response envelope and every requested field to be present and valid. Neither proves geographic completeness or ground truth. Overpass failover is sequential and bounded to at most three explicitly configured HTTPS endpoints.",
   attribution: [
     "© OpenStreetMap contributors (ODbL) — https://www.openstreetmap.org/copyright",
     "Weather and air-quality data from Open-Meteo (CC BY 4.0) — https://open-meteo.com/en/terms"
