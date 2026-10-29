@@ -45,14 +45,29 @@ describe("provider schema validation", () => {
     await expect(fetchNearbyAmenities(28.6139, 77.209)).rejects.toThrow(/invalid response shape/i);
   });
 
-  it("fails closed in production when no verified Overpass endpoint is configured", async () => {
+  it("uses bounded documented HTTPS public defaults in production when no endpoint is configured", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("OVERPASS_API_URL", "");
-    const fetchMock = vi.fn();
+    vi.stubEnv("OVERPASS_API_URLS", "");
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("upstream unavailable", { status: 502 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ elements: [] }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(fetchNearbyAmenities(11.2345, 22.3456, 1200)).rejects.toThrow(/not configured for production/i);
-    expect(fetchMock).not.toHaveBeenCalled();
+    await expect(fetchNearbyAmenities(11.2345, 22.3456, 1200)).resolves.toMatchObject({ totalCount: 0 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][0]).toBe("https://overpass.private.coffee/api/interpreter");
+    expect(fetchMock.mock.calls[1][0]).toBe("https://overpass-api.de/api/interpreter");
+  });
+
+  it("does not immediately retry a rate-limited Overpass request", async () => {
+    vi.stubEnv("OVERPASS_API_URLS", "https://overpass-primary.example/interpreter;https://overpass-secondary.example/interpreter");
+    vi.stubEnv("OVERPASS_API_URL", "");
+    const fetchMock = vi.fn().mockResolvedValue(new Response("rate limited", { status: 429 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchNearbyAmenities(15.1234, 16.2345, 1200)).rejects.toThrow(/HTTP 429/i);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("rejects insecure HTTP Overpass endpoint configuration", async () => {
