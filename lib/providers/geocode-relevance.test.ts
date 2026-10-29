@@ -1,11 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { rankGeocodeCandidates, selectRelevantGeocodeCandidate, type GeocodeCandidate } from "./geocode-relevance";
+import { getNominatimSearchOptions, rankGeocodeCandidates, selectRelevantGeocodeCandidate, type GeocodeCandidate } from "./geocode-relevance";
 
 const candidate = (display_name: string, metadata: Partial<GeocodeCandidate> = {}): GeocodeCandidate => ({
   display_name,
   lat: "28.61",
   lon: "77.23",
   ...metadata
+});
+
+describe("Nominatim query intent", () => {
+  it("restricts locality queries to settlements", () => {
+    expect(getNominatimSearchOptions("Saket, New Delhi, India")).toEqual({ layer: "address", featureType: "settlement" });
+    expect(getNominatimSearchOptions("Sector 150, Noida, Uttar Pradesh, India")).toEqual({ layer: "address", featureType: "settlement" });
+  });
+
+  it("keeps street/address queries on the address layer", () => {
+    expect(getNominatimSearchOptions("Sohna Road, Gurugram, Haryana, India")).toEqual({ layer: "address" });
+    expect(getNominatimSearchOptions("123 MG Road, Bengaluru")).toEqual({ layer: "address" });
+  });
+
+  it("includes POI candidates only when the query explicitly asks for one", () => {
+    expect(getNominatimSearchOptions("Green Field School, Saket")).toEqual({ layer: "address,poi" });
+    expect(getNominatimSearchOptions("Apollo Hospital, Delhi")).toEqual({ layer: "address,poi" });
+  });
 });
 
 describe("geocoder relevance guard", () => {
@@ -44,6 +61,15 @@ describe("geocoder relevance guard", () => {
     expect(selectRelevantGeocodeCandidate("Sector 150, Noida, Uttar Pradesh, India", [
       candidate("Sector 18, Noida, Uttar Pradesh, India")
     ])).toBeNull();
+  });
+
+  it("rejects a POI whose name starts with the locality when the user did not ask for a POI", () => {
+    const station = candidate("Saket Metro Station, Saket, South Delhi, Delhi, India", {
+      category: "railway",
+      type: "station",
+      addresstype: "railway"
+    });
+    expect(selectRelevantGeocodeCandidate("Saket, New Delhi, India", [station])).toBeNull();
   });
 
   it("rejects a point of interest that only mentions a locality", () => {

@@ -51,6 +51,26 @@ function meaningfulTokens(value: string): string[] {
   return [...new Set(normalize(value).split(" ").filter((token) => token.length > 1 && !GENERIC_TOKENS.has(token)))];
 }
 
+const STREET_ADDRESS_TERMS = new Set([
+  "road", "rd", "street", "st", "lane", "marg", "avenue", "highway",
+  "expressway", "route", "cross", "bypass", "drive", "dr", "circle",
+  "plot", "flat", "house", "building", "block", "apartment", "apt",
+  "unit", "floor", "door", "postcode", "postal"
+]);
+
+export interface NominatimSearchOptions {
+  layer: "address" | "address,poi";
+  featureType?: "settlement";
+}
+
+/** Prefer inhabited place results for locality queries; allow roads and explicit POIs. */
+export function getNominatimSearchOptions(query: string): NominatimSearchOptions {
+  const tokens = meaningfulTokens(query);
+  if (tokens.some((token) => EXPLICIT_POI_TERMS.has(token))) return { layer: "address,poi" };
+  if (tokens.some((token) => STREET_ADDRESS_TERMS.has(token))) return { layer: "address" };
+  return { layer: "address", featureType: "settlement" };
+}
+
 function candidateTokens(candidate: GeocodeCandidate): Set<string> {
   const addressValues = candidate.address ? Object.values(candidate.address).filter(
     (value): value is string => typeof value === "string"
@@ -78,14 +98,11 @@ export function rankGeocodeCandidates(query: string, candidates: GeocodeCandidat
       // building, or postcode. Never accept a candidate that drops/changes one.
       const missingNumericTokens = queryTokens.filter((token) => /\d/.test(token) && !labelTokens.has(token));
       const explicitPoiIntent = queryTokens.some((token) => EXPLICIT_POI_TERMS.has(token));
-      const queryPrefix = queryTokens.slice(0, Math.min(2, queryTokens.length)).join(" ");
-      const beginsWithQuery = label.startsWith(queryPrefix);
       const candidateClass = candidate.category ?? candidate.class;
       const isUnqualifiedPointOfInterest = !!candidateClass &&
         POINT_OF_INTEREST_CLASSES.has(candidateClass) &&
         !LOCALITY_ADDRESS_TYPES.has(candidate.addresstype ?? "") &&
-        !explicitPoiIntent &&
-        !beginsWithQuery;
+        !explicitPoiIntent;
       // A POI whose name merely mentions the searched neighbourhood is not
       // an acceptable substitute for the neighbourhood itself.
       const score = missingNumericTokens.length > 0 || isUnqualifiedPointOfInterest

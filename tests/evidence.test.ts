@@ -109,6 +109,19 @@ describe("Evidence Engine & Provenance Integrity", () => {
     }
   });
 
+  it("records the actual geocoder used in source provenance", () => {
+    const nominatimReport = assembleLocationReport("Indiranagar", mockLocation, null, null, null, "2026-10-28T01:00:00Z");
+    const nominatimEvidence = nominatimReport.evidence.find((item) => item.id === "ev-geo-01");
+    expect(nominatimEvidence?.provider).toBe("OpenStreetMap Nominatim");
+    expect(nominatimEvidence?.sourceUrl).toBe("https://nominatim.openstreetmap.org/");
+
+    const photonLocation = { ...mockLocation, geocodingProvider: "photon" as const };
+    const photonReport = assembleLocationReport("Saket", photonLocation, null, null, null, "2026-10-28T01:00:00Z");
+    const photonEvidence = photonReport.evidence.find((item) => item.id === "ev-geo-01");
+    expect(photonEvidence?.provider).toBe("Photon (OpenStreetMap-backed geocoder)");
+    expect(photonEvidence?.sourceUrl).toBe("https://photon.komoot.io/");
+  });
+
   it("labels gridded weather and air-quality estimates as provider model output", () => {
     const report = assembleLocationReport("Indiranagar", mockLocation, mockWeather, mockAirQuality, mockAmenities, "2026-10-28T01:00:00Z");
     const modeled = report.evidence.filter((item) => item.category === "weather" || item.category === "air_quality" || item.category === "topography");
