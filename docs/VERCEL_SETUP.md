@@ -14,9 +14,12 @@ This guide lists the environment variables used by the current Next.js applicati
 
 ## Map and NASA imagery
 
-- The interactive map uses Leaflet and public NASA Earthdata GIBS VIIRS imagery as an optional satellite layer.
-- **The GIBS map layer does not use `NASA_API_KEY`**. A NASA API key may be configured in Vercel for other NASA APIs, but the current application source does not read it. Do not claim that a secret is being used just because it exists in Vercel.
-- `NEXT_PUBLIC_MAP_TILE_URL` is an optional custom street-tile URL template. If set, ensure the endpoint is permitted for the expected traffic and that attribution remains visible.
+- The interactive map uses Leaflet, CARTO Voyager for the default basemap, OpenStreetMap as a fallback, and public NASA Earthdata GIBS VIIRS imagery as an optional regional satellite layer.
+- `NEXT_PUBLIC_CARTO_API_KEY` is the **CARTO Basemaps key** used on every Voyager raster tile request as the `key` query parameter. CARTO introduced required keys for its basemap service in September 2026; without the key, the service can return an API-key-required watermark. Add the value in Vercel for Production and Preview (and `.env.local` for local development), then redeploy/restart so Next.js embeds the updated public environment value. The app falls back to OpenStreetMap when the key is absent or the CARTO layer fails.
+- This variable is intentionally `NEXT_PUBLIC_*` because basemap requests originate in the user's browser. It is **not a secret**: use a dedicated CARTO Basemaps key for this app and restrict allowed HTTP Referer hosts to the production domain and any explicitly needed preview domains. Never put a CARTO master key or private data API token in this variable. Keep CARTO and OpenStreetMap attribution visible.
+- Official key request/dashboard: https://carto.com/basemaps/apikey/ . Check the current CARTO terms and usage quota for the app's intended non-commercial or commercial use.
+- `NEXT_PUBLIC_MAP_TILE_URL` remains an optional custom street-tile URL template. If it overrides the default street tiles, ensure the endpoint is permitted for expected traffic and that attribution remains visible.
+- **The NASA GIBS layer does not use `NASA_API_KEY`**. A NASA API key may exist in Vercel for other APIs, but the current application source does not read it. NASA GIBS imagery is regional Earth-observation context, not parcel-level aerial photography.
 - Map tile services can fail independently of the analysis API. The UI should show an unavailable/fallback state rather than imply satellite imagery is current or complete.
 
 ## Providers and terms
