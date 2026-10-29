@@ -101,7 +101,37 @@ describe("geocoder relevance guard", () => {
     expect(selectRelevantGeocodeCandidate("Green Field School, Saket", [explicitPoi])).toEqual(explicitPoi);
   });
 
-  it("rejects equally ranked distinct results instead of guessing", () => {
+
+  it("does not satisfy numeric locality tokens from hidden address metadata", () => {
+    const wrongSector = candidate("Mayank Apartments, Sector 6 Road, Dwarka, New Delhi, India", {
+      category: "place",
+      type: "suburb",
+      addresstype: "suburb",
+      address: { suburb: "Dwarka Sector 21", city: "New Delhi" }
+    });
+    expect(selectRelevantGeocodeCandidate("Dwarka Sector 21, New Delhi, India", [wrongSector])).toBeNull();
+  });
+
+  it("rejects a POI-like label even when its address metadata contains the locality", () => {
+    const poi = candidate("Electricity Office, Sector 150, Noida, Uttar Pradesh, India", {
+      category: "place",
+      type: "locality",
+      addresstype: "locality",
+      address: { suburb: "Sector 150", city: "Noida", state: "Uttar Pradesh" }
+    });
+    expect(selectRelevantGeocodeCandidate("Sector 150, Noida, Uttar Pradesh, India", [poi])).toBeNull();
+  });
+
+  it("allows a valid locality label when a numbered sector is ordered before the city", () => {
+    const sector = candidate("Sector 15, Faridabad, Haryana, India", {
+      category: "place",
+      type: "suburb",
+      addresstype: "suburb"
+    });
+    expect(selectRelevantGeocodeCandidate("Faridabad Sector 15, Haryana, India", [sector])).toEqual(sector);
+  });
+
+    it("rejects equally ranked distinct results instead of guessing", () => {
     const results = [
       candidate("Sector 62, Noida, Uttar Pradesh, India"),
       candidate("Sector 62, Noida, Gautam Buddha Nagar, Uttar Pradesh, India")
