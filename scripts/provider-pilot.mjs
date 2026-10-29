@@ -76,7 +76,7 @@ for (const query of locations) {
   geocodeUrl.searchParams.set("addressdetails", "1");
   // Mirror production: investigate localities/addresses rather than POIs
   // that merely contain a locality name.
-  geocodeUrl.searchParams.set("layer", "address");
+  geocodeUrl.searchParams.set("layer", "address,poi");
   geocodeUrl.searchParams.set("limit", "10");
   const geo = await checkJson(geocodeUrl.toString(), {
     headers: { "User-Agent": "InfracisProviderPilot/1.0 (https://github.com/kaustubhdua/infracis)", Accept: "application/json" }
@@ -205,7 +205,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   pilotGeography: "Delhi NCR, India",
   sampleCount: locations.length,
-  method: "Live provider calls; Nominatim queries are spaced at least 1.1 seconds apart and request up to five candidates. Geocoding passes only when the same conservative token-relevance selector used by production accepts a candidate; provider-data passes require the response envelope and every requested field to be present and valid. Neither proves geographic completeness or ground truth. Overpass failover is sequential and bounded to at most three explicitly configured HTTPS endpoints.",
+  method: "Live provider calls; Nominatim queries are spaced at least 1.1 seconds apart and request up to ten candidates. Geocoding passes only when the same conservative token-relevance selector used by production accepts a candidate; provider-data passes require the response envelope and every requested field to be present and valid. Neither proves geographic completeness or ground truth. Overpass failover is sequential and bounded to at most three explicitly configured HTTPS endpoints.",
   attribution: [
     "© OpenStreetMap contributors (ODbL) — https://www.openstreetmap.org/copyright",
     "Weather and air-quality data from Open-Meteo (CC BY 4.0) — https://open-meteo.com/en/terms"
