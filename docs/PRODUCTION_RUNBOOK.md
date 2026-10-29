@@ -23,7 +23,7 @@ The [20-location Delhi NCR pilot](https://github.com/kaustubhdua/infracis/action
 
 ### Release boundary
 
-Current main candidate `7764704a11ecdba64dfc4703fbb0eebdf345f5cc` passed [main-branch CI](https://github.com/kaustubhdua/infracis/actions/runs/40814777604). CI completed successfully for dependency installation, production/full dependency audits, unit tests, lint, type-check, and production build. The latest merge polishes map layers and evidence-led comparison results. This is repository evidence only, not proof of live provider or deployed-host behavior.
+The latest completed green main-branch CI evidence at this runbook snapshot is commit `3a2c81e3cf138cfa578541aad291d4e492cfe057` ([CI run](https://github.com/kaustubhdua/infracis/actions/runs/40816397481)), which includes the Voyager basemap, NASA GIBS fallback, and updated README. The newer main documentation snapshot `176b63cdbdac5acf2037c18406f98e0093b32e0d` has a CI run in progress; check [the latest Actions runs](https://github.com/kaustubhdua/infracis/actions) before release. These are repository checks only, not proof of live provider reliability or a deployed service. The live pilot results above remain release blockers.host behavior.
 
 The current repository is a tested MVP, not yet production-proven. Live provider reliability (the latest strict-relevance pilot accepted only 8/20 queries and returned 0/8 amenity responses), cross-instance Redis behavior, deployed-domain checks, browser QA, and any cloud persistence remain explicit release gates below. No deployment was performed.
 
