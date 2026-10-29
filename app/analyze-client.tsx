@@ -30,7 +30,8 @@ import {
   Layers,
   Wind,
   Bus,
-  HeartPulse
+  HeartPulse,
+  LocateFixed
 } from "lucide-react";
 
 export default function AnalyzeClient() {
@@ -42,10 +43,12 @@ export default function AnalyzeClient() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [savedModalOpen, setSavedModalOpen] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState("");
   const [evidenceFilter, setEvidenceFilter] = useState<EvidenceClassification | "all">("all");
   const analysisRequestId = useRef(0);
 
-  const runAnalysis = useCallback(async (searchQuery: string, lat?: number, lon?: number) => {
+  const runAnalysis = useCallback(async (searchQuery: string, lat?: number, lon?: number, reverseGeocode = false) => {
     const requestId = ++analysisRequestId.current;
     setLoading(true);
     setError("");
@@ -61,7 +64,8 @@ export default function AnalyzeClient() {
         body: JSON.stringify({
           query: searchQuery,
           lat,
-          lon
+          lon,
+          reverseGeocode
         })
       });
 
@@ -87,6 +91,32 @@ export default function AnalyzeClient() {
     e.preventDefault();
     if (!query.trim()) return;
     runAnalysis(query.trim());
+  };
+
+  const handleUseMyLocation = () => {
+    setGeoError("");
+    if (!navigator.geolocation) {
+      setGeoError("This browser does not support location access. Enter your locality or address instead.");
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const lat = coords.latitude;
+        const lon = coords.longitude;
+        const coordinateLabel = `Coordinates ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+        setQuery(coordinateLabel);
+        setGeoLoading(false);
+        runAnalysis(coordinateLabel, lat, lon, true);
+      },
+      (error) => {
+        setGeoLoading(false);
+        setGeoError(error.code === error.PERMISSION_DENIED
+          ? "Location permission was denied. You can still search for a locality manually."
+          : "Your location could not be determined. Check device location settings and try again.");
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 }
+    );
   };
 
   const handleMapCoordinatePick = useCallback((lat: number, lon: number) => {
@@ -166,6 +196,15 @@ export default function AnalyzeClient() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#6e7f72]">
+                  <button
+                    type="button"
+                    onClick={handleUseMyLocation}
+                    disabled={geoLoading || loading}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#cdddc8] bg-white px-3 py-2 text-xs font-semibold text-[#174b38] shadow-sm transition hover:bg-[#f0f5ed] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a]"
+                  >
+                    {geoLoading ? <LoaderCircle size={14} className="animate-spin" /> : <LocateFixed size={14} />}
+                    {geoLoading ? "Finding your location…" : "Use my current location"}
+                  </button>
                   <span className="font-medium">Try pilot locations:</span>
                   <button
                     type="button"
@@ -209,6 +248,7 @@ export default function AnalyzeClient() {
                   </button>
                 </div>
               </form>
+              {geoError && <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">{geoError}</p>}
             </section>
 
             {error && (
