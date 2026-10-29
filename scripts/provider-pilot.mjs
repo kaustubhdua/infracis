@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { hasFiniteFields } from "./provider-pilot-validation.mjs";
+import { selectRelevantGeocodeCandidate } from "../lib/providers/geocode-relevance.ts";
 
 const locations = [
   "Connaught Place, New Delhi, India",
@@ -72,15 +73,20 @@ for (const query of locations) {
   geocodeUrl.searchParams.set("q", query);
   geocodeUrl.searchParams.set("format", "jsonv2");
   geocodeUrl.searchParams.set("addressdetails", "1");
-  geocodeUrl.searchParams.set("limit", "1");
+  geocodeUrl.searchParams.set("limit", "5");
   const geo = await checkJson(geocodeUrl.toString(), {
     headers: { "User-Agent": "InfracisProviderPilot/1.0 (https://github.com/kaustubhdua/infracis)", Accept: "application/json" }
   });
   lastNominatimAt = Date.now();
-  const first = geo.ok && Array.isArray(geo.body) ? geo.body[0] : null;
-  const lat = Number(first?.lat);
-  const lon = Number(first?.lon);
-  const validGeo = !!first && typeof first.display_name === "string" && Number.isFinite(lat) && lat >= -90 && lat <= 90 && Number.isFinite(lon) && lon >= -180 && lon <= 180;
+  const candidates = geo.ok && Array.isArray(geo.body) ? geo.body : [];
+  // Use the same conservative relevance selector as the live app. A syntactically
+  // valid first Nominatim result is not enough: it may be a shop or other nearby POI.
+  const selected = selectRelevantGeocodeCandidate(query, candidates);
+  const lat = Number(selected?.lat);
+  const lon = Number(selected?.lon);
+  const validGeo = !!selected && typeof selected.display_name === "string" &&
+    Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
+    Number.isFinite(lon) && lon >= -180 && lon <= 180;
 
   const result = {
     query,
@@ -88,10 +94,10 @@ for (const query of locations) {
       ok: validGeo,
       status: geo.status ?? null,
       elapsedMs: geo.elapsedMs,
-      resolvedLabel: validGeo ? first.display_name : null,
-      resolvedClass: validGeo && typeof first.class === "string" ? first.class : null,
-      resolvedType: validGeo && typeof first.type === "string" ? first.type : null,
-      resolvedAddressType: validGeo && typeof first.addresstype === "string" ? first.addresstype : null,
+      resolvedLabel: validGeo ? selected.display_name : null,
+      resolvedClass: validGeo && typeof (selected.category ?? selected.class) === "string" ? (selected.category ?? selected.class) : null,
+      resolvedType: validGeo && typeof selected.type === "string" ? selected.type : null,
+      resolvedAddressType: validGeo && typeof selected.addresstype === "string" ? selected.addresstype : null,
       latitude: validGeo ? lat : null,
       longitude: validGeo ? lon : null,
       error: validGeo ? null : geo.error ?? (geo.ok ? "No valid matching result" : "Geocoding request failed"),
