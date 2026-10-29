@@ -41,6 +41,9 @@ const EXPLICIT_POI_TERMS = new Set([
 function normalize(value: string): string {
   return value.normalize("NFKD").toLocaleLowerCase("en")
     .replace(/\bbangalore\b/g, "bengaluru")
+    // Nominatim may label localities in South/West/East Delhi rather than "New Delhi".
+    // Treat the city alias as shared context while still requiring the locality tokens.
+    .replace(/\bnew\s+delhi\b/g, "delhi")
     .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
 }
 
