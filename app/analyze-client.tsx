@@ -7,7 +7,8 @@ const LocationMap = dynamic(() => import("@/components/location-map"), {
   ssr: false,
   loading: () => <div className="grid h-[360px] place-items-center rounded-3xl border border-[#d7e1d5] bg-[#edf3e8] text-sm text-[#53675a] sm:h-[440px]">Loading interactive map…</div>
 });
-import SavedReportsModal, { saveReportToStorage, exportReportJson } from "@/components/saved-reports-modal";
+import { saveReportToStorage, exportReportJson } from "@/lib/browser-saved-reports";
+const SavedReportsModal = dynamic(() => import("@/components/saved-reports-modal"), { ssr: false });
 import Nav from "@/components/nav";
 
 const sectionFallback = () => <div className="animate-pulse rounded-2xl border border-[#dce5d8] bg-white/80 p-5 text-sm text-[#718275]">Loading section…</div>;
@@ -570,14 +571,14 @@ export default function AnalyzeClient() {
         )}
       </main>
 
-      <SavedReportsModal
+      {savedModalOpen && <SavedReportsModal
         isOpen={savedModalOpen}
         onClose={() => setSavedModalOpen(false)}
         onSelectReport={(selectedReport) => {
           setReport(selectedReport);
           setActiveTab("analyze");
         }}
-      />
+      />}
     </div>
   );
 }

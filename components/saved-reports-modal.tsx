@@ -2,41 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { LocationReport } from "@/lib/types";
-import { parseStoredReports, upsertStoredReport } from "@/lib/local-report-storage";
+import { readStoredReports, exportReportJson } from "@/lib/browser-saved-reports";
 import { Bookmark, Trash2, Download, X } from "lucide-react";
 
 interface SavedReportsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectReport: (report: LocationReport) => void;
-}
-
-function readStoredReports(): LocationReport[] {
-  const raw = localStorage.getItem("infracis_saved_reports");
-  if (!raw) return [];
-  return parseStoredReports(JSON.parse(raw));
-}
-
-export function saveReportToStorage(report: LocationReport): boolean {
-  try {
-    const reports = upsertStoredReport(readStoredReports(), report);
-    localStorage.setItem("infracis_saved_reports", JSON.stringify(reports));
-    return true;
-  } catch (err) {
-    console.error("Failed to save report to local storage", err);
-    return false;
-  }
-}
-
-export function exportReportJson(report: LocationReport) {
-  const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2));
-  const downloadAnchor = document.createElement("a");
-  const safeLabel = report.location.label.slice(0, 25).replace(/[^a-zA-Z0-9_-]+/g, "_");
-  downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `infracis-due-diligence-${safeLabel || "location"}.json`);
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
-  downloadAnchor.remove();
 }
 
 export default function SavedReportsModal({
