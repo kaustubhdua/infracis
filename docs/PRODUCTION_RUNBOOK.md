@@ -23,7 +23,7 @@ The [20-location Delhi NCR pilot](https://github.com/kaustubhdua/infracis/action
 
 ### Release boundary
 
-The latest completed green main-branch CI evidence at this runbook snapshot is commit `3a2c81e3cf138cfa578541aad291d4e492cfe057` ([CI run](https://github.com/kaustubhdua/infracis/actions/runs/40816397481)), which includes the Voyager basemap, NASA GIBS fallback, and updated README. The newer main documentation snapshot `176b63cdbdac5acf2037c18406f98e0093b32e0d` has a CI run in progress; check [the latest Actions runs](https://github.com/kaustubhdua/infracis/actions) before release. These are repository checks only, not proof of live provider reliability or a deployed service. The live pilot results above remain release blockers.host behavior.
+Main commit `275b97e7ad582033054810a3788e9c789598de20` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40817124962), including dependency installation/audits, unit tests, lint, TypeScript type-check, and production build. This candidate includes the Voyager basemap, NASA GIBS fallback, strict locality relevance checks, and the measured-pilot documentation. These are repository checks only, not proof of live provider reliability or a deployed service. The new live pilot after the geocoding change is still running; its results must be reviewed before treating locality recall as verified.host behavior.
 
 The current repository is a tested MVP, not yet production-proven. Live provider reliability (the latest strict-relevance pilot accepted only 8/20 queries and returned 0/8 amenity responses), cross-instance Redis behavior, deployed-domain checks, browser QA, and any cloud persistence remain explicit release gates below. No deployment was performed.
 
