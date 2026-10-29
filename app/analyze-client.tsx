@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { LocationReport, EvidenceClassification } from "@/lib/types";
-import LocationMap from "@/components/location-map";
+const LocationMap = dynamic(() => import("@/components/location-map"), {
+  ssr: false,
+  loading: () => <div className="grid h-[360px] place-items-center rounded-3xl border border-[#d7e1d5] bg-[#edf3e8] text-sm text-[#53675a] sm:h-[440px]">Loading interactive map…</div>
+});
 import EvidenceCard from "@/components/evidence-card";
 import ChecklistSection from "@/components/checklist-section";
 import CompareView from "@/components/compare-view";
