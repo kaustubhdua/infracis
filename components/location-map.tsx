@@ -66,13 +66,32 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         leaflet.control.zoom({ position: "topright" }).addTo(map);
 
         const streetUrl = process.env.NEXT_PUBLIC_MAP_TILE_URL || OSM_TILES;
-        const street = leaflet.tileLayer(streetUrl, {
+        let fallbackAttempted = false;
+        let street = leaflet.tileLayer(streetUrl, {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
           maxZoom: 19,
           maxNativeZoom: 19,
           crossOrigin: true
         });
-        street.on("tileerror", () => setTileError(true));
+        street.on("tileerror", () => {
+          setTileError(true);
+          // A broken custom tile URL should not leave the user with a blank map.
+          if (!fallbackAttempted && streetUrl !== OSM_TILES) {
+            fallbackAttempted = true;
+            map?.removeLayer(street);
+            const fallback = leaflet.tileLayer(OSM_TILES, {
+              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+              maxZoom: 19,
+              maxNativeZoom: 19,
+              crossOrigin: true
+            });
+            fallback.on("tileload", () => setTileError(false));
+            fallback.on("tileerror", () => setTileError(true));
+            fallback.addTo(map!);
+            street = fallback;
+            streetLayerRef.current = fallback;
+          }
+        });
         street.addTo(map);
         streetLayerRef.current = street;
 
@@ -83,7 +102,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
             attribution: 'NASA Global Imagery Browse Services (GIBS) / Earth Science Data and Information System',
             maxZoom: 19,
             maxNativeZoom: 9,
-            opacity: 0.88,
+            opacity: 0.58,
             crossOrigin: true
           }
         );
@@ -143,8 +162,9 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
     const street = streetLayerRef.current;
     const nasa = nasaLayerRef.current;
     if (!map || !street || !nasa) return;
+    // Keep the street layer underneath as a readable, resilient reference map.
     if (mapStyle === "satellite") {
-      if (map.hasLayer(street)) map.removeLayer(street);
+      if (!map.hasLayer(street)) street.addTo(map);
       if (!map.hasLayer(nasa)) nasa.addTo(map);
     } else {
       if (map.hasLayer(nasa)) map.removeLayer(nasa);
