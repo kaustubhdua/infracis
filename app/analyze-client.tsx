@@ -19,6 +19,7 @@ const MethodologyView = dynamic(() => import("@/components/methodology-view"), {
 const DecisionBrief = dynamic(() => import("@/components/decision-brief"), { loading: sectionFallback });
 const AiInsight = dynamic(() => import("@/components/ai-insight"), { loading: sectionFallback });
 const LocalityReview = dynamic(() => import("@/components/locality-review"), { loading: sectionFallback });
+const PersonalizedLocalityAnalysis = dynamic(() => import("@/components/personalized-locality-analysis"), { loading: sectionFallback });
 import {
   MapPin,
   ArrowRight,
@@ -335,6 +336,7 @@ export default function AnalyzeClient() {
                   />
                 </section>
                 <LocalityReview locationLabel={report.location.label} />
+                <PersonalizedLocalityAnalysis report={report} />
 
                 {/* Score & Dimension Cards */}
                 <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
