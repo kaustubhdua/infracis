@@ -237,6 +237,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
     }
     map.invalidateSize({ pan: false });
     streetLayerRef.current?.redraw();
+    lightLayerRef.current?.redraw();
     nasaLayerRef.current?.redraw();
   }, []);
 
