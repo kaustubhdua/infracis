@@ -22,7 +22,12 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
   url.searchParams.set("q", query);
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("addressdetails", "1");
-  url.searchParams.set("limit", "5");
+  // This product investigates a locality/address, not a nearby POI whose label
+  // happens to contain the locality name. Nominatim's address layer still
+  // supports streets and address points while excluding restaurants, shops,
+  // schools, and other POI-only matches that previously crowded out localities.
+  url.searchParams.set("layer", "address");
+  url.searchParams.set("limit", "10");
 
   const response = await fetch(url.toString(), {
     headers: {

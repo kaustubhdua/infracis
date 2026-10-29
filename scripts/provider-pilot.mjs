@@ -41,7 +41,8 @@ const overpassEndpoints = (configuredOverpassEndpoints.length
   ? configuredOverpassEndpoints
   : [
       "https://overpass.private.coffee/api/interpreter",
-      "https://overpass-api.de/api/interpreter"
+      "https://overpass-api.de/api/interpreter",
+      "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
     ]).map((endpoint) => {
     let parsedEndpoint;
     try {
@@ -73,7 +74,10 @@ for (const query of locations) {
   geocodeUrl.searchParams.set("q", query);
   geocodeUrl.searchParams.set("format", "jsonv2");
   geocodeUrl.searchParams.set("addressdetails", "1");
-  geocodeUrl.searchParams.set("limit", "5");
+  // Mirror production: investigate localities/addresses rather than POIs
+  // that merely contain a locality name.
+  geocodeUrl.searchParams.set("layer", "address");
+  geocodeUrl.searchParams.set("limit", "10");
   const geo = await checkJson(geocodeUrl.toString(), {
     headers: { "User-Agent": "InfracisProviderPilot/1.0 (https://github.com/kaustubhdua/infracis)", Accept: "application/json" }
   });

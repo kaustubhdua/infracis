@@ -45,7 +45,8 @@ out center tags 100;`;
     ? configuredEndpoints
     : [
         "https://overpass.private.coffee/api/interpreter",
-        "https://overpass-api.de/api/interpreter"
+        "https://overpass-api.de/api/interpreter",
+        "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
       ];
   const endpoints = endpointValues.map((value) => {
     let parsed: URL;
