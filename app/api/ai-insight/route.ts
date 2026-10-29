@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+        model: process.env.GROQ_MODEL || "openai/gpt-oss-20b",
         temperature: 0.2,
         max_tokens: 700,
         messages: [
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
     if (typeof text !== "string" || !text.trim()) {
       return NextResponse.json({ error: "The AI provider returned an empty response." }, { status: 502, headers: { "Cache-Control": "no-store" } });
     }
-    return NextResponse.json({ insight: text.trim().slice(0, MAX_TEXT), model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile", generatedAt: new Date().toISOString() }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ insight: text.trim().slice(0, MAX_TEXT), model: process.env.GROQ_MODEL || "openai/gpt-oss-20b", generatedAt: new Date().toISOString() }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ error: "AI insight timed out or the provider could not be reached. Your source-based report is still available." }, { status: 502, headers: { "Cache-Control": "no-store" } });
   }
