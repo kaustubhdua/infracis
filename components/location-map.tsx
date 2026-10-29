@@ -45,7 +45,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
     } catch { /* cookies may be disabled; the default style still works */ }
     finally {
       // Do not write the default before the saved preference has been read.
-      // Otherwise the first effect cycle can overwrite "satellite" with "street".
+      // Otherwise the first effect cycle can overwrite the saved basemap preference.
       setMapStylePreferenceLoaded(true);
     }
   }, []);
