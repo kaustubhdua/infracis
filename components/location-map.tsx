@@ -9,6 +9,8 @@ import { escapeHtml } from "@/lib/escape-html";
 const EMPTY_AMENITIES: AmenityItem[] = [];
 const OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const NASA_LAYER = "VIIRS_SNPP_CorrectedReflectance_TrueColor";
+// Near-real-time satellite products can lag ingestion by a day or more.
+const NASA_TILE_DATE = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 interface LocationMapProps {
   location: LocationData;
@@ -98,7 +100,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
 
         // NASA GIBS publishes public, pre-rendered Earth-observation tiles. No API key is required for this tile service.
         const nasa = leaflet.tileLayer(
-          `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${NASA_LAYER}/default/${new Date().toISOString().slice(0, 10)}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`,
+          `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${NASA_LAYER}/default/${NASA_TILE_DATE}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`,
           {
             attribution: 'NASA Global Imagery Browse Services (GIBS) / Earth Science Data and Information System',
             maxZoom: 19,
@@ -247,7 +249,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         </div>
         {onPickCoordinates && <span>Click the map to investigate another point</span>}
       </div>
-      {mapStyle === "satellite" && <p className="border-t border-[#edf1e9] px-4 py-2 text-[10px] text-[#819084]">NASA GIBS satellite imagery · Date: {new Date().toISOString().slice(0, 10)} · imagery availability varies by layer and location.</p>}
+      {mapStyle === "satellite" && <p className="border-t border-[#edf1e9] px-4 py-2 text-[10px] text-[#819084]">NASA GIBS satellite imagery · Date: {NASA_TILE_DATE} · imagery availability varies by layer and location.</p>}
     </section>
   );
 }
