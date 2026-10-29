@@ -186,6 +186,6 @@ describe("provider schema validation", () => {
     const body = options.body as URLSearchParams;
     const query = body.get("data") ?? "";
     expect(query.split("nwr(around:")).toHaveLength(5);
-    expect(query).toContain("[out:json][timeout:10]");
+    expect(query).toContain("[out:json][timeout:6]");
   });
 });
