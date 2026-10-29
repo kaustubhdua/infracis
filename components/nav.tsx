@@ -12,19 +12,29 @@ interface NavProps {
 
 export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) {
   const [theme, setTheme] = useState<"original" | "ux4g-white" | "ux4g-dark">("original");
+  const [themeStorageMessage, setThemeStorageMessage] = useState("");
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("infracis-theme");
-    if (savedTheme === "original" || savedTheme === "ux4g-white" || savedTheme === "ux4g-dark") {
-      setTheme(savedTheme);
-      document.documentElement.dataset.theme = savedTheme;
+    try {
+      const savedTheme = window.localStorage.getItem("infracis-theme");
+      if (savedTheme === "original" || savedTheme === "ux4g-white" || savedTheme === "ux4g-dark") {
+        setTheme(savedTheme);
+        document.documentElement.dataset.theme = savedTheme;
+      }
+    } catch {
+      // The default theme remains usable when browser storage is blocked.
     }
   }, []);
 
   const changeTheme = (nextTheme: "original" | "ux4g-white" | "ux4g-dark") => {
     setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem("infracis-theme", nextTheme);
+    try {
+      window.localStorage.setItem("infracis-theme", nextTheme);
+      setThemeStorageMessage("Theme preference saved on this device.");
+    } catch {
+      setThemeStorageMessage("Theme changed for this session, but browser storage is blocked so it could not be remembered.");
+    }
   };
 
   const navClass = (tab: NavProps["activeTab"]) =>
@@ -36,6 +46,7 @@ export default function Nav({ activeTab, setActiveTab, onOpenSaved }: NavProps) 
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#dce4d8] bg-[#f8f8f1]/95 shadow-[0_4px_24px_rgba(25,57,39,0.04)] backdrop-blur-xl">
+      <span className="sr-only" role="status" aria-live="polite">{themeStorageMessage}</span>
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <Link href="/" aria-label="Infracis home" className="group flex w-fit items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] focus-visible:ring-offset-2">
           <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-[#174b38] text-white shadow-sm transition-transform duration-200 group-hover:-rotate-2">
