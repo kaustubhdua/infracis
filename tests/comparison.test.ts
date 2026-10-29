@@ -169,7 +169,7 @@ describe("Location Comparison Engine", () => {
     const comp = compareLocations(reportA, reportB, "family");
     expect(comp.preferenceSummary).toContain("Family priorities result");
     expect(comp.preferenceSummary).toContain("Location A is better supported");
-    expect(comp.preferenceSummary).toContain("A: 2, B: 0");
+    expect(comp.preferenceSummary).toContain("A leads 3, B leads 0");
     expect(comp.preferenceSummary).toContain("could not be compared");
   });
 
@@ -194,9 +194,9 @@ describe("Location Comparison Engine", () => {
 
   it("does not invent a quietness winner when ambient noise is not measured", () => {
     const comp = compareLocations(reportA, reportB, "quiet");
-    expect(comp.preferenceSummary).toContain("No defensible quietness winner");
+    expect(comp.preferenceSummary).toContain("Quietness result: not scored");
     expect(comp.preferenceSummary).toContain("do not measure ambient noise");
-    expect(comp.preferenceSummary).toContain("not a substitute for noise measurements");
+    expect(comp.preferenceSummary).toContain("air quality is not a substitute");
   });
 
 });
