@@ -169,7 +169,7 @@ describe("Location Comparison Engine", () => {
     const comp = compareLocations(reportA, reportB, "family");
     expect(comp.preferenceSummary).toContain("Family priorities result");
     expect(comp.preferenceSummary).toContain("Location A is better supported");
-    expect(comp.preferenceSummary).toContain("A leads 2, B leads 0");
+    expect(comp.preferenceSummary).toContain("A leads 3, B leads 0");
     expect(comp.preferenceSummary).toContain("could not be compared");
   });
 
