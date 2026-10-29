@@ -17,7 +17,7 @@ describe("geocoder relevance guard", () => {
 
   it("keeps explicit streets, addresses and POI searches out of settlement mode", () => {
     expect(isLikelySettlementQuery("Sohna Road, Gurugram, Haryana, India")).toBe(false);
-    expect(isLikelySettlementQuery("12 Green Park, New Delhi, India")).toBe(true);
+    expect(isLikelySettlementQuery("12 Green Park, New Delhi, India")).toBe(false);
     expect(isLikelySettlementQuery("Green Field School, Saket")).toBe(false);
     expect(isLikelySettlementQuery("")).toBe(false);
   });
