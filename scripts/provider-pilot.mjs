@@ -38,7 +38,10 @@ if (configuredOverpassEndpoints.length > 3) {
 }
 const overpassEndpoints = (configuredOverpassEndpoints.length
   ? configuredOverpassEndpoints
-  : ["https://overpass-api.de/api/interpreter"]).map((endpoint) => {
+  : [
+      "https://overpass.private.coffee/api/interpreter",
+      "https://overpass-api.de/api/interpreter"
+    ]).map((endpoint) => {
     let parsedEndpoint;
     try {
       parsedEndpoint = new URL(endpoint);
