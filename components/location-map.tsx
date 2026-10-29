@@ -117,8 +117,9 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
           }
         );
         nasa.on("tileerror", () => setTileError(true));
+        // Layer visibility is managed by the mapStyle effect after mapReady becomes true.
+        // Avoid capturing the initial theme here: cookie restoration can race async Leaflet import.
         nasaLayerRef.current = nasa;
-        if (mapStyle === "satellite") nasa.addTo(map);
 
         const propertyIcon = leaflet.divIcon({
           className: "infracis-property-pin",
@@ -181,7 +182,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
       if (!map.hasLayer(street)) street.addTo(map);
     }
     map.invalidateSize({ pan: false });
-  }, [mapStyle]);
+  }, [mapStyle, mapReady]);
 
   useEffect(() => {
     const layer = amenityLayerRef.current;
