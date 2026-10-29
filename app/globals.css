@@ -197,6 +197,40 @@ html[data-theme="ux4g-dark"] [class*="text-purple-"] {
   color: #c6e2f8 !important;
 }
 
+html[data-theme="ux4g-dark"] .ai-insight-panel {
+  border-color: #2b526b !important;
+  background: #12283c !important;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24) !important;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-panel [class*="border-b"],
+html[data-theme="ux4g-dark"] .ai-insight-panel [class*="border-t"] {
+  border-color: #2b526b !important;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-panel [class*="text-[#183b2b"],
+html[data-theme="ux4g-dark"] .ai-insight-panel [class*="text-[#2b4032"] {
+  color: #e7f1fb !important;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-panel [class*="text-[#627367"],
+html[data-theme="ux4g-dark"] .ai-insight-panel [class*="text-[#53675a"],
+html[data-theme="ux4g-dark"] .ai-insight-panel [class*="text-[#748376"] {
+  color: #b9cfdf !important;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-panel [class*="border-[#d7e3d3"] {
+  border-color: #3a5872 !important;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-panel [class*="bg-white"] {
+  background-color: #17364f !important;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-panel [class*="hover:bg-[#eef5eb]"]:hover {
+  background-color: #1d4b68 !important;
+}
+
 html[data-theme="ux4g-white"] [class*="bg-[#174b38"],
 html[data-theme="ux4g-white"] [class*="bg-[#104c38"] {
   background-color: #0b5cab !important;

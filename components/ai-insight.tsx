@@ -91,7 +91,7 @@ export default function AiInsight({ kind, data }: { kind: InsightKind; data: Ins
   }, [kind, requestData, attempt]);
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-[#cddfd0] bg-gradient-to-br from-[#f5faf3] via-white to-[#f8f4e9] shadow-[0_12px_34px_rgba(23,75,56,0.07)]" aria-labelledby={`ai-insight-${kind}-title`}>
+    <section className="ai-insight-panel overflow-hidden rounded-3xl border border-[#cddfd0] bg-gradient-to-br from-[#f5faf3] via-white to-[#f8f4e9] shadow-[0_12px_34px_rgba(23,75,56,0.07)]" aria-labelledby={`ai-insight-${kind}-title`}>
       <div className="flex items-start gap-3 border-b border-[#e2ecdf] px-5 py-4 sm:px-6">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#174b38] text-white"><BrainCircuit size={20} /></span>
         <div className="min-w-0 flex-1">
