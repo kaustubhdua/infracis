@@ -335,7 +335,7 @@ export default function AnalyzeClient() {
                     onPickCoordinates={handleMapCoordinatePick}
                   />
                 </section>
-                <LocalityReview locationLabel={report.location.label} />
+                <LocalityReview key={report.location.label} locationLabel={report.location.label} />
                 <PersonalizedLocalityAnalysis report={report} />
 
                 {/* Score & Dimension Cards */}
