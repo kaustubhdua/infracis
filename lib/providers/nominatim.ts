@@ -1,6 +1,6 @@
 import { LocationData } from "../types";
 import { getSharedJson, setSharedJson, waitForNominatimSlot } from "../shared-provider-cache";
-import { selectRelevantGeocodeCandidate, GeocodeCandidate } from "./geocode-relevance";
+import { getNominatimSearchOptions, selectRelevantGeocodeCandidate, GeocodeCandidate } from "./geocode-relevance";
 
 const cache = new Map<string, { expires: number; value: LocationData }>();
 
@@ -112,9 +112,11 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
     url.searchParams.set("q", query);
     url.searchParams.set("format", "jsonv2");
     url.searchParams.set("addressdetails", "1");
-    // Keep locality recall broad enough to return place features, but never accept
-    // a POI that only mentions the searched locality.
-    url.searchParams.set("layer", "address,poi");
+    // Prefer settlement results for locality intent, address-only for roads, and
+    // address+POI only when the query explicitly names a POI category.
+    const searchOptions = getNominatimSearchOptions(query);
+    url.searchParams.set("layer", searchOptions.layer);
+    if (searchOptions.featureType) url.searchParams.set("featureType", searchOptions.featureType);
     url.searchParams.set("limit", "10");
     const response = await fetch(url.toString(), {
       headers: {
