@@ -1,6 +1,7 @@
 import { WeatherData, AirQualityData } from "../types";
 import { interpretWeatherCode, interpretEuropeanAqi } from "../geo";
 import { getSharedJson, setSharedJson } from "../shared-provider-cache";
+import { fetchWithTransientRetry } from "./http";
 
 export async function fetchWeatherAndElevation(
   lat: number,
@@ -18,11 +19,10 @@ export async function fetchWeatherAndElevation(
   );
   url.searchParams.set("timezone", "auto");
 
-  const response = await fetch(url.toString(), {
+  const response = await fetchWithTransientRetry(url.toString(), {
     headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(8000),
     cache: "no-store"
-  });
+  }, 8000);
 
   if (!response.ok) {
     throw new Error(`Open-Meteo weather service responded with HTTP ${response.status}`);
@@ -84,11 +84,10 @@ export async function fetchAirQuality(
   );
   url.searchParams.set("timezone", "auto");
 
-  const response = await fetch(url.toString(), {
+  const response = await fetchWithTransientRetry(url.toString(), {
     headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(8000),
     cache: "no-store"
-  });
+  }, 8000);
 
   if (!response.ok) {
     throw new Error(`Open-Meteo air quality service responded with HTTP ${response.status}`);
