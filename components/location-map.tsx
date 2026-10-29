@@ -124,7 +124,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         });
         light.on("tileload", () => {
           setTileError(false);
-          setLightFallbackActive(false);
+          if (CARTO_LIGHT_TILES) setLightFallbackActive(false);
         });
         let lightFallbackAttempted = false;
         light.on("tileerror", () => {
