@@ -98,14 +98,11 @@ export function rankGeocodeCandidates(query: string, candidates: GeocodeCandidat
       // building, or postcode. Never accept a candidate that drops/changes one.
       const missingNumericTokens = queryTokens.filter((token) => /\d/.test(token) && !labelTokens.has(token));
       const explicitPoiIntent = queryTokens.some((token) => EXPLICIT_POI_TERMS.has(token));
-      const queryPrefix = queryTokens.slice(0, Math.min(2, queryTokens.length)).join(" ");
-      const beginsWithQuery = label.startsWith(queryPrefix);
       const candidateClass = candidate.category ?? candidate.class;
       const isUnqualifiedPointOfInterest = !!candidateClass &&
         POINT_OF_INTEREST_CLASSES.has(candidateClass) &&
         !LOCALITY_ADDRESS_TYPES.has(candidate.addresstype ?? "") &&
-        !explicitPoiIntent &&
-        !beginsWithQuery;
+        !explicitPoiIntent;
       // A POI whose name merely mentions the searched neighbourhood is not
       // an acceptable substitute for the neighbourhood itself.
       const score = missingNumericTokens.length > 0 || isUnqualifiedPointOfInterest
