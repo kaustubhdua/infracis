@@ -6,10 +6,12 @@ import { MapPin, Satellite, Map as MapIcon, AlertTriangle, Sun } from "lucide-re
 import type { LocationData, AmenityItem } from "@/lib/types";
 import { escapeHtml } from "@/lib/escape-html";
 import { nasaGibsTileUrl, shouldFallbackFromNasaTiles } from "@/lib/nasa-gibs";
+import { cartoVoyagerTileUrl } from "@/lib/carto-tiles";
 
 const EMPTY_AMENITIES: AmenityItem[] = [];
 const OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const LIGHT_TILES = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+const CARTO_LIGHT_TILES = cartoVoyagerTileUrl(process.env.NEXT_PUBLIC_CARTO_API_KEY);
+const LIGHT_TILES = CARTO_LIGHT_TILES || OSM_TILES;
 // Near-real-time satellite products can lag ingestion by a day or more.
 const NASA_TILE_DATE = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
@@ -114,8 +116,10 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         // NASA GIBS provides regional Earth-observation imagery, not parcel-level aerial photos.
         // Its VIIRS layer has native zoom 9; switch to regional scale rather than upscaling at street level.
         const light = leaflet.tileLayer(LIGHT_TILES, {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
-          subdomains: "abcd", maxZoom: 20, crossOrigin: true
+          attribution: CARTO_LIGHT_TILES
+            ? '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>'
+            : '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+          subdomains: CARTO_LIGHT_TILES ? "abcd" : undefined, maxZoom: 20, crossOrigin: true
         });
         light.on("tileload", () => setTileError(false));
         let lightFallbackAttempted = false;
