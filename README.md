@@ -119,6 +119,10 @@ npm run build
 
 The separate FastAPI service has its own instructions in [backend/README.md](backend/README.md); it is not used by the current frontend.
 
+## Runtime configuration and release readiness
+
+See [Vercel runtime configuration](docs/VERCEL_SETUP.md) for the exact server-side environment variables, NASA GIBS map-layer behavior, Groq narrative configuration, and provider readiness checks. The release checklist and known limitations are in [the production runbook](docs/PRODUCTION_RUNBOOK.md).
+
 ## Development principles
 
 - Real data or clearly labeled demo fixtures only.
