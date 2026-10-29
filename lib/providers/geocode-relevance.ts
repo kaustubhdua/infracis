@@ -51,6 +51,10 @@ function meaningfulTokens(value: string): string[] {
   return [...new Set(normalize(value).split(" ").filter((token) => token.length > 1 && !GENERIC_TOKENS.has(token)))];
 }
 
+export function queryHasExplicitPoiIntent(query: string): boolean {
+  return meaningfulTokens(query).some((token) => EXPLICIT_POI_TERMS.has(token));
+}
+
 function candidateTokens(candidate: GeocodeCandidate): Set<string> {
   const addressValues = candidate.address ? Object.values(candidate.address).filter(
     (value): value is string => typeof value === "string"
@@ -77,7 +81,7 @@ export function rankGeocodeCandidates(query: string, candidates: GeocodeCandidat
       // Numbers in locality queries often identify a specific sector, phase,
       // building, or postcode. Never accept a candidate that drops/changes one.
       const missingNumericTokens = queryTokens.filter((token) => /\d/.test(token) && !labelTokens.has(token));
-      const explicitPoiIntent = queryTokens.some((token) => EXPLICIT_POI_TERMS.has(token));
+      const explicitPoiIntent = queryHasExplicitPoiIntent(query);
       const queryPrefix = queryTokens.slice(0, Math.min(2, queryTokens.length)).join(" ");
       const beginsWithQuery = label.startsWith(queryPrefix);
       const candidateClass = candidate.category ?? candidate.class;
