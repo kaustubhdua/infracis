@@ -14,7 +14,8 @@ A user searches for a place, reviews nearby amenities and available environmenta
 
 - **Observed facts** — retrieved from a named source.
 - **Calculated metrics** — derived using documented formulas.
-- **Rule-based interpretations** — deterministic explanations assembled from retrieved evidence IDs. This build does not call an LLM or generate AI-written summaries.
+- **Rule-based interpretations** — deterministic explanations assembled from retrieved evidence IDs.
+- **AI interpretations** — optional Groq-generated narrative grounded only in the report payload; it does not replace source records or generate risk scores.
 - **Unknowns** — unavailable, stale, incomplete, or unverified information.
 
 The first release is not a property valuation engine, legal title verification service, safety guarantee, or investment recommendation.
@@ -60,10 +61,10 @@ Existing products already offer real-estate analytics and location/risk layers. 
 ## Proposed stack
 
 - Frontend: Next.js + TypeScript + Tailwind CSS
-- Map: Leaflet with properly attributed OpenStreetMap data
+- Map: lazily loaded Leaflet with OpenStreetMap street tiles and optional NASA GIBS Earth-observation imagery
 - Backend/data: Supabase (Postgres, Auth, Storage, Row Level Security)
 - Geospatial utilities: PostGIS where enabled, otherwise well-tested geospatial helpers
-- AI: not active in this build; a future optional evidence-grounded provider adapter would require separate implementation and tests. Current findings use deterministic rules and templates.
+- AI: optional server-side Groq chat completion for cautious location and comparison interpretation; the deterministic report remains available without AI. Configure `GROQ_API_KEY` and optionally `GROQ_MODEL` as server-side environment variables only.
 - Deployment: Vercel or another supported host after local build and environment configuration are verified
 
 ## Current implementation status
@@ -73,7 +74,7 @@ The repository includes an interactive location-analysis flow wired to real publ
 - Open-Meteo for weather-model and air-quality grid output at the resolved coordinate.
 - OpenStreetMap via Overpass for mapped amenities, but **production amenity retrieval is deliberately disabled until a verified HTTPS endpoint is configured**.
 
-The UI shows source URLs, retrieval time, source availability, and limitations. Provider failures remain unavailable rather than being replaced with synthetic values. A one-time live pilot on 20 Delhi NCR queries was run on 2026-10-28; its measured results are recorded in the [production runbook](docs/PRODUCTION_RUNBOOK.md). That pilot found intermittent Open-Meteo failures and no valid Overpass responses in the tested run. This is a functional MVP with green repository CI, **not a production-ready service**: provider reliability, shared Redis operations, dedicated cloud persistence, product validation, accessibility QA, and deployment verification remain release gates.
+The UI shows source URLs, retrieval time, source availability, and limitations. Provider failures remain unavailable rather than being replaced with synthetic values. The map is dynamically loaded and offers OpenStreetMap street tiles plus an optional NASA GIBS satellite-imagery layer; GIBS imagery is a visual Earth-observation layer, not evidence of property-level hazards. Optional Groq interpretation is available only when `GROQ_API_KEY` is configured server-side. Private locality ratings/notes are stored on the current device only; they are not public reviews or an aggregate community rating. A live pilot on Delhi NCR queries is recorded in the [production runbook](docs/PRODUCTION_RUNBOOK.md). The product remains **not production-ready** until provider reliability, shared Redis operations, dedicated cloud persistence, product validation, accessibility QA, and deployment verification pass their release gates.
 
 The public Nominatim service is rate-limited and must not be used for autocomplete or high-volume traffic. Production API requests now require a configured shared Redis limiter; geocoding slot reservations and provider caches use the same dedicated Redis service. The implementation remains unverified until Redis-backed concurrent and multi-instance tests pass.
 
