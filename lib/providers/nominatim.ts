@@ -82,7 +82,7 @@ function photonFeatureToCandidate(feature: unknown): GeocodeCandidate | null {
 }
 
 /** Best-effort Photon fallback. Its public demo has no SLA; strict relevance checks still apply. */
-async function fetchPhotonLocation(query: string): Promise<LocationData | null> {
+export async function geocodeWithPhoton(query: string): Promise<LocationData | null> {
   try {
     const configured = process.env.PHOTON_API_URL?.trim() || "https://photon.komoot.io/api/";
     const url = new URL(configured);
@@ -151,7 +151,7 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
     // geocoder, but it must pass the exact same relevance and coordinate checks.
   }
 
-  if (!locationData) locationData = await fetchPhotonLocation(query);
+  if (!locationData) locationData = await geocodeWithPhoton(query);
   if (!locationData) {
     throw new Error(`Could not confidently resolve "${query}". Try adding the city, sector, locality, or postal code; unrelated nearby points of interest are not accepted as substitutes.`);
   }
