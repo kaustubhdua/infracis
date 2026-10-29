@@ -228,7 +228,7 @@ export default function CompareView() {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           <AiInsight kind="comparison" data={data} />
 
