@@ -3,6 +3,8 @@ export interface GeocodeCandidate {
   lon: string;
   display_name: string;
   type?: string;
+  /** Nominatim jsonv2 uses `category`; `class` is retained for older payloads/tests. */
+  category?: string;
   class?: string;
   addresstype?: string;
   importance?: number;
@@ -75,8 +77,9 @@ export function rankGeocodeCandidates(query: string, candidates: GeocodeCandidat
       const explicitPoiIntent = queryTokens.some((token) => EXPLICIT_POI_TERMS.has(token));
       const queryPrefix = queryTokens.slice(0, Math.min(2, queryTokens.length)).join(" ");
       const beginsWithQuery = label.startsWith(queryPrefix);
-      const isUnqualifiedPointOfInterest = !!candidate.class &&
-        POINT_OF_INTEREST_CLASSES.has(candidate.class) &&
+      const candidateClass = candidate.category ?? candidate.class;
+      const isUnqualifiedPointOfInterest = !!candidateClass &&
+        POINT_OF_INTEREST_CLASSES.has(candidateClass) &&
         !LOCALITY_ADDRESS_TYPES.has(candidate.addresstype ?? "") &&
         !explicitPoiIntent &&
         !beginsWithQuery;
