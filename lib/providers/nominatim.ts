@@ -1,6 +1,6 @@
 import { LocationData } from "../types";
 import { getSharedJson, setSharedJson, waitForNominatimSlot } from "../shared-provider-cache";
-import { selectRelevantGeocodeCandidate, GeocodeCandidate } from "./geocode-relevance";
+import { getNominatimSearchOptions, selectRelevantGeocodeCandidate, GeocodeCandidate } from "./geocode-relevance";
 
 const cache = new Map<string, { expires: number; value: LocationData }>();
 
@@ -22,11 +22,12 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
   url.searchParams.set("q", query);
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("addressdetails", "1");
-  // Request both address/locality and POI candidates so explicit place names and
-  // neighbourhoods have a chance to resolve. The relevance guard below must reject
-  // a POI that only mentions the requested locality; broadening the candidate set
-  // must never turn a nearby school/shop into the locality coordinates.
-  url.searchParams.set("layer", "address,poi");
+  // Use settlement-only search for locality intent, the address layer for streets,
+  // and address+POI only when the query explicitly names a POI category. The
+  // relevance guard remains the final check for every returned candidate.
+  const searchOptions = getNominatimSearchOptions(query);
+  url.searchParams.set("layer", searchOptions.layer);
+  if (searchOptions.featureType) url.searchParams.set("featureType", searchOptions.featureType);
   url.searchParams.set("limit", "10");
 
   const response = await fetch(url.toString(), {
