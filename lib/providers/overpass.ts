@@ -37,12 +37,16 @@ out center tags 100;`;
   if (configuredEndpoints.length > 3) {
     throw new Error("Configure at most three OVERPASS_API_URLS endpoints to keep provider retries bounded.");
   }
-  if (configuredEndpoints.length === 0 && process.env.NODE_ENV === "production") {
-    throw new Error("Overpass is not configured for production; set OVERPASS_API_URL or OVERPASS_API_URLS to verified HTTPS endpoint(s).");
-  }
+  // For evaluation and low-volume, non-commercial use, try a documented public
+  // instance first and a second instance as bounded failover. Public instances
+  // are best-effort and have no SLA; commercial/high-volume deployments must
+  // configure an appropriately licensed, capacity-matched provider.
   const endpointValues = configuredEndpoints.length > 0
     ? configuredEndpoints
-    : ["https://overpass-api.de/api/interpreter"];
+    : [
+        "https://overpass.private.coffee/api/interpreter",
+        "https://overpass-api.de/api/interpreter"
+      ];
   const endpoints = endpointValues.map((value) => {
     let parsed: URL;
     try {
@@ -78,6 +82,8 @@ out center tags 100;`;
       });
       if (!response.ok) {
         lastProviderError = `Overpass amenity service responded with HTTP ${response.status}`;
+        // Do not immediately retry a rate-limited endpoint; honour its backoff.
+        if (response.status === 429 || response.status === 406) break;
         continue;
       }
       const payload: unknown = await response.json();
