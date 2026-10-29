@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rankGeocodeCandidates, selectRelevantGeocodeCandidate, type GeocodeCandidate } from "./geocode-relevance";
+import { isLikelySettlementQuery, rankGeocodeCandidates, selectRelevantGeocodeCandidate, type GeocodeCandidate } from "./geocode-relevance";
 
 const candidate = (display_name: string, metadata: Partial<GeocodeCandidate> = {}): GeocodeCandidate => ({
   display_name,
@@ -9,6 +9,19 @@ const candidate = (display_name: string, metadata: Partial<GeocodeCandidate> = {
 });
 
 describe("geocoder relevance guard", () => {
+  it("classifies neighbourhood and sector searches as settlement queries", () => {
+    expect(isLikelySettlementQuery("Saket, New Delhi, India")).toBe(true);
+    expect(isLikelySettlementQuery("Dwarka Sector 21, New Delhi, India")).toBe(true);
+    expect(isLikelySettlementQuery("Sector 150, Noida, Uttar Pradesh, India")).toBe(true);
+  });
+
+  it("keeps explicit streets, addresses and POI searches out of settlement mode", () => {
+    expect(isLikelySettlementQuery("Sohna Road, Gurugram, Haryana, India")).toBe(false);
+    expect(isLikelySettlementQuery("12 Green Park, New Delhi, India")).toBe(true);
+    expect(isLikelySettlementQuery("Green Field School, Saket")).toBe(false);
+    expect(isLikelySettlementQuery("")).toBe(false);
+  });
+
   it("treats New Delhi and Delhi locality labels as equivalent city context", () => {
     const saket = candidate("Saket, South Delhi, Delhi, India", {
       category: "place",
