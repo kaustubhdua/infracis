@@ -205,34 +205,59 @@ export function compareLocations(
     });
   }
 
-  // Preference-Weighted Summary
+  // Profile-aware decision summary: use only comparable, evidence-backed deltas.
+  // Completeness describes evidence coverage, not locality quality, so it is excluded.
+  const relevantMetrics: Record<PreferenceProfile, string[]> = {
+    balanced: [
+      "Distance to Nearest Public Transit",
+      "Distance to Nearest Healthcare",
+      "Distance to Nearest School",
+      "Mapped Daily Essentials Count (~1.2km)",
+      "European Air Quality Index"
+    ],
+    transit: ["Distance to Nearest Public Transit"],
+    healthcare: ["Distance to Nearest Healthcare"],
+    family: [
+      "Distance to Nearest Healthcare",
+      "Distance to Nearest School",
+      "Mapped Daily Essentials Count (~1.2km)"
+    ],
+    quiet: []
+  };
   let summary = "";
-  if (preference === "transit") {
-    summary =
-      transitA !== null && transitB !== null
-        ? transitA < transitB
-          ? `Under your Transit-First preference, Location A is favored due to shorter distance to public transit (${transitA}m vs ${transitB}m).`
-          : `Under your Transit-First preference, Location B is favored due to shorter distance to public transit (${transitB}m vs ${transitA}m).`
-        : "Transit comparison is inconclusive due to missing map records for one location.";
-  } else if (preference === "family") {
-    summary =
-      "Under your Family & School preference, compare school distance, healthcare proximity, and park availability side by side. Verify school bus routing directly with housing society.";
-  } else if (preference === "healthcare") {
-    summary =
-      healthA !== null && healthB !== null
-        ? healthA < healthB
-          ? `Under your Healthcare-First preference, Location A provides closer access to a medical facility (${healthA}m vs ${healthB}m).`
-          : `Under your Healthcare-First preference, Location B provides closer access to a medical facility (${healthB}m vs ${healthA}m).`
-        : "Healthcare comparison is limited by available open map entries.";
+  if (preference === "quiet") {
+    summary = "No defensible quietness winner can be calculated: the current providers do not measure ambient noise. Regional air quality is not a substitute for noise measurements. Visit both locations at different times and check traffic, construction, and nearby commercial activity in person.";
   } else {
-    summary =
-      "Under a Balanced Due Diligence review, neither location is universally superior. Review the specific tradeoffs in transit walking distance versus nearby retail density and local waterlogging history.";
+    const relevant = deltas.filter((delta) => relevantMetrics[preference].includes(delta.metric));
+    const comparable = relevant.filter((delta) =>
+      delta.favoredSide === "A" || delta.favoredSide === "B" || delta.favoredSide === "neutral"
+    );
+    const aWins = comparable.filter((delta) => delta.favoredSide === "A").length;
+    const bWins = comparable.filter((delta) => delta.favoredSide === "B").length;
+    const ties = comparable.filter((delta) => delta.favoredSide === "neutral").length;
+    const unavailable = relevant.length - comparable.length;
+    const profileLabel: Record<Exclude<PreferenceProfile, "quiet">, string> = {
+      balanced: "Balanced",
+      transit: "Transit-first",
+      healthcare: "Healthcare-first",
+      family: "Family priorities"
+    };
+    const label = profileLabel[preference as Exclude<PreferenceProfile, "quiet">];
+    if (comparable.length === 0) {
+      summary = `${label} result: insufficient comparable evidence. No winner is assigned because the relevant metrics are missing or unavailable.`;
+    } else if (aWins === bWins) {
+      summary = `${label} result: no clear winner. Across ${comparable.length} comparable relevant metric(s), Location A leads ${aWins}, Location B leads ${bWins}, and ${ties} are tied. ${unavailable} relevant metric(s) could not be compared. Review the individual trade-offs below.`;
+    } else {
+      const winner = aWins > bWins ? "A" : "B";
+      const winnerCount = Math.max(aWins, bWins);
+      summary = `${label} result: Location ${winner} is better supported by the available evidence, leading on ${winnerCount} of ${comparable.length} comparable relevant metric(s) (A: ${aWins}, B: ${bWins}, ties: ${ties}). ${unavailable} relevant metric(s) could not be compared. This is a limited evidence comparison, not a property-quality or purchase recommendation.`;
+    }
   }
 
   const nextSteps = [
-    `Perform a physical commute test from both locations at peak rush hour (8:30 AM).`,
-    `Check municipal water supply schedules and underground sump storage capacity for both properties.`,
-    `Speak with immediate neighbors at both locations specifically regarding monsoon storm drain overflow.`
+    "Check actual walking routes and travel times for your usual commute; map distances here are straight-line proximity, not route times.",
+    "Visit both areas at different times of day and on a weekday/weekend to assess noise, traffic, lighting, and activity yourself.",
+    "Ask nearby residents about recurring waterlogging, water supply, maintenance, and construction; verify material claims with the relevant authority."
   ];
 
   return {
