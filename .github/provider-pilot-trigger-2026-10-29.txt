@@ -1,0 +1,1 @@
+Trigger-only marker. The Live provider pilot workflow checks out main explicitly; this file is not part of main and must not be merged.
