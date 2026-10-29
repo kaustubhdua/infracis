@@ -9,7 +9,7 @@ This table separates implementation visible in the repository from live-service 
 | Area | Current implementation | Verified status | Remaining release work |
 |---|---|---|---|
 | Interactive map | Leaflet map is dynamically imported client-side; location pin, amenity markers, coordinate picking, retry/error states, tile fallback for configured custom tile URL, and visible OpenStreetMap attribution are implemented. | Code and automated build/CI; public tile/service uptime not guaranteed. | Manual mobile/desktop pan/zoom/pick tests and tile attribution/security review on the deployed origin. |
-| Location analysis | Next.js API calls Nominatim, Open-Meteo weather/air-quality, and Overpass through bounded adapters; source provenance, timestamps, missing-data states, input limits, and request rate limits are implemented. | Unit/route tests pass; the post-failover live pilot still measured 0/18 valid amenity responses and only 10/18 valid weather and air-quality responses. | Select a terms-appropriate hosted/self-hosted Overpass source, then repeat a controlled live pilot; independently spot-check locality relevance and measure timeout/outage recovery. |
+| Location analysis | Next.js API calls Nominatim, Open-Meteo weather/air-quality, and Overpass through bounded adapters; source provenance, timestamps, missing-data states, input limits, and request rate limits are implemented. | Unit/route tests pass; the latest strict-relevance pilot accepted 8/20 geocoding queries, measured 5/8 weather and 4/8 air-quality responses, and returned 0/8 valid amenity responses. | Select a terms-appropriate hosted/self-hosted Overpass source, then repeat a controlled live pilot; independently spot-check locality relevance and measure timeout/outage recovery. |
 | UI and navigation | Responsive forest/cream/saffron UI, accessible focus states, investigation flow, evidence, comparison, methodology, decision brief, and report views. | Production build, lint, type-check and unit tests run in CI. | Complete the release-runbook manual responsive and assistive-technology QA on real browsers. |
 | Lazy loading | Interactive map is client-only dynamically loaded; heavy report sections and saved-report modal use dynamic imports and loading placeholders. | Source inspection and production build. | Confirm real-browser bundle/loading behavior and no layout regressions in the manual QA pass. |
 | Map theme and preferences | Street tiles plus NASA GIBS imagery overlay; selected style is remembered in a small SameSite=Lax cookie. A hydration-order bug that could overwrite a saved satellite choice was fixed. | Feature branch CI passed; main-branch CI for the merge is tracked separately. | Test preference persistence with cookies enabled/blocked, across reloads, and when NASA tiles fail. |
@@ -21,7 +21,7 @@ This table separates implementation visible in the repository from live-service 
 
 Current main candidate `92b52378ea835d8f25c8cbec8d5ab856be9ca632` passed [main-branch CI](https://github.com/kaustubhdua/infracis/actions/runs/40812805296): 16 test files passed, lint, type-check, production build, and production/full dependency audits each completed successfully with zero reported vulnerabilities. The latest merge adds bounded best-effort Overpass failover for low-volume evaluation, stops retries after HTTP 429/406, and explicitly documents the no-SLA boundary. This is repository evidence only, not proof of live provider or deployed-host behavior.
 
-The current repository is a tested MVP, not yet production-proven. Live provider reliability (the latest pilot still fails), cross-instance Redis behavior, deployed-domain checks, browser QA, and any cloud persistence remain explicit release gates below. No deployment was performed.
+The current repository is a tested MVP, not yet production-proven. Live provider reliability (the latest strict-relevance pilot accepted only 8/20 queries and returned 0/8 amenity responses), cross-instance Redis behavior, deployed-domain checks, browser QA, and any cloud persistence remain explicit release gates below. No deployment was performed.
 
 ## P0 — dependency/security verification
 - [x] Record release candidate SHA and GitHub Actions run URL.
@@ -97,6 +97,16 @@ The pilot workflow uses an isolated trigger branch but checks out `main` explici
 - The artifact was uploaded at 2026-10-29T03:38:22Z; digest: `sha256:41bf24e8d7b28285d520ab9cad7a309cc1c2047f844ad2ab7a4452762abe9fa8`.
 
 **Decision:** public Overpass endpoints are not validated as a dependable source for this app. Do not present empty amenity results as zero amenities or enable claims that depend on nearby amenities. Next, configure and test a terms-appropriate, capacity-matched hosted provider or managed self-hosted instance; simply adding more public endpoints is not evidence of reliability. Weather and air-quality responses also showed significant transient fetch failures and need a controlled repeat after network/provider diagnosis.
+ 
+**Measured pilot C — using the production geocoder relevance selector, 2026-10-29 (20 requested locations; [run and artifact 40813727336](https://github.com/kaustubhdua/infracis/actions/runs/40813727336), trigger SHA 2b82c6291e91dc4ce37d8960a1a979a68158fa4f; workflow checked out main code commit 0b363572149ed8ae955afad867f7042fba2e0f02):**
+- Geocoding: 8/20 accepted (40.0%). This is lower than the earlier raw response-shape pilot because the conservative selector rejects uncertain matches; the failures cluster around Delhi locality labels and are not proof that the localities do not exist.
+- Weather: 5/8 field-complete responses (62.5%).
+- Air quality: 4/8 field-complete responses (50.0%).
+- Overpass amenities: 0/8 valid responses (0.0%); requests timed out or returned HTTP 502.
+- Artifact digest: sha256:63a0a8ddaf3206b60631e85129bd149c8d28f8627fbe100e934a5158689e26c3.
+
+**Geocoder follow-up:** PR #114 adds a narrowly scoped New Delhi/Delhi city-context normalization while retaining locality and numeric-sector checks. It must pass CI and be re-piloted before the relevance acceptance rate can be considered improved. Do not relax the guard to accept nearby points of interest just to increase the pass rate.
+
 
 
 ## P1 — full user journey and accessibility
