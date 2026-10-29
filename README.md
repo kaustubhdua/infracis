@@ -6,6 +6,10 @@ Infracis helps a home buyer or renter investigate a location before committing t
 
 > **Product principle:** No unsupported risk claims. Every material finding must be traceable to a source, a timestamp, and a method—or be labeled as an inference or unknown.
 
+## Demo video
+
+[Watch the demo](https://manofdiamond.vercel.app/infracis-demo.webm)
+
 ## The initial product
 
 The first release focuses on **one user: a home buyer/renter evaluating a specific location**.
