@@ -13,7 +13,7 @@ const providers = [
   },
   {
     name: "OpenStreetMap Overpass",
-    purpose: "When a verified HTTPS endpoint is configured, returns mapped amenities around the selected location. This provider is intentionally unavailable in production until that configuration is verified; mapped features may be incomplete.",
+    purpose: "Returns mapped amenities around the selected location through a bounded best-effort public Overpass endpoint list, unless an operator configures alternatives. Public service availability is not guaranteed; mapped features may be incomplete.",
     href: "https://wiki.openstreetmap.org/wiki/Overpass_API"
   }
 ];
