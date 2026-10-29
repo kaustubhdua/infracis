@@ -47,10 +47,23 @@ describe("provider schema validation", () => {
     await expect(fetchNearbyAmenities(28.6139, 77.209)).rejects.toThrow(/invalid response shape/i);
   });
 
-  it("uses bounded documented HTTPS public defaults in production when no endpoint is configured", async () => {
+  it("fails closed in production when no verified Overpass endpoint is configured", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("OVERPASS_API_URL", "");
     vi.stubEnv("OVERPASS_API_URLS", "");
+    vi.stubEnv("OVERPASS_ALLOW_PUBLIC_FALLBACK", "");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchNearbyAmenities(11.2345, 22.3456, 1200)).rejects.toThrow(/No verified Overpass endpoint is configured/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("requires an explicit opt-in before using best-effort public Overpass fallback in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OVERPASS_API_URL", "");
+    vi.stubEnv("OVERPASS_API_URLS", "");
+    vi.stubEnv("OVERPASS_ALLOW_PUBLIC_FALLBACK", "true");
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response("upstream unavailable", { status: 502 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ elements: [] }), { status: 200 }));
