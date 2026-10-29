@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { hasFiniteFields } from "./provider-pilot-validation.mjs";
 import { selectRelevantGeocodeCandidate } from "../lib/providers/geocode-relevance.ts";
-import { geocodeWithPhoton } from "../lib/providers/nominatim.ts";
+
 
 const locations = [
   "Connaught Place, New Delhi, India",
@@ -68,6 +68,48 @@ async function checkJson(url, options = {}, timeoutMs = 12_000) {
   }
 }
 
+function photonCandidate(feature) {
+  if (!feature || typeof feature !== "object" || !Array.isArray(feature.geometry?.coordinates) || !feature.properties) return null;
+  const [rawLon, rawLat] = feature.geometry.coordinates;
+  const lon = Number(rawLon);
+  const lat = Number(rawLat);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  const props = feature.properties;
+  const address = {};
+  for (const key of ["name", "housenumber", "street", "district", "suburb", "locality", "city", "county", "state", "postcode", "country"]) {
+    if (typeof props[key] === "string" && props[key].trim()) address[key] = props[key].trim();
+  }
+  const label = [...new Set(["name", "street", "district", "suburb", "locality", "city", "county", "state", "postcode", "country"].map((key) => address[key]).filter(Boolean))].join(", ");
+  if (!label) return null;
+  const category = typeof props.osm_key === "string" ? props.osm_key : "place";
+  const type = typeof props.type === "string" ? props.type : typeof props.osm_value === "string" ? props.osm_value : "locality";
+  return { lat: String(lat), lon: String(lon), display_name: label, category, class: category, type, addresstype: type, address };
+}
+
+async function fetchPhotonFallback(query) {
+  const started = Date.now();
+  try {
+    const url = new URL(process.env.PHOTON_API_URL?.trim() || "https://photon.komoot.io/api/");
+    if (url.protocol !== "https:") return { location: null, elapsedMs: Date.now() - started };
+    url.searchParams.set("q", query);
+    url.searchParams.set("limit", "10");
+    url.searchParams.set("lang", "en");
+    const result = await checkJson(url.toString(), {
+      headers: { Accept: "application/geo+json, application/json", "User-Agent": "InfracisLocationDueDiligence/1.0 (https://github.com/kaustubhdua/infracis)" }
+    }, 6000);
+    if (!result.ok || !result.body || !Array.isArray(result.body.features)) return { location: null, elapsedMs: Date.now() - started };
+    const candidates = result.body.features.map(photonCandidate).filter(Boolean);
+    const selected = selectRelevantGeocodeCandidate(query, candidates);
+    if (!selected) return { location: null, elapsedMs: Date.now() - started };
+    const lat = Number(selected.lat);
+    const lon = Number(selected.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return { location: null, elapsedMs: Date.now() - started };
+    return { location: { label: selected.display_name, latitude: lat, longitude: lon }, elapsedMs: Date.now() - started };
+  } catch {
+    return { location: null, elapsedMs: Date.now() - started };
+  }
+}
+
 for (const query of locations) {
   const wait = Math.max(0, 1100 - (Date.now() - lastNominatimAt));
   if (wait) await sleep(wait);
@@ -91,8 +133,9 @@ for (const query of locations) {
   let photonElapsedMs = 0;
   if (!selected) {
     const photonStarted = Date.now();
-    photonFallback = await geocodeWithPhoton(query);
-    photonElapsedMs = Date.now() - photonStarted;
+    const photonResult = await fetchPhotonFallback(query);
+    photonFallback = photonResult.location;
+    photonElapsedMs = Math.max(Date.now() - photonStarted, photonResult.elapsedMs);
   }
   const lat = photonFallback?.latitude ?? Number(selected?.lat);
   const lon = photonFallback?.longitude ?? Number(selected?.lon);
