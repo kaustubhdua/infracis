@@ -15,6 +15,7 @@ import SavedReportsModal, { saveReportToStorage, exportReportJson } from "@/comp
 import Nav from "@/components/nav";
 import DecisionBrief from "@/components/decision-brief";
 import AiInsight from "@/components/ai-insight";
+import LocalityReview from "@/components/locality-review";
 import {
   MapPin,
   ArrowRight,
@@ -290,6 +291,7 @@ export default function AnalyzeClient() {
                     onPickCoordinates={handleMapCoordinatePick}
                   />
                 </section>
+                <LocalityReview locationLabel={report.location.label} />
 
                 {/* Score & Dimension Cards */}
                 <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
