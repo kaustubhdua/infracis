@@ -14,9 +14,13 @@ This document separates code and automated-test evidence from operational eviden
 - Evidence records with source URLs, retrieval/observation timestamps where supplied, geographic resolution, and limitations.
 - Deterministic proximity/completeness calculations and explicit unknowns when providers fail.
 - Two-location comparison with preference profiles and incomparable states when data is missing; unsupported preference values return a validation error.
-- Interactive map and location pin selection.
+- Interactive Leaflet map with resize-aware lifecycle, separate marker-layer updates, retry handling, and fallback to OpenStreetMap tiles if a custom tile endpoint fails.
+- Optional NASA GIBS VIIRS true-colour Earth-observation imagery overlay, with a recent imagery date and NASA attribution. It is contextual imagery only, not parcel-level hazard evidence.
+- Explicit browser geolocation flow with user-triggered permission, cached Nominatim reverse-geocoding, and preservation of the exact browser coordinates in the report.
+- Groq-backed AI interpretation panels for individual location reports and comparisons, with server-side-only `GROQ_API_KEY`, allowlisted report projection, rate limits, payload bounds, timeout handling, and cautious evidence-only prompting. Default model is `openai/gpt-oss-20b`.
+- Private browser-local locality rating and notes, gated by a cookie preference. These are not public community reviews and are not aggregated across users.
 - Due-diligence checklist, evidence-led decision brief, methodology/source details, and print styling.
-- Browser-local saved reports with export, reopen, and delete; the UI explicitly states these are stored on this device, not in the cloud.
+- Browser-local saved reports with export, reopen, and delete; full reports are stored in `localStorage` (cookies are used only for small preferences because of their size limits). The saved-reports modal and report/compare/methodology/map/review sections are lazy-loaded.
 - Explicit location-resolution disclosure asking users to verify the resolved label and pin before relying on distance metrics.
 - Accessible saved-report dialog semantics, keyboard focus management, Escape-to-close behavior, storage error states, and malformed saved-record filtering.
 - Race-safe comparison UI that discards stale responses and clears outdated results when the locations or preference change.
@@ -24,12 +28,12 @@ This document separates code and automated-test evidence from operational eviden
 - Privacy page describing provider data flows, browser-local storage, and current operational limits.
 - Shared Redis-backed rate-limit counters, Nominatim request-slot reservation, and provider cache implementation. Production analysis/comparison fail closed when shared Redis is absent or unavailable; automated tests cover Redis command shape, key namespacing, expiry, malformed cached JSON, and outage cache misses, but not real multi-instance behavior.
 - Separate FastAPI backend source under `backend/`, with tests and CI. It is not deployed or connected to the active Next.js frontend; the Next.js route handlers remain the active API.
-- Supabase migration source exists, but it has not been verified as applied and does not constitute a working cloud-save flow.
+- Supabase migration source exists, but it has not been verified as applied and does not constitute a working cloud-save flow. No dedicated Infracis Supabase project is connected. Shared cross-user reviews/ratings and cloud report persistence remain blocked until a dedicated project, Auth, RLS policies, migration verification, and cross-user isolation tests are completed.
 - The separate backend now has a version-pinned Linux/container dependency file (`backend/requirements-lock.txt`); Backend CI installs it, verifies compatibility with the declared ranges, runs `pip check` and `pip-audit`, and passes 21 tests. The lock is version-pinned but not hash-pinned; the backend is still not connected to the frontend or deployed.
 
 ## 2. Current repository verification
 
-The exact candidate `d8d5784d6fdf4be5bd646a2eb71e2c4afc039e1a` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40687905463) on 28 October 2026:
+The exact candidate `f09dbfeeb3bbf3265b70da9fd421c5248f7846db` passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40802737370) on 29 October 2026:
 
 - Locked dependency installation succeeded.
 - Production and full npm audits each reported zero vulnerabilities.
