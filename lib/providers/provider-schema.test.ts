@@ -41,6 +41,7 @@ describe("provider schema validation", () => {
   });
 
   it("rejects Overpass responses without an elements array", async () => {
+    vi.stubEnv("OVERPASS_API_URL", "https://overpass.example/interpreter");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ version: 0.6 }), { status: 200 })));
     await expect(fetchNearbyAmenities(28.6139, 77.209)).rejects.toThrow(/invalid response shape/i);
   });
