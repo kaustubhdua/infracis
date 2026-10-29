@@ -24,6 +24,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
   const nasaLayerRef = useRef<L.TileLayer | null>(null);
   const pickHandlerRef = useRef(onPickCoordinates);
   const [mapStyle, setMapStyle] = useState<"street" | "satellite">("street");
+  const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState("");
   const [tileError, setTileError] = useState(false);
 
@@ -39,9 +40,9 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
 
   useEffect(() => {
     try {
-      document.cookie = `infracis_map_style=${mapStyle}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
+      document.cookie = `infracis_map_style=${mapStyle}; Path=/; Max-Age=31536000; SameSite=Lax${window.location.protocol === "https:" ? "; Secure" : ""}`;
     } catch { /* map style preference is optional */ }
-  }, [mapStyle]);
+  }, [mapStyle, mapReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,6 +103,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
           .bindPopup(`<div class="infracis-map-popup"><strong>Investigated location</strong><span>${escapeHtml(location.label)}</span><small>${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}</small></div>`);
 
         amenityLayerRef.current = leaflet.layerGroup().addTo(map);
+        setMapReady(true);
         map.on("click", (event: L.LeafletMouseEvent) => {
           pickHandlerRef.current?.(event.latlng.lat, event.latlng.lng);
         });
@@ -129,6 +131,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
       if (resizeTimer) clearTimeout(resizeTimer);
       if (map) map.remove();
       mapInstanceRef.current = null;
+      setMapReady(false);
       amenityLayerRef.current = null;
       streetLayerRef.current = null;
       nasaLayerRef.current = null;
@@ -176,7 +179,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
           .bindPopup(`<div class="infracis-map-popup"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.group)} · ${escapeHtml(item.category.replace(/_/g, " "))}</span><small>~${Math.max(0, Math.round(item.distanceMeters))} m straight-line distance</small></div>`);
       });
     }).catch(() => setMapError("The amenity markers could not be rendered."));
-  }, [amenities, location.latitude, location.longitude]);
+  }, [amenities, location.latitude, location.longitude, mapReady]);
 
   const retryMap = useCallback(() => {
     setMapError("");
