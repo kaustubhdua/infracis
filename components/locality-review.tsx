@@ -148,7 +148,7 @@ export default function LocalityReview({ locationLabel }: { locationLabel: strin
               {LOCALITY_REVIEW_DIMENSIONS.map((item) => (
                 <div key={item.key} className="rounded-2xl border border-[#e3eae0] bg-[#fbfcf9] p-3">
                   <p className="mb-1 text-xs font-semibold text-[#33483a]">{item.label}</p>
-                  {renderRating(item.label, dimensions[item.key] ?? 0, (next) => setDimensions((previous) => ({ ...previous, [item.key]: next }))}
+                  {renderRating(item.label, dimensions[item.key] ?? 0, (next) => setDimensions((previous) => ({ ...previous, [item.key]: next })))}
                 </div>
               ))}
             </div>
