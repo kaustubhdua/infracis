@@ -26,6 +26,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
   const nasaLayerRef = useRef<L.TileLayer | null>(null);
   const pickHandlerRef = useRef(onPickCoordinates);
   const [mapStyle, setMapStyle] = useState<"street" | "satellite">("street");
+  const [mapStylePreferenceLoaded, setMapStylePreferenceLoaded] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapRetry, setMapRetry] = useState(0);
   const [mapError, setMapError] = useState("");
@@ -39,13 +40,19 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
       const savedStyle = document.cookie.split("; ").find((entry) => entry.startsWith("infracis_map_style="))?.split("=")[1];
       if (savedStyle === "street" || savedStyle === "satellite") setMapStyle(savedStyle);
     } catch { /* cookies may be disabled; the default style still works */ }
+    finally {
+      // Do not write the default before the saved preference has been read.
+      // Otherwise the first effect cycle can overwrite "satellite" with "street".
+      setMapStylePreferenceLoaded(true);
+    }
   }, []);
 
   useEffect(() => {
+    if (!mapStylePreferenceLoaded) return;
     try {
       document.cookie = `infracis_map_style=${mapStyle}; Path=/; Max-Age=31536000; SameSite=Lax${window.location.protocol === "https:" ? "; Secure" : ""}`;
     } catch { /* map style preference is optional */ }
-  }, [mapStyle, mapReady]);
+  }, [mapStyle, mapStylePreferenceLoaded]);
 
   useEffect(() => {
     let cancelled = false;
