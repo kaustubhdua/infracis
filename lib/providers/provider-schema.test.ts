@@ -24,7 +24,8 @@ describe("provider schema validation", () => {
     expect(location.latitude).toBe(28.6139);
     expect(location.longitude).toBe(77.209);
     expect(location.boundingbox).toBeUndefined();
-    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("layer")).toBe("address,poi");
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("layer")).toBe("address");
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("featureType")).toBe("settlement");
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("nominatim.openstreetmap.org/search"),
       expect.objectContaining({ headers: expect.objectContaining({ "User-Agent": expect.stringContaining("Infracis") }) })
