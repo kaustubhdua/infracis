@@ -1,6 +1,6 @@
 import { LocationData } from "../types";
 import { getSharedJson, setSharedJson, waitForNominatimSlot } from "../shared-provider-cache";
-import { selectRelevantGeocodeCandidate, GeocodeCandidate } from "./geocode-relevance";
+import { selectRelevantGeocodeCandidate, queryHasExplicitPoiIntent, GeocodeCandidate } from "./geocode-relevance";
 
 const cache = new Map<string, { expires: number; value: LocationData }>();
 
@@ -22,6 +22,9 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
   url.searchParams.set("q", query);
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("addressdetails", "1");
+  // Locality due diligence should search address-layer features, not nearby POIs.
+  // Explicit POI queries (e.g. a named school or hospital) opt into the POI layer.
+  url.searchParams.set("layer", queryHasExplicitPoiIntent(query) ? "poi" : "address");
   url.searchParams.set("limit", "5");
 
   const response = await fetch(url.toString(), {
