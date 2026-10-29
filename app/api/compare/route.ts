@@ -10,6 +10,8 @@ import { enforceRateLimit } from "@/lib/distributed-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Two geocodes and provider failover run concurrently; allow the bounded workflow to finish.
+export const maxDuration = 40;
 
 const MAX_QUERY_LENGTH = 180;
 const validPreferences = new Set<PreferenceProfile>(["balanced", "family", "transit", "healthcare", "quiet"]);

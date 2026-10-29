@@ -19,7 +19,7 @@ export async function fetchNearbyAmenities(
 
   // Bounded query for essential due-diligence categories
   // Use one union with nwr selectors to reduce query overhead on shared public infrastructure.
-  const query = `[out:json][timeout:10];
+  const query = `[out:json][timeout:6];
 (
   nwr(around:${radiusMeters},${lat},${lon})[amenity~"^(school|kindergarten|college|university|hospital|clinic|pharmacy|bank|atm|marketplace|supermarket|bus_station|police|fire_station|library|place_of_worship)$"];
   nwr(around:${radiusMeters},${lat},${lon})[highway="bus_stop"];
@@ -37,15 +37,25 @@ out center tags 100;`;
   if (configuredEndpoints.length > 3) {
     throw new Error("Configure at most three OVERPASS_API_URLS endpoints to keep provider retries bounded.");
   }
-  // For evaluation and low-volume, non-commercial use, try a documented public
-  // instance first and a second instance as bounded failover. Public instances
-  // are best-effort and have no SLA; commercial/high-volume deployments must
-  // configure an appropriately licensed, capacity-matched provider.
+  // Production must not silently depend on unverified shared public instances:
+  // a previous bounded pilot recorded 0/18 valid amenity responses. Operators
+  // must configure a verified HTTPS endpoint, or explicitly opt in to best-effort
+  // public fallback for low-volume evaluation with OVERPASS_ALLOW_PUBLIC_FALLBACK=true.
+  if (
+    configuredEndpoints.length === 0 &&
+    process.env.NODE_ENV === "production" &&
+    process.env.OVERPASS_ALLOW_PUBLIC_FALLBACK !== "true"
+  ) {
+    throw new Error(
+      "No verified Overpass endpoint is configured. Set OVERPASS_API_URL or OVERPASS_API_URLS; public fallback requires explicit OVERPASS_ALLOW_PUBLIC_FALLBACK=true."
+    );
+  }
   const endpointValues = configuredEndpoints.length > 0
     ? configuredEndpoints
     : [
         "https://overpass.private.coffee/api/interpreter",
-        "https://overpass-api.de/api/interpreter"
+        "https://overpass-api.de/api/interpreter",
+        "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
       ];
   const endpoints = endpointValues.map((value) => {
     let parsed: URL;
@@ -77,7 +87,7 @@ out center tags 100;`;
           "User-Agent": "InfracisLocationDueDiligence/1.0 (https://github.com/kaustubhdua/infracis)"
         },
         body,
-        signal: AbortSignal.timeout(9000),
+        signal: AbortSignal.timeout(7000),
         cache: "no-store"
       });
       if (!response.ok) {

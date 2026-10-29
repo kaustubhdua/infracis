@@ -290,6 +290,124 @@ html[data-theme="ux4g-dark"] .ai-insight-panel [class*="hover:bg-[#eef5eb]"]:hov
   background-color: #1d4b68 !important;
 }
 
+.ai-insight-markdown h1,
+.ai-insight-markdown h2,
+.ai-insight-markdown h3,
+.ai-insight-markdown h4 {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.ai-insight-markdown h1:first-child,
+.ai-insight-markdown h2:first-child,
+.ai-insight-markdown h3:first-child,
+.ai-insight-markdown h4:first-child {
+  margin-top: 0;
+}
+
+.ai-insight-markdown p {
+  margin: 0.5rem 0;
+}
+
+.ai-insight-markdown ul,
+.ai-insight-markdown ol {
+  margin: 0.6rem 0;
+  padding-left: 1.5rem;
+}
+
+.ai-insight-markdown ul {
+  list-style: disc;
+}
+
+.ai-insight-markdown ol {
+  list-style: decimal;
+}
+
+.ai-insight-markdown li {
+  padding-left: 0.2rem;
+}
+
+.ai-insight-markdown a {
+  color: #1769a8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ai-insight-markdown blockquote {
+  margin: 0.75rem 0;
+  border-left: 3px solid #d78b21;
+  padding-left: 0.9rem;
+  color: #53675a;
+}
+
+.ai-insight-markdown pre {
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  border-radius: 0.75rem;
+  background: #edf2eb;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.ai-insight-markdown code {
+  border-radius: 0.25rem;
+  background: #edf2eb;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.9em;
+}
+
+.ai-insight-markdown pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.ai-insight-markdown table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  margin: 0.9rem 0;
+  border-collapse: collapse;
+  white-space: normal;
+}
+
+.ai-insight-markdown th,
+.ai-insight-markdown td {
+  border: 1px solid #dce3da;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ai-insight-markdown th {
+  background: #f1f7ef;
+  font-weight: 700;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-markdown a {
+  color: #8bc7ff;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-markdown blockquote {
+  color: #b9cfdf;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-markdown pre,
+html[data-theme="ux4g-dark"] .ai-insight-markdown code {
+  background: #17364f;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-markdown th,
+html[data-theme="ux4g-dark"] .ai-insight-markdown td {
+  border-color: #2b526b;
+}
+
+html[data-theme="ux4g-dark"] .ai-insight-markdown th {
+  background: #173d54;
+}
+
 html[data-theme="ux4g-white"] [class*="bg-[#174b38"],
 html[data-theme="ux4g-white"] [class*="bg-[#104c38"] {
   background-color: #0b5cab !important;

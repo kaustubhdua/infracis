@@ -1,4 +1,5 @@
 import type { MapTheme } from "./preferences";
+import { cartoVoyagerTileUrl } from "./carto-tiles";
 
 export interface MapThemeConfig {
   id: MapTheme;
@@ -25,26 +26,39 @@ const CARTO_ATTRIBUTION = `${OSM_ATTRIBUTION} &copy; <a href="https://carto.com/
 const NASA_ATTRIBUTION = 'Imagery: <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA EOSDIS GIBS</a>';
 const GIBS_BASE = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best";
 
-export const LABELS_OVERLAY_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png";
+const ESRI_ATTRIBUTION = 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, FAO, NOAA, USGS, OpenStreetMap contributors';
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
+
+/**
+ * CARTO's public basemaps now require a project key, so every default theme uses
+ * keyless Esri tiles. The Clean theme upgrades to CARTO Voyager only when the
+ * (public, domain-restricted) NEXT_PUBLIC_CARTO_API_KEY is configured.
+ */
+const CARTO_VOYAGER_URL = cartoVoyagerTileUrl(process.env.NEXT_PUBLIC_CARTO_API_KEY);
+
+/** Keyless place-name / boundary overlay drawn above satellite and NASA imagery. */
+export const LABELS_OVERLAY_URL = `${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`;
 
 export const MAP_THEME_CONFIGS: Record<MapTheme, MapThemeConfig> = {
   voyager: {
     id: "voyager",
     label: "Clean",
     description: "Soft, readable street map",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    attribution: CARTO_ATTRIBUTION,
-    maxZoom: 20,
-    subdomains: "abcd"
+    url: CARTO_VOYAGER_URL ?? `${ESRI}/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+    attribution: CARTO_VOYAGER_URL ? CARTO_ATTRIBUTION : ESRI_ATTRIBUTION,
+    maxZoom: CARTO_VOYAGER_URL ? 20 : 19,
+    maxNativeZoom: CARTO_VOYAGER_URL ? undefined : 16,
+    subdomains: CARTO_VOYAGER_URL ? "abcd" : undefined,
+    labelsUrl: undefined
   },
   dark: {
     id: "dark",
     label: "Dark",
     description: "Low-glare night style",
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    attribution: CARTO_ATTRIBUTION,
-    maxZoom: 20,
-    subdomains: "abcd",
+    url: `${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+    attribution: ESRI_ATTRIBUTION,
+    maxZoom: 19,
+    maxNativeZoom: 16,
     dark: true
   },
   satellite: {

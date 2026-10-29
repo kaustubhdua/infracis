@@ -16,6 +16,9 @@ describe("provider schema validation", () => {
       lat: "28.6139",
       lon: "77.2090",
       display_name: "New Delhi, India",
+      category: "place",
+      type: "city",
+      addresstype: "city",
       boundingbox: "not-an-array"
     }]), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -24,13 +27,52 @@ describe("provider schema validation", () => {
     expect(location.latitude).toBe(28.6139);
     expect(location.longitude).toBe(77.209);
     expect(location.boundingbox).toBeUndefined();
+    expect(location.geocodingProvider).toBe("nominatim");
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("layer")).toBe("address");
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("featureType")).toBe("settlement");
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("nominatim.openstreetmap.org/search"),
       expect.objectContaining({ headers: expect.objectContaining({ "User-Agent": expect.stringContaining("Infracis") }) })
     );
   });
 
-  it("rejects weather data without valid current observation time", async () => {
+
+  it("uses the OSM-backed Photon fallback only when Nominatim has no relevant locality", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify([{
+        lat: "28.5200",
+        lon: "77.2100",
+        display_name: "Green Field School, Saket Road, Saket, New Delhi, India",
+        category: "amenity",
+        class: "amenity",
+        type: "school",
+        addresstype: "amenity",
+        address: { school: "Green Field School", suburb: "Saket", city: "New Delhi", country: "India" }
+      }]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        features: [{
+          geometry: { coordinates: [77.201, 28.524] },
+          properties: {
+            name: "Saket", osm_key: "place", osm_value: "suburb", type: "suburb",
+            city: "New Delhi", state: "Delhi", country: "India",
+            extent: [77.18, 28.50, 77.23, 28.55]
+          }
+        }]
+      }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const location = await geocodeLocation("Saket, New Delhi, India");
+
+    expect(location.label).toContain("Saket");
+    expect(location.latitude).toBe(28.524);
+    expect(location.longitude).toBe(77.201);
+    expect(location.geocodingProvider).toBe("photon");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(new URL(String(fetchMock.mock.calls[1][0])).hostname).toBe("photon.komoot.io");
+    expect(location.boundingbox).toEqual([28.5, 28.55, 77.18, 77.23]);
+  });
+
+    it("rejects weather data without valid current observation time", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ current: { temperature_2m: 32 } }), { status: 200 })));
     await expect(fetchWeatherAndElevation(28.6139, 77.209)).rejects.toThrow(/missing or invalid current observations/i);
   });
@@ -46,10 +88,23 @@ describe("provider schema validation", () => {
     await expect(fetchNearbyAmenities(28.6139, 77.209)).rejects.toThrow(/invalid response shape/i);
   });
 
-  it("uses bounded documented HTTPS public defaults in production when no endpoint is configured", async () => {
+  it("fails closed in production when no verified Overpass endpoint is configured", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("OVERPASS_API_URL", "");
     vi.stubEnv("OVERPASS_API_URLS", "");
+    vi.stubEnv("OVERPASS_ALLOW_PUBLIC_FALLBACK", "");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchNearbyAmenities(11.2345, 22.3456, 1200)).rejects.toThrow(/No verified Overpass endpoint is configured/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("requires an explicit opt-in before using best-effort public Overpass fallback in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OVERPASS_API_URL", "");
+    vi.stubEnv("OVERPASS_API_URLS", "");
+    vi.stubEnv("OVERPASS_ALLOW_PUBLIC_FALLBACK", "true");
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response("upstream unavailable", { status: 502 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ elements: [] }), { status: 200 }));
@@ -186,6 +241,6 @@ describe("provider schema validation", () => {
     const body = options.body as URLSearchParams;
     const query = body.get("data") ?? "";
     expect(query.split("nwr(around:")).toHaveLength(5);
-    expect(query).toContain("[out:json][timeout:10]");
+    expect(query).toContain("[out:json][timeout:6]");
   });
 });

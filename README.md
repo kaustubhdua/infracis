@@ -6,6 +6,10 @@ Infracis helps a home buyer or renter investigate a location before committing t
 
 > **Product principle:** No unsupported risk claims. Every material finding must be traceable to a source, a timestamp, and a method—or be labeled as an inference or unknown.
 
+## Demo video
+
+[Watch the demo](https://manofdiamond.vercel.app/infracis-demo.webm)
+
 ## The initial product
 
 The first release focuses on **one user: a home buyer/renter evaluating a specific location**.
@@ -61,7 +65,7 @@ Existing products already offer real-estate analytics and location/risk layers. 
 ## Proposed stack
 
 - Frontend: Next.js + TypeScript + Tailwind CSS
-- Map: lazily loaded Leaflet with OpenStreetMap street tiles and optional NASA GIBS Earth-observation imagery
+- Map: lazily loaded Leaflet with CARTO Voyager basemap, OpenStreetMap fallback, and optional NASA GIBS Earth-observation imagery
 - Backend/data: Supabase (Postgres, Auth, Storage, Row Level Security)
 - Geospatial utilities: PostGIS where enabled, otherwise well-tested geospatial helpers
 - AI: optional server-side Groq chat completion for cautious location and comparison interpretation; the deterministic report remains available without AI. Configure `GROQ_API_KEY` and optionally `GROQ_MODEL` as server-side environment variables only.
@@ -74,11 +78,17 @@ The repository includes an interactive location-analysis flow wired to real publ
 - Open-Meteo for weather-model and air-quality grid output at the resolved coordinate.
 - OpenStreetMap via Overpass for mapped amenities, using a bounded best-effort public-instance fallback for low-volume evaluation; operators should configure a capacity- and terms-appropriate HTTPS provider for commercial/high-volume production.
 
-The UI shows source URLs, retrieval time, source availability, and limitations. Users can explicitly request browser geolocation; the app reverse-geocodes that point through Nominatim when available while retaining the exact selected coordinates for analysis. Location permission is requested only after the user clicks the control. Provider failures remain unavailable rather than being replaced with synthetic values. The map is dynamically loaded and offers OpenStreetMap street tiles plus an optional NASA GIBS satellite-imagery layer; GIBS imagery is a visual Earth-observation layer, not evidence of property-level hazards. Optional Groq interpretation is available only when `GROQ_API_KEY` is configured server-side. Private locality reviews are stored on the current device only. Users can save an overall 1–5 rating plus optional personal ratings for walkability, public transport, noise comfort, street lighting, and cleanliness. These are not public reviews or an aggregate community rating, and they do not alter sourced evidence or the preference-based fit score. A live pilot on Delhi NCR queries is recorded in the [production runbook](docs/PRODUCTION_RUNBOOK.md). The product remains **not production-ready** until provider reliability, shared Redis operations, dedicated cloud persistence, product validation, accessibility QA, and deployment verification pass their release gates.
+The UI shows source URLs, retrieval time, source availability, and limitations. Users can explicitly request browser geolocation; the app reverse-geocodes that point through Nominatim when available while retaining the exact selected coordinates for analysis. Location permission is requested only after the user clicks the control. Provider failures remain unavailable rather than being replaced with synthetic values. The map is dynamically loaded and defaults to a CARTO Voyager basemap, falls back to OpenStreetMap if the selected basemap fails, and offers an optional NASA GIBS satellite-imagery layer. Repeated NASA tile failures automatically return the map to the Voyager basemap; GIBS imagery is visual Earth-observation context, not evidence of property-level hazards. Optional Groq interpretation is available only when `GROQ_API_KEY` is configured server-side. Private locality reviews are stored on the current device only. Users can save an overall 1–5 rating plus optional personal ratings for walkability, public transport, noise comfort, street lighting, and cleanliness. These are not public reviews or an aggregate community rating, and they do not alter sourced evidence or the preference-based fit score. A live pilot on Delhi NCR queries is recorded in the [production runbook](docs/PRODUCTION_RUNBOOK.md). The product remains **not production-ready** until provider reliability, shared Redis operations, dedicated cloud persistence, product validation, accessibility QA, and deployment verification pass their release gates.
 
 The public Nominatim service is rate-limited and must not be used for autocomplete or high-volume traffic. Production API requests now require a configured shared Redis limiter; geocoding slot reservations and provider caches use the same dedicated Redis service. The implementation remains unverified until Redis-backed concurrent and multi-instance tests pass.
 
 Weather values are model output, not on-site measurements. Mapped amenities are not guaranteed to be complete, open, accessible, or high-quality. This version does not make flood, crime, pollution, title, structural, or property-value claims.
+
+## Latest repository verification — 29 October 2026
+
+The map/comparison candidate [`4333135cb41e40da6bc04a3a2412b25c2b073b89`](https://github.com/kaustubhdua/infracis/commit/4333135cb41e40da6bc04a3a2412b25c2b073b89) passed [GitHub Actions CI](https://github.com/kaustubhdua/infracis/actions/runs/40816259585), including dependency installation and audits, unit tests, lint, TypeScript type-check, and production build. Follow-up commits add strict calendar-date validation for NASA GIBS tiles, align the Overpass timeout test with the actual six-second query budget, and bound provider/API function timeouts. Check [the latest GitHub Actions runs](https://github.com/kaustubhdua/infracis/actions) for validation of the newest `main` commit.
+
+**This is not a production sign-off.** The measured provider pilot has unresolved real-data reliability issues, shared Redis must be configured and tested in the deployed environment, and deployed browser journeys/accessibility still require verification. Browser-saved reports and locality ratings are device-local; they are not cloud-synced or community aggregates. NASA GIBS does not require a NASA API key for the current imagery layer. CARTO Voyager does require the app's public `NEXT_PUBLIC_CARTO_API_KEY` as a tile URL parameter; restrict that dedicated basemap key by HTTP Referer and never use a master/private data API token. Groq interpretation requires a valid server-side `GROQ_API_KEY`. Never put secrets in `NEXT_PUBLIC_*` variables or commit them.
 
 ## Production release warning
 
@@ -118,6 +128,10 @@ npm run build
 ```
 
 The separate FastAPI service has its own instructions in [backend/README.md](backend/README.md); it is not used by the current frontend.
+
+## Runtime configuration and release readiness
+
+See [Vercel runtime configuration](docs/VERCEL_SETUP.md) for the exact server-side environment variables, NASA GIBS map-layer behavior, Groq narrative configuration, and provider readiness checks. The release checklist and known limitations are in [the production runbook](docs/PRODUCTION_RUNBOOK.md).
 
 ## Development principles
 

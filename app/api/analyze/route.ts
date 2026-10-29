@@ -9,6 +9,8 @@ import { enforceRateLimit } from "@/lib/distributed-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Geocoding plus bounded provider failover can exceed the short default function window.
+export const maxDuration = 40;
 
 const memoryCache = new Map<string, { expires: number; value: LocationReport }>();
 const MAX_QUERY_LENGTH = 180;
