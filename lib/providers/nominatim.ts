@@ -22,11 +22,11 @@ export async function geocodeLocation(query: string): Promise<LocationData> {
   url.searchParams.set("q", query);
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("addressdetails", "1");
-  // This product investigates a locality/address, not a nearby POI whose label
-  // happens to contain the locality name. Nominatim's address layer still
-  // supports streets and address points while excluding restaurants, shops,
-  // schools, and other POI-only matches that previously crowded out localities.
-  url.searchParams.set("layer", "address");
+  // Ask for both address and POI candidates to improve locality recall. The
+  // conservative relevance selector below must still reject a nearby POI that
+  // merely mentions the requested locality; broadening candidates is not permission
+  // to substitute a school, shop, or station for a neighbourhood.
+  url.searchParams.set("layer", "address,poi");
   url.searchParams.set("limit", "10");
 
   const response = await fetch(url.toString(), {
