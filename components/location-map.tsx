@@ -27,6 +27,9 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
   const nasaLayerRef = useRef<L.TileLayer | null>(null);
   const lightLayerRef = useRef<L.TileLayer | null>(null);
   const preNasaZoomRef = useRef<number | null>(null);
+  const nasaTileErrorCountRef = useRef(0);
+  const nasaTileLoadCountRef = useRef(0);
+  const nasaFallbackTriggeredRef = useRef(false);
   const pickHandlerRef = useRef(onPickCoordinates);
   const [mapStyle, setMapStyle] = useState<"light" | "street" | "nasa">("light");
   const [mapStylePreferenceLoaded, setMapStylePreferenceLoaded] = useState(false);
@@ -118,6 +121,11 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         light.on("tileerror", () => setTileError(true));
         lightLayerRef.current = light;
 
+        // GIBS is a public imagery tile service and does not require the NASA API key.
+        // Track initial tile health so a stale/unavailable imagery date never leaves a blank map.
+        nasaTileErrorCountRef.current = 0;
+        nasaTileLoadCountRef.current = 0;
+        nasaFallbackTriggeredRef.current = false;
         const nasa = leaflet.tileLayer(
           `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${NASA_LAYER}/default/${NASA_TILE_DATE}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`,
           {
@@ -125,8 +133,21 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
             maxZoom: 9, maxNativeZoom: 9, opacity: 1, crossOrigin: true
           }
         );
-        nasa.on("tileload", () => setTileError(false));
-        nasa.on("tileerror", () => setTileError(true));
+        nasa.on("tileload", () => {
+          nasaTileLoadCountRef.current += 1;
+          setTileError(false);
+        });
+        nasa.on("tileerror", () => {
+          nasaTileErrorCountRef.current += 1;
+          setTileError(true);
+          // If every initial imagery tile fails, fall back to the clean basemap.
+          // A few isolated missing tiles should not force a basemap switch.
+          if (!nasaFallbackTriggeredRef.current && nasaTileLoadCountRef.current === 0 && nasaTileErrorCountRef.current >= 4) {
+            nasaFallbackTriggeredRef.current = true;
+            setMapStyle("light");
+            setMapError("NASA imagery is unavailable for this date or connection. Switched back to the clean map; you can retry the satellite layer later.");
+          }
+        });
         nasaLayerRef.current = nasa;
 
         const propertyIcon = leaflet.divIcon({
