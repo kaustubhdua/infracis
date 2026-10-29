@@ -180,10 +180,17 @@ export default function CompareView() {
       {data && (
         <div className="space-y-6">
           {/* Overview Banner */}
-          <div className="rounded-3xl border border-[#dce3da] bg-white p-5 shadow-sm sm:p-7">
-            <h3 className="text-xl font-bold text-[#1a2e23]">Due Diligence Comparison Summary</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#4d5e52]">
-              {data.preferenceSummary}
+          <section className="overflow-hidden rounded-3xl border border-[#cbdcc7] bg-gradient-to-br from-[#f2f7ee] via-white to-[#fbf3e5] p-5 shadow-[0_14px_36px_rgba(23,75,56,0.08)] sm:p-7" aria-labelledby="comparison-result-title">
+            <div className="flex items-start gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#174b38] text-white"><CheckCircle size={21} aria-hidden="true" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#8b641e]">Evidence-based result</p>
+                <h3 id="comparison-result-title" className="mt-1 text-xl font-bold text-[#153a2b]">Your comparison result</h3>
+                <p className="mt-2 text-sm leading-7 text-[#33483a]">{data.preferenceSummary}</p>
+              </div>
+            </div>
+            <p className="mt-4 rounded-xl border border-[#e0e8db] bg-white/80 px-3.5 py-3 text-xs leading-relaxed text-[#647468]">
+              The result compares only the selected profile’s available, comparable indicators. Missing or capped provider data is not treated as zero, and the result is not a property-quality, legal, safety, or purchase recommendation.
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
