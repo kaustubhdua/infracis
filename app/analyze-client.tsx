@@ -7,15 +7,17 @@ const LocationMap = dynamic(() => import("@/components/location-map"), {
   ssr: false,
   loading: () => <div className="grid h-[360px] place-items-center rounded-3xl border border-[#d7e1d5] bg-[#edf3e8] text-sm text-[#53675a] sm:h-[440px]">Loading interactive map…</div>
 });
-import EvidenceCard from "@/components/evidence-card";
-import ChecklistSection from "@/components/checklist-section";
-import CompareView from "@/components/compare-view";
-import MethodologyView from "@/components/methodology-view";
 import SavedReportsModal, { saveReportToStorage, exportReportJson } from "@/components/saved-reports-modal";
 import Nav from "@/components/nav";
-import DecisionBrief from "@/components/decision-brief";
-import AiInsight from "@/components/ai-insight";
-import LocalityReview from "@/components/locality-review";
+
+const sectionFallback = () => <div className="animate-pulse rounded-2xl border border-[#dce5d8] bg-white/80 p-5 text-sm text-[#718275]">Loading section…</div>;
+const EvidenceCard = dynamic(() => import("@/components/evidence-card"), { loading: sectionFallback });
+const ChecklistSection = dynamic(() => import("@/components/checklist-section"), { loading: sectionFallback });
+const CompareView = dynamic(() => import("@/components/compare-view"), { loading: sectionFallback });
+const MethodologyView = dynamic(() => import("@/components/methodology-view"), { loading: sectionFallback });
+const DecisionBrief = dynamic(() => import("@/components/decision-brief"), { loading: sectionFallback });
+const AiInsight = dynamic(() => import("@/components/ai-insight"), { loading: sectionFallback });
+const LocalityReview = dynamic(() => import("@/components/locality-review"), { loading: sectionFallback });
 import {
   MapPin,
   ArrowRight,
