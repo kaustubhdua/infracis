@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { ComparisonReport, PreferenceProfile } from "@/lib/types";
+import AiInsight from "@/components/ai-insight";
 import { ArrowRight, LoaderCircle, Scale, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function CompareView() {
@@ -221,6 +222,8 @@ export default function CompareView() {
               </div>
             </div>
           </div>
+
+          <AiInsight kind="comparison" data={data} />
 
           {/* Metrics Comparison Table */}
           <div className="overflow-hidden rounded-3xl border border-[#dce3da] bg-white shadow-sm">
