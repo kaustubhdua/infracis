@@ -82,11 +82,15 @@ export function calculatePersonalFit(
     availableMetrics += 1;
   }
 
+  const normalizedWeights = availableWeight > 0
+    ? Object.fromEntries(Object.entries(weightsUsed).map(([label, weight]) => [label, weight / availableWeight]))
+    : {};
+
   return {
     score: availableWeight > 0 ? Math.round(weightedTotal / availableWeight) : null,
     availableMetrics,
     totalMetrics: keys.length,
-    weightsUsed,
+    weightsUsed: normalizedWeights,
     missingMetrics,
     explanation: availableWeight > 0
       ? "Weighted from the available, documented access metrics only. Missing metrics are excluded and the remaining weights are renormalized."
