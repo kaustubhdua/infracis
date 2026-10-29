@@ -28,6 +28,34 @@ describe("provider schema validation", () => {
       expect.stringContaining("nominatim.openstreetmap.org/search"),
       expect.objectContaining({ headers: expect.objectContaining({ "User-Agent": expect.stringContaining("Infracis") }) })
     );
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("layer")).toBe("address");
+  });
+
+  it("uses the address layer for locality queries and POI layer for explicit POI queries", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify([{
+        lat: "28.5245",
+        lon: "77.2066",
+        display_name: "Saket, South Delhi, Delhi, India",
+        category: "place",
+        type: "suburb",
+        addresstype: "suburb"
+      }]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([{
+        lat: "28.5231",
+        lon: "77.2075",
+        display_name: "Green Field School, Saket, South Delhi, Delhi, India",
+        category: "amenity",
+        type: "school",
+        addresstype: "amenity"
+      }]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await geocodeLocation("Saket, New Delhi, India");
+    await geocodeLocation("Green Field School, Saket");
+
+    expect(new URL(fetchMock.mock.calls[0][0]).searchParams.get("layer")).toBe("address");
+    expect(new URL(fetchMock.mock.calls[1][0]).searchParams.get("layer")).toBe("poi");
   });
 
   it("rejects weather data without valid current observation time", async () => {
