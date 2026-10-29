@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { geocodeLocation } from "@/lib/providers/nominatim";
+import { geocodeLocation, reverseGeocodeLabel } from "@/lib/providers/nominatim";
 import { fetchNearbyAmenities } from "@/lib/providers/overpass";
 import { fetchWeatherAndElevation, fetchAirQuality } from "@/lib/providers/open-meteo";
 import { assembleLocationReport } from "@/lib/evidence-engine";
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 });
   }
-  const input = body as { query?: unknown; lat?: unknown; lon?: unknown };
+  const input = body as { query?: unknown; lat?: unknown; lon?: unknown; reverseGeocode?: unknown };
   if (typeof input.query === "string") query = input.query.trim();
   if (typeof input.lat === "number" && typeof input.lon === "number") {
     manualLat = input.lat;
@@ -91,8 +91,15 @@ export async function POST(request: NextRequest) {
     let locationData: LocationData;
 
     if (hasCoordinates) {
+      let label = query || `Coordinates ${manualLat!.toFixed(5)}, ${manualLon!.toFixed(5)}`;
+      // Reverse-geocode only when the client explicitly requests a locality label,
+      // rather than on every map click, to respect Nominatim's global rate policy.
+      if (input.reverseGeocode === true) {
+        const reverseLabel = await reverseGeocodeLabel(manualLat!, manualLon!);
+        if (reverseLabel) label = reverseLabel;
+      }
       locationData = {
-        label: query || `Coordinates ${manualLat!.toFixed(5)}, ${manualLon!.toFixed(5)}`,
+        label,
         latitude: manualLat!,
         longitude: manualLon!,
         mapUrl: `https://www.openstreetmap.org/?mlat=${manualLat}&mlon=${manualLon}#map=16/${manualLat}/${manualLon}`
