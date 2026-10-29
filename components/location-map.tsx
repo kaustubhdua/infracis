@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type L from "leaflet";
-import { MapPin, Satellite, Map as MapIcon, AlertTriangle } from "lucide-react";
+import { MapPin, Satellite, Map as MapIcon, AlertTriangle, Sun } from "lucide-react";
 import type { LocationData, AmenityItem } from "@/lib/types";
 import { escapeHtml } from "@/lib/escape-html";
 
 const EMPTY_AMENITIES: AmenityItem[] = [];
 const OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const LIGHT_TILES = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 const NASA_LAYER = "VIIRS_SNPP_CorrectedReflectance_TrueColor";
 // Near-real-time satellite products can lag ingestion by a day or more.
 const NASA_TILE_DATE = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -24,8 +25,10 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
   const amenityLayerRef = useRef<L.LayerGroup | null>(null);
   const streetLayerRef = useRef<L.TileLayer | null>(null);
   const nasaLayerRef = useRef<L.TileLayer | null>(null);
+  const lightLayerRef = useRef<L.TileLayer | null>(null);
+  const preNasaZoomRef = useRef<number | null>(null);
   const pickHandlerRef = useRef(onPickCoordinates);
-  const [mapStyle, setMapStyle] = useState<"street" | "satellite">("street");
+  const [mapStyle, setMapStyle] = useState<"light" | "street" | "nasa">("light");
   const [mapStylePreferenceLoaded, setMapStylePreferenceLoaded] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapRetry, setMapRetry] = useState(0);
@@ -38,7 +41,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
   useEffect(() => {
     try {
       const savedStyle = document.cookie.split("; ").find((entry) => entry.startsWith("infracis_map_style="))?.split("=")[1];
-      if (savedStyle === "street" || savedStyle === "satellite") setMapStyle(savedStyle);
+      if (savedStyle === "light" || savedStyle === "street" || savedStyle === "nasa") setMapStyle(savedStyle);
     } catch { /* cookies may be disabled; the default style still works */ }
     finally {
       // Do not write the default before the saved preference has been read.
@@ -105,20 +108,25 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         street.addTo(map);
         streetLayerRef.current = street;
 
-        // NASA GIBS publishes public, pre-rendered Earth-observation tiles. No API key is required for this tile service.
+        // NASA GIBS provides regional Earth-observation imagery, not parcel-level aerial photos.
+        // Its VIIRS layer has native zoom 9; switch to regional scale rather than upscaling at street level.
+        const light = leaflet.tileLayer(LIGHT_TILES, {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
+          subdomains: "abcd", maxZoom: 20, crossOrigin: true
+        });
+        light.on("tileload", () => setTileError(false));
+        light.on("tileerror", () => setTileError(true));
+        lightLayerRef.current = light;
+
         const nasa = leaflet.tileLayer(
           `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${NASA_LAYER}/default/${NASA_TILE_DATE}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`,
           {
-            attribution: 'NASA Global Imagery Browse Services (GIBS) / Earth Science Data and Information System',
-            maxZoom: 19,
-            maxNativeZoom: 9,
-            opacity: 0.58,
-            crossOrigin: true
+            attribution: '<a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA GIBS / Earthdata</a>',
+            maxZoom: 9, maxNativeZoom: 9, opacity: 1, crossOrigin: true
           }
         );
+        nasa.on("tileload", () => setTileError(false));
         nasa.on("tileerror", () => setTileError(true));
-        // Layer visibility is managed by the mapStyle effect after mapReady becomes true.
-        // Avoid capturing the initial theme here: cookie restoration can race async Leaflet import.
         nasaLayerRef.current = nasa;
 
         const propertyIcon = leaflet.divIcon({
@@ -165,21 +173,28 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
       amenityLayerRef.current = null;
       streetLayerRef.current = null;
       nasaLayerRef.current = null;
+      lightLayerRef.current = null;
+      preNasaZoomRef.current = null;
     };
   }, [location.latitude, location.longitude, location.label, mapRetry]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
     const street = streetLayerRef.current;
+    const light = lightLayerRef.current;
     const nasa = nasaLayerRef.current;
-    if (!map || !street || !nasa) return;
-    // Keep the street layer underneath as a readable, resilient reference map.
-    if (mapStyle === "satellite") {
-      if (!map.hasLayer(street)) street.addTo(map);
-      if (!map.hasLayer(nasa)) nasa.addTo(map);
+    if (!map || !street || !light || !nasa) return;
+    [street, light, nasa].forEach((layer) => { if (map.hasLayer(layer)) map.removeLayer(layer); });
+    if (mapStyle === "nasa") {
+      if (preNasaZoomRef.current === null) preNasaZoomRef.current = map.getZoom();
+      if (map.getZoom() > 9) map.setZoom(9);
+      nasa.addTo(map);
     } else {
-      if (map.hasLayer(nasa)) map.removeLayer(nasa);
-      if (!map.hasLayer(street)) street.addTo(map);
+      (mapStyle === "light" ? light : street).addTo(map);
+      if (preNasaZoomRef.current !== null) {
+        map.setZoom(Math.min(19, Math.max(3, preNasaZoomRef.current)));
+        preNasaZoomRef.current = null;
+      }
     }
     map.invalidateSize({ pan: false });
   }, [mapStyle, mapReady]);
@@ -235,17 +250,21 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
             <p className="truncate text-xs text-[#718275]">{location.label}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1 rounded-xl border border-[#dce5d9] bg-white p-1" aria-label="Map style">
+        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-[#dce5d9] bg-white p-1" aria-label="Map basemap">
+          <button type="button" aria-pressed={mapStyle === "light"} onClick={() => setMapStyle("light")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] ${mapStyle === "light" ? "bg-[#174b38] text-white shadow-sm" : "text-[#53675a] hover:bg-[#f0f5ed]"}`}>
+            <Sun size={14} /> Clean
+          </button>
           <button type="button" aria-pressed={mapStyle === "street"} onClick={() => setMapStyle("street")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] ${mapStyle === "street" ? "bg-[#174b38] text-white shadow-sm" : "text-[#53675a] hover:bg-[#f0f5ed]"}`}>
             <MapIcon size={14} /> Street
           </button>
-          <button type="button" aria-pressed={mapStyle === "satellite"} onClick={() => setMapStyle("satellite")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] ${mapStyle === "satellite" ? "bg-[#174b38] text-white shadow-sm" : "text-[#53675a] hover:bg-[#f0f5ed]"}`}>
-            <Satellite size={14} /> NASA imagery
+          <button type="button" aria-pressed={mapStyle === "nasa"} onClick={() => setMapStyle("nasa")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8a23a] ${mapStyle === "nasa" ? "bg-[#174b38] text-white shadow-sm" : "text-[#53675a] hover:bg-[#f0f5ed]"}`}>
+            <Satellite size={14} /> NASA overview
           </button>
         </div>
       </div>
       {mapError && <div role="alert" className="flex items-start gap-2 border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><AlertTriangle size={17} className="mt-0.5 shrink-0" /><span>{mapError}</span><button type="button" className="ml-auto underline" onClick={retryMap}>Retry</button></div>}
       {tileError && !mapError && <div role="status" className="px-4 py-2 text-xs text-amber-800 bg-amber-50">Some map tiles did not load. Other map features remain available. <button type="button" onClick={retryMap} className="ml-1 underline">Retry tiles</button></div>}
+      {mapStyle === "nasa" && <p className="border-t border-[#e7ede4] bg-[#f8faf7] px-4 py-2 text-[11px] leading-relaxed text-[#647468]">NASA VIIRS imagery is a regional Earth-observation layer with native zoom up to level 9; it is not parcel-level satellite photography. Return to Clean or Street for nearby amenity inspection.</p>}
       <div ref={mapContainerRef} className="infracis-map-canvas h-[360px] w-full sm:h-[440px]" />
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e7ede4] px-4 py-3 text-[11px] text-[#718275] sm:px-5">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
