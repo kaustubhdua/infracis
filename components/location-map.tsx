@@ -276,7 +276,7 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         </div>
         {onPickCoordinates && <span>Click the map to investigate another point</span>}
       </div>
-      {mapStyle === "satellite" && <p className="border-t border-[#edf1e9] px-4 py-2 text-[10px] text-[#819084]">NASA GIBS satellite imagery · Date: {NASA_TILE_DATE} · imagery availability varies by layer and location.</p>}
+      {mapStyle === "nasa" && <p className="border-t border-[#edf1e9] px-4 py-2 text-[10px] text-[#819084]">NASA GIBS regional imagery · Date: {NASA_TILE_DATE} · imagery availability varies by layer and location.</p>}
     </section>
   );
 }
