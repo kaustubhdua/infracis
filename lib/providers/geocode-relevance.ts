@@ -51,7 +51,7 @@ function meaningfulTokens(value: string): string[] {
   return [...new Set(normalize(value).split(" ").filter((token) => token.length > 1 && !GENERIC_TOKENS.has(token)))];
 }
 
-const ADDRESS_DETAIL_TERMS = /\\b(?:road|rd|street|st|lane|ln|marg|highway|avenue|ave|drive|dr|plot|flat|house|building|tower|apartment|apt|floor|pin\\s+code|postal\\s+code)\\b/i;
+const ADDRESS_DETAIL_TERMS = /\b(?:road|rd|street|st|lane|ln|marg|highway|avenue|ave|drive|dr|plot|flat|house|building|tower|apartment|apt|floor|pin\s+code|postal\s+code)\b/i;
 
 /**
  * Distinguish locality-style searches from explicit street/address or POI searches.
@@ -63,7 +63,7 @@ export function isLikelySettlementQuery(query: string): boolean {
   if (tokens.length === 0) return false;
   const hasExplicitPoiIntent = tokens.some((token) => EXPLICIT_POI_TERMS.has(token));
   const hasAddressDetails = ADDRESS_DETAIL_TERMS.test(normalize(query));
-  const hasAddressNumber = /\\d/.test(query) && !/\\b(?:sector|phase)\\s+\\d+\\b/i.test(query);
+  const hasAddressNumber = /\d/.test(query) && !/\b(?:sector|phase)\s+\d+\b/i.test(query);
   return !hasExplicitPoiIntent && !hasAddressDetails && !hasAddressNumber;
 }
 
