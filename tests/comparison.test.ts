@@ -136,11 +136,67 @@ describe("Location Comparison Engine", () => {
     expect(aqiDelta?.favoredSide).toBe("A"); // 35 vs 65 (lower is better)
   });
 
+  it("does not compare capped amenity samples as complete proximity or retail data", () => {
+    const cappedAmenities: AmenitiesSummary = {
+      ...amenitiesA,
+      resultLimitReached: true,
+      nearest: {}
+    };
+    const cappedReport = assembleLocationReport("Dense locality", locA, weatherA, airA, cappedAmenities, "2026-10-28T01:00:00Z");
+    const comp = compareLocations(cappedReport, reportB, "balanced");
+    const transitDelta = comp.deltas.find((delta) => delta.category === "Mobility");
+    const essentialsDelta = comp.deltas.find((delta) => delta.metric === "Mapped Daily Essentials Count (~1.2km)");
+
+    expect(transitDelta?.favoredSide).toBe("incomparable");
+    expect(transitDelta?.valueA).toBe("Sample capped; nearest transit unknown");
+    expect(essentialsDelta?.favoredSide).toBe("incomparable");
+    expect(essentialsDelta?.valueA).toBe("Capped sample");
+  });
+
   it("correctly identifies incomparable metrics when a location has missing data", () => {
     const reportWithoutAmenities = assembleLocationReport("Rural", locA, weatherA, airA, null, "2026-10-28T01:00:00Z");
     const comp = compareLocations(reportWithoutAmenities, reportB, "balanced");
     const transitDelta = comp.deltas.find((d) => d.category === "Mobility");
     expect(transitDelta?.favoredSide).toBe("incomparable");
     expect(transitDelta?.incomparableReason).toBeDefined();
+    expect(transitDelta?.valueA).toBe("Amenity provider unavailable");
+    const essentialsDelta = comp.deltas.find((delta) => delta.metric === "Mapped Daily Essentials Count (~1.2km)");
+    expect(essentialsDelta?.valueA).toBe("Unavailable");
+    expect(essentialsDelta?.favoredSide).toBe("incomparable");
+
   });
+  it("returns a profile-specific result from comparable evidence rather than generic advice", () => {
+    const comp = compareLocations(reportA, reportB, "family");
+    expect(comp.preferenceSummary).toContain("Family priorities result");
+    expect(comp.preferenceSummary).toContain("Location A is better supported");
+    expect(comp.preferenceSummary).toContain("A: 2, B: 0");
+    expect(comp.preferenceSummary).toContain("could not be compared");
+  });
+
+
+  it("keeps air quality visible as incomparable when either provider value is missing", () => {
+    const reportWithoutAirQuality = assembleLocationReport("Air quality unavailable", locA, weatherA, null, amenitiesA, "2026-10-28T01:00:00Z");
+    const comp = compareLocations(reportWithoutAirQuality, reportB, "balanced");
+    const aqiDelta = comp.deltas.find((delta) => delta.metric === "European Air Quality Index");
+    expect(aqiDelta).toBeDefined();
+    expect(aqiDelta?.favoredSide).toBe("incomparable");
+    expect(aqiDelta?.valueA).toBe("Unavailable from provider");
+    expect(aqiDelta?.incomparableReason).toContain("missing values are not treated as zero");
+    expect(comp.preferenceSummary).toContain("relevant metric(s) could not be compared");
+  });
+
+  it("applies the transit-first profile's heavier transit weight in the result", () => {
+    const comp = compareLocations(reportA, reportB, "transit");
+    expect(comp.preferenceSummary).toContain("weighted evidence split");
+    expect(comp.preferenceSummary).toContain("Location A is better supported");
+    expect(comp.preferenceSummary).toContain("A 100% / B 0%");
+  });
+
+  it("does not invent a quietness winner when ambient noise is not measured", () => {
+    const comp = compareLocations(reportA, reportB, "quiet");
+    expect(comp.preferenceSummary).toContain("No defensible quietness winner");
+    expect(comp.preferenceSummary).toContain("do not measure ambient noise");
+    expect(comp.preferenceSummary).toContain("not a substitute for noise measurements");
+  });
+
 });
