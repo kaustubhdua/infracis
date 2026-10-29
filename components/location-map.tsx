@@ -5,11 +5,11 @@ import type L from "leaflet";
 import { MapPin, Satellite, Map as MapIcon, AlertTriangle, Sun } from "lucide-react";
 import type { LocationData, AmenityItem } from "@/lib/types";
 import { escapeHtml } from "@/lib/escape-html";
+import { nasaGibsTileUrl, shouldFallbackFromNasaTiles } from "@/lib/nasa-gibs";
 
 const EMPTY_AMENITIES: AmenityItem[] = [];
 const OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const LIGHT_TILES = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-const NASA_LAYER = "VIIRS_SNPP_CorrectedReflectance_TrueColor";
 // Near-real-time satellite products can lag ingestion by a day or more.
 const NASA_TILE_DATE = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
@@ -25,6 +25,9 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
   const amenityLayerRef = useRef<L.LayerGroup | null>(null);
   const streetLayerRef = useRef<L.TileLayer | null>(null);
   const nasaLayerRef = useRef<L.TileLayer | null>(null);
+  const nasaTileLoadCountRef = useRef(0);
+  const nasaTileErrorCountRef = useRef(0);
+  const nasaFallbackTriggeredRef = useRef(false);
   const lightLayerRef = useRef<L.TileLayer | null>(null);
   const preNasaZoomRef = useRef<number | null>(null);
   const pickHandlerRef = useRef(onPickCoordinates);
@@ -135,15 +138,29 @@ export default function LocationMap({ location, amenities = EMPTY_AMENITIES, onP
         });
         lightLayerRef.current = light;
 
-        const nasa = leaflet.tileLayer(
-          `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${NASA_LAYER}/default/${NASA_TILE_DATE}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`,
-          {
-            attribution: '<a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA GIBS / Earthdata</a>',
-            maxZoom: 9, maxNativeZoom: 9, opacity: 1, crossOrigin: true
+        nasaTileLoadCountRef.current = 0;
+        nasaTileErrorCountRef.current = 0;
+        nasaFallbackTriggeredRef.current = false;
+        const nasa = leaflet.tileLayer(nasaGibsTileUrl(NASA_TILE_DATE), {
+          attribution: '<a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA GIBS / Earthdata</a>',
+          maxZoom: 9, maxNativeZoom: 9, opacity: 1, crossOrigin: true
+        });
+        nasa.on("tileload", () => {
+          nasaTileLoadCountRef.current += 1;
+          setTileError(false);
+        });
+        nasa.on("tileerror", () => {
+          nasaTileErrorCountRef.current += 1;
+          setTileError(true);
+          // A few empty tiles are normal at coastlines/edges; fallback only when
+          // the entire initial NASA tile set fails to load.
+          if (!nasaFallbackTriggeredRef.current &&
+              shouldFallbackFromNasaTiles(nasaTileLoadCountRef.current, nasaTileErrorCountRef.current)) {
+            nasaFallbackTriggeredRef.current = true;
+            setMapStyle("light");
+            setMapError("NASA imagery could not load for this date or connection. Switched back to the Voyager map; you can retry the satellite layer later.");
           }
-        );
-        nasa.on("tileload", () => setTileError(false));
-        nasa.on("tileerror", () => setTileError(true));
+        });
         nasaLayerRef.current = nasa;
 
         const propertyIcon = leaflet.divIcon({
