@@ -70,7 +70,7 @@ export function getNominatimSearchOptions(query: string): NominatimSearchOptions
   if (tokens.some((token) => STREET_ADDRESS_TERMS.has(token))) return { layer: "address" };
   // A standalone number is likely a house/building address, while numbered sectors
   // and phases are locality identifiers and should remain settlement searches.
-  const hasSpecificAddressNumber = /\\d/.test(query) && !/\\b(?:sector|phase)\\s+\\d+\\b/i.test(query);
+  const hasSpecificAddressNumber = /\d/.test(query) && !/\b(?:sector|phase)\s+\d+\b/i.test(query);
   if (hasSpecificAddressNumber) return { layer: "address" };
   return { layer: "address", featureType: "settlement" };
 }
