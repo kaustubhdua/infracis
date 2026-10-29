@@ -24,6 +24,7 @@ describe("provider schema validation", () => {
     expect(location.latitude).toBe(28.6139);
     expect(location.longitude).toBe(77.209);
     expect(location.boundingbox).toBeUndefined();
+    expect(location.geocodingProvider).toBe("nominatim");
     expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("layer")).toBe("address");
     expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("featureType")).toBe("settlement");
     expect(fetchMock).toHaveBeenCalledWith(
@@ -62,6 +63,7 @@ describe("provider schema validation", () => {
     expect(location.label).toContain("Saket");
     expect(location.latitude).toBe(28.524);
     expect(location.longitude).toBe(77.201);
+    expect(location.geocodingProvider).toBe("photon");
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(new URL(String(fetchMock.mock.calls[1][0])).hostname).toBe("photon.komoot.io");
     expect(location.boundingbox).toEqual([28.5, 28.55, 77.18, 77.23]);
