@@ -14,6 +14,7 @@ import MethodologyView from "@/components/methodology-view";
 import SavedReportsModal, { saveReportToStorage, exportReportJson } from "@/components/saved-reports-modal";
 import Nav from "@/components/nav";
 import DecisionBrief from "@/components/decision-brief";
+import AiInsight from "@/components/ai-insight";
 import {
   MapPin,
   ArrowRight,
@@ -279,6 +280,7 @@ export default function AnalyzeClient() {
 
                 {/* Action-first decision summary, derived only from retrieved report data */}
                 <DecisionBrief report={report} onCompare={() => setActiveTab("compare")} />
+                <AiInsight kind="location" data={report} />
 
                 {/* Interactive Map */}
                 <section>
