@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: 22
       - name: Probe real providers across Delhi NCR sample
-        run: node scripts/provider-pilot.mjs
+        run: node --experimental-strip-types scripts/provider-pilot.mjs
       - name: Upload measured pilot report
         uses: actions/upload-artifact@v4
         with:
