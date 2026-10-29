@@ -51,6 +51,21 @@ function meaningfulTokens(value: string): string[] {
   return [...new Set(normalize(value).split(" ").filter((token) => token.length > 1 && !GENERIC_TOKENS.has(token)))];
 }
 
+const ADDRESS_DETAIL_TERMS = /\\b(?:road|rd|street|st|lane|ln|marg|highway|avenue|ave|drive|dr|plot|flat|house|building|tower|apartment|apt|floor|pin\\s+code|postal\\s+code)\\b/i;
+
+/**
+ * Distinguish locality-style searches from explicit street/address or POI searches.
+ * Settlement searches use Nominatim's featureType filter to keep noisy POIs from
+ * crowding neighbourhoods out of the result list.
+ */
+export function isLikelySettlementQuery(query: string): boolean {
+  const tokens = meaningfulTokens(query);
+  if (tokens.length === 0) return false;
+  const hasExplicitPoiIntent = tokens.some((token) => EXPLICIT_POI_TERMS.has(token));
+  const hasAddressDetails = ADDRESS_DETAIL_TERMS.test(normalize(query));
+  return !hasExplicitPoiIntent && !hasAddressDetails;
+}
+
 function candidateTokens(candidate: GeocodeCandidate): Set<string> {
   const addressValues = candidate.address ? Object.values(candidate.address).filter(
     (value): value is string => typeof value === "string"
