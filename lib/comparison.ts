@@ -1,4 +1,5 @@
 import { LocationReport, ComparisonReport, PreferenceProfile } from "./types";
+import { buildComparisonVerdict } from "./comparison-verdict";
 
 function missingAmenityLabel(report: LocationReport, category: string): string {
   if (!report.amenities) return "Amenity provider unavailable";
@@ -292,6 +293,7 @@ export function compareLocations(
     locationB: reportB,
     deltas,
     preferenceSummary: summary,
-    nextSteps
+    nextSteps,
+    verdict: buildComparisonVerdict(reportA, reportB, preference)
   };
 }
