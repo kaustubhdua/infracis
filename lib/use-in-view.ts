@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
  * True once the element has come within `rootMargin` of the viewport.
  * Browsers without IntersectionObserver, and printing, show content immediately.
  */
-export function useInView<T extends Element>(rootMargin = "320px"): [React.RefObject<T>, boolean] {
+export function useInView<T extends Element>(rootMargin = "320px"): [React.RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
   const [inView, setInView] = useState(false);
 
